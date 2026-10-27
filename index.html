@@ -25,6 +25,7 @@
       <button type="button" role="tab" id="tab-tuner" aria-selected="true" aria-controls="tuner">Tuner</button>
       <button type="button" role="tab" id="tab-voice" aria-selected="false" aria-controls="voice">Voice</button>
       <button type="button" role="tab" id="tab-spectrum" aria-selected="false" aria-controls="spectrum">Spectrum</button>
+      <button type="button" role="tab" id="tab-ear" aria-selected="false" aria-controls="ear">Train</button>
     </nav>
 
     <!-- Shown before listening starts -->
@@ -167,6 +168,98 @@
         <p class="small">This shows what <em>your microphone</em> hears. Phone and laptop mics pick up very low (below ~100 Hz)
           and very high sounds less well, so those parts may look quieter than they really are.</p>
       </details>
+    </section>
+
+    <!-- ================= EAR TRAINING ================= -->
+    <section id="ear" class="card" role="tabpanel" aria-labelledby="tab-ear" hidden>
+      <div class="segmented" role="group" aria-label="Exercise">
+        <button type="button" id="ear-mode-notes" aria-pressed="true">Notes</button>
+        <button type="button" id="ear-mode-intervals" aria-pressed="false">Intervals</button>
+        <button type="button" id="ear-mode-singback" aria-pressed="false">Sing-back</button>
+      </div>
+      <p class="small ios-hint">🔈 On iPhone, check the ring/silent switch and volume if you hear nothing. Headphones help with sing-back.</p>
+
+      <!-- Guess the note -->
+      <div id="ear-notes" class="exercise">
+        <h2>Guess the note</h2>
+        <label class="field">Notes to practise
+          <select id="note-set">
+            <option value="c-major">C major scale, one octave (C4–B4, white keys)</option>
+            <option value="chromatic">All 12 notes, one octave (C4–B4)</option>
+            <option value="two-octaves">All 12 notes, two octaves (C3–B4); answer the name only</option>
+          </select>
+        </label>
+        <label class="check"><input id="note-reference" type="checkbox" checked> Play C4 first as a reference (recommended: most people need one)</label>
+        <div class="row">
+          <button id="note-play" class="primary-inline" type="button">Play a note</button>
+          <button id="note-replay" type="button" disabled>Replay</button>
+        </div>
+        <div id="note-answers" class="answers" aria-label="Your answer"></div>
+        <p id="note-feedback" class="feedback" aria-live="polite"></p>
+        <h3>Your accuracy per note</h3>
+        <table id="note-stats" class="stats"></table>
+        <button id="note-reset" type="button" class="small-button">Reset note scores</button>
+      </div>
+
+      <!-- Name the interval -->
+      <div id="ear-intervals" class="exercise" hidden>
+        <h2>Name the interval</h2>
+        <p class="small">An interval is the distance between two notes, counted in semitones (piano keys). Start with a few very different ones, then add more.</p>
+        <fieldset class="options">
+          <legend>Intervals to practise</legend>
+          <div id="interval-choices" class="interval-choices"></div>
+        </fieldset>
+        <fieldset class="options">
+          <legend>How to play them</legend>
+          <label><input type="radio" name="interval-direction" value="up" checked> Upwards (low then high)</label>
+          <label><input type="radio" name="interval-direction" value="down"> Downwards (high then low)</label>
+          <label><input type="radio" name="interval-direction" value="together"> Together (at the same time)</label>
+        </fieldset>
+        <div class="row">
+          <button id="interval-play" class="primary-inline" type="button">Play an interval</button>
+          <button id="interval-replay" type="button" disabled>Replay</button>
+        </div>
+        <div id="interval-answers" class="answers" aria-label="Your answer"></div>
+        <p id="interval-feedback" class="feedback" aria-live="polite"></p>
+        <h3>Your accuracy per interval</h3>
+        <table id="interval-stats" class="stats"></table>
+        <button id="interval-reset" type="button" class="small-button">Reset interval scores</button>
+      </div>
+
+      <!-- Sing it back -->
+      <div id="ear-singback" class="exercise" hidden>
+        <h2>Sing it back</h2>
+        <p class="small">The app plays a note, then listens while you sing it and shows how many cents off you were. It doesn't listen while its own note is playing.</p>
+        <label class="field">Target notes for
+          <select id="singback-range">
+            <option value="low">Low voice (G2–D4)</option>
+            <option value="mid" selected>Mid voice (C3–G4)</option>
+            <option value="high">High voice (A3–E5)</option>
+          </select>
+        </label>
+        <div id="singback-need-mic" class="need-mic">
+          <p>Sing-back needs the microphone.</p>
+          <button id="singback-start-mic" type="button" class="primary-inline">Start microphone</button>
+        </div>
+        <div class="row">
+          <button id="singback-play" class="primary-inline" type="button" disabled>Play target note</button>
+          <button id="singback-replay" type="button" disabled>Play again</button>
+        </div>
+        <p id="singback-target" class="singback-target"></p>
+        <div class="needle-meter singback-meter" aria-hidden="true">
+          <div class="in-tune-zone"></div>
+          <div class="tick centre" style="left: 50%"></div>
+          <div id="singback-bar" class="needle" hidden></div>
+        </div>
+        <div class="needle-labels" aria-hidden="true"><span>−100 flat</span><span>0</span><span>sharp +100</span></div>
+        <p id="singback-live" class="feedback" aria-live="polite"></p>
+        <p id="singback-result" class="feedback strong" aria-live="polite"></p>
+        <h3>Your results</h3>
+        <p id="singback-stats" class="small"></p>
+        <ol id="singback-history" class="small"></ol>
+        <button id="singback-reset" type="button" class="small-button">Reset sing-back results</button>
+        <p class="small">Scores are saved on this device only (never any audio). "Excellent / Good / Close" are friendly labels for within 10 / 25 / 50 cents, not a standard.</p>
+      </div>
     </section>
 
     <!-- ============ shared while listening ============ -->

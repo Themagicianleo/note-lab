@@ -4,11 +4,13 @@
 //   Start button → microphone → (about 60 times a second):
 //     read samples → PitchTracker (level, volume gate, YIN, smoothing) → active view
 //
-// Three modes (tabs), each with its own settings:
+// Four modes (tabs), each with its own settings:
 //   Tuner    – instruments; a standard or a low range
 //   Voice    – a voice range preset, adjustable volume threshold and smoothing,
 //              pitch graph and range finder
 //   Spectrum – no pitch detection; an FFT shows how loud each frequency is
+//   Train    – ear training. Notes and intervals only PLAY sounds (no mic);
+//              sing-back plays a note, then listens with the voice settings
 // ------------------------------------------------------------
 
 import { startMicrophone, checkMicrophoneSupport } from './audio-input.js';
@@ -24,6 +26,11 @@ import { createVoiceView } from './voice-view.js';
 import { createLevelMeter } from './level-meter.js';
 import { createPitchGraph } from './pitch-graph.js';
 import { createSpectrumView } from './spectrum-view.js';
+import { createTonePlayer } from './tone-player.js';
+import { createNoteTrainer } from './note-trainer-view.js';
+import { createIntervalTrainer } from './interval-trainer-view.js';
+import { createSingBack } from './singback-view.js';
+import { loadJSON, saveJSON } from './storage.js';
 
 // ---------- settings (a settings page comes in Phase 6) ----------
 
@@ -51,6 +58,11 @@ function currentConfig() {
     return { ...TUNER_RANGES[settings.tuner.range], gateDb: DEFAULT_GATE_DB, smoothingLevel: DEFAULT_SMOOTHING_LEVEL };
   }
   const v = settings.voice;
+  if (activeTab === 'ear') {
+    // Sing-back: the voice settings, with the range of the chosen target notes.
+    const preset = VOICE_PRESETS[singBack ? singBack.rangeKey() : 'mid'];
+    return { minHz: preset.minHz, maxHz: preset.maxHz, windowSize: 2048, gateDb: v.gateDb, smoothingLevel: v.smoothingLevel };
+  }
   const range = v.preset === 'custom' ? { minHz: v.minHz, maxHz: v.maxHz } : VOICE_PRESETS[v.preset];
   return { minHz: range.minHz, maxHz: range.maxHz, windowSize: 2048, gateDb: v.gateDb, smoothingLevel: v.smoothingLevel };
 }
@@ -67,8 +79,8 @@ const startButton = byId('start-button');
 const stopButton = byId('stop-button');
 const listeningBar = byId('listening-bar');
 const message = byId('message');
-const tabs = { tuner: byId('tab-tuner'), voice: byId('tab-voice'), spectrum: byId('tab-spectrum') };
-const panels = { tuner: byId('tuner'), voice: byId('voice'), spectrum: byId('spectrum') };
+const tabs = { tuner: byId('tab-tuner'), voice: byId('tab-voice'), spectrum: byId('tab-spectrum'), ear: byId('tab-ear') };
+const panels = { tuner: byId('tuner'), voice: byId('voice'), spectrum: byId('spectrum'), ear: byId('ear') };
 
 const tunerView = createTunerView();
 const levelMeter = createLevelMeter();
@@ -99,6 +111,36 @@ let lastReading = 0;
 let buffer = null;
 const tracker = new PitchTracker();
 
+// ---------- ear training ----------
+// Scores are saved on this device (never audio): see js/storage.js.
+const SCORES_KEY = 'note-lab-scores-v1';
+const scores = loadJSON(SCORES_KEY, {});
+const saveScores = (part, value) => { scores[part] = value; saveJSON(SCORES_KEY, scores); };
+const player = createTonePlayer();
+const trainerOptions = { player, getA4: () => settings.a4, isListening: () => Boolean(mic) };
+createNoteTrainer({ ...trainerOptions, savedScores: scores.notes, onScoresChanged: (v) => saveScores('notes', v) });
+createIntervalTrainer({ ...trainerOptions, savedScores: scores.intervals, onScoresChanged: (v) => saveScores('intervals', v) });
+const singBack = createSingBack({
+  ...trainerOptions,
+  startListening: () => startListening(),
+  savedResults: scores.singback,
+  onResultsChanged: (v) => saveScores('singback', v),
+});
+byId('singback-range').addEventListener('change', () => applyConfig());
+
+const exercises = { notes: byId('ear-notes'), intervals: byId('ear-intervals'), singback: byId('ear-singback') };
+let activeExercise = 'notes';
+function showExercise(name) {
+  activeExercise = name;
+  for (const [key, panel] of Object.entries(exercises)) {
+    panel.hidden = key !== name;
+    byId(`ear-mode-${key}`).setAttribute('aria-pressed', String(key === name));
+  }
+  singBack.refresh();
+}
+for (const key of Object.keys(exercises)) byId(`ear-mode-${key}`).addEventListener('click', () => showExercise(key));
+
+
 function showMessage(text) {
   message.textContent = text;
   message.hidden = !text;
@@ -126,17 +168,23 @@ function applyConfig() {
 
 // ---------- tabs ----------
 
+// Show a tab. Every tab except Train needs the microphone to be on; the
+// Train tab works without it (only sing-back asks for it).
 function showTab(name) {
   activeTab = name;
   for (const key of Object.keys(tabs)) {
     tabs[key].setAttribute('aria-selected', String(key === name));
-    panels[key].hidden = !mic || key !== name;
+    panels[key].hidden = key !== name || (!mic && key !== 'ear');
   }
+  startPanel.hidden = Boolean(mic) || name === 'ear';
+  listeningBar.hidden = !mic;
+  singBack.refresh();
   applyConfig();
 }
 tabs.tuner.addEventListener('click', () => showTab('tuner'));
 tabs.voice.addEventListener('click', () => showTab('voice'));
 tabs.spectrum.addEventListener('click', () => showTab('spectrum'));
+tabs.ear.addEventListener('click', () => showTab('ear'));
 
 document.querySelectorAll('input[name="tuner-range"]').forEach((radio) =>
   radio.addEventListener('change', () => { settings.tuner.range = radio.value; applyConfig(); }));
@@ -147,7 +195,12 @@ document.querySelectorAll('input[name="tuner-range"]').forEach((radio) =>
 const problem = checkMicrophoneSupport();
 if (problem) showMessage(problem.message);
 
-startButton.addEventListener('click', async () => {
+startButton.addEventListener('click', () => startListening());
+
+// Start the microphone. Must run inside a tap (Start button, or sing-back's
+// "Start microphone" button), because iPhone Safari requires that.
+async function startListening() {
+  if (mic) return;
   showMessage('');
   startButton.disabled = true;
   startButton.textContent = 'Waiting for permission…';
@@ -167,11 +220,9 @@ startButton.addEventListener('click', async () => {
     return;
   }
 
-  startPanel.hidden = true;
-  listeningBar.hidden = false;
   showTab(activeTab);
   frameRequest = requestAnimationFrame(tick);
-});
+}
 
 stopButton.addEventListener('click', () => stopListening());
 
@@ -181,13 +232,9 @@ function stopListening() {
   if (mic) mic.stop();
   mic = null;
   tracker.reset();
-  listeningBar.hidden = true;
-  panels.tuner.hidden = true;
-  panels.voice.hidden = true;
-  panels.spectrum.hidden = true;
-  startPanel.hidden = false;
   startButton.disabled = false;
   startButton.textContent = 'Start listening';
+  showTab(activeTab); // hides the panels that need the microphone
 }
 
 // ---------- the main loop ----------
@@ -216,6 +263,8 @@ function tick(now) {
   levelMeter.update(result.levelDb);
   if (activeTab === 'tuner') {
     tunerView.update({ note, reason: result.reason });
+  } else if (activeTab === 'ear') {
+    if (activeExercise === 'singback') singBack.onReading(result.smoothed, now);
   } else {
     voiceView.update({ note, reason: result.reason, confidence: result.confidence });
     graph.add(now, result.smoothed, result.frequency);
@@ -242,4 +291,4 @@ document.addEventListener('visibilitychange', async () => {
   }
 });
 
-applyConfig();
+showTab(activeTab);
