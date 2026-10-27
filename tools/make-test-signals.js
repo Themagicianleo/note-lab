@@ -168,14 +168,15 @@ function normalise(samples, peakDb) {
   return samples.map((s) => s * gain);
 }
 
-// The truth file: f0 every 10 ms, or 0 where the tone is too quiet to count
-// (below 10% of its full level, or less than 20 ms into a fade).
+// The truth file: f0 every 10 ms, or 0 where the tone is silent or almost
+// silent (below 1% of its full level, i.e. 40 dB down, e.g. at the very
+// start of a fade-in).
 function truthCsv(duration, f0At, levelAt) {
   const rows = ['time_s,f0_hz'];
   const frames = Math.round(duration / TRUTH_STEP);
   for (let frame = 0; frame <= frames; frame++) {
     const t = frame * TRUTH_STEP; // counting whole frames avoids rounding drift
-    const voiced = levelAt(t) >= 0.1;
+    const voiced = levelAt(t) >= 0.01;
     rows.push(`${t.toFixed(2)},${voiced ? f0At(t).toFixed(3) : 0}`);
   }
   return rows.join('\n') + '\n';
