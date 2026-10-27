@@ -1,0 +1,173 @@
+{
+  "sampleRate": 48000,
+  "signals": [
+    {
+      "file": "sine-A4.wav",
+      "truth": "sine-A4.csv",
+      "category": "clean",
+      "description": "Pure sine wave at 440.00 Hz.",
+      "durationSeconds": 2,
+      "peakDbfs": -6
+    },
+    {
+      "file": "sine-C4.wav",
+      "truth": "sine-C4.csv",
+      "category": "clean",
+      "description": "Pure sine wave at 261.63 Hz.",
+      "durationSeconds": 2,
+      "peakDbfs": -6
+    },
+    {
+      "file": "sine-E4-330Hz.wav",
+      "truth": "sine-E4-330Hz.csv",
+      "category": "clean",
+      "description": "Pure sine wave at 330.00 Hz.",
+      "durationSeconds": 2,
+      "peakDbfs": -6
+    },
+    {
+      "file": "bright-A3.wav",
+      "truth": "bright-A3.csv",
+      "category": "clean",
+      "description": "Buzzy tone at 220 Hz with many harmonics (like a sawtooth).",
+      "durationSeconds": 2,
+      "peakDbfs": -6
+    },
+    {
+      "file": "weak-fundamental-A2.wav",
+      "truth": "weak-fundamental-A2.csv",
+      "category": "octave-trap",
+      "description": "110 Hz tone whose fundamental is 20 dB quieter than its 2nd harmonic. Easy to misread as A3.",
+      "durationSeconds": 2,
+      "peakDbfs": -6
+    },
+    {
+      "file": "plucked-E2.wav",
+      "truth": "plucked-E2.csv",
+      "category": "low",
+      "description": "Guitar-like low E (82.41 Hz) that fades away after being plucked.",
+      "durationSeconds": 2.5,
+      "peakDbfs": -6
+    },
+    {
+      "file": "bass-E1.wav",
+      "truth": "bass-E1.csv",
+      "category": "low",
+      "description": "Very low bass E (41.20 Hz), held steady.",
+      "durationSeconds": 3,
+      "peakDbfs": -6
+    },
+    {
+      "file": "voice-low-G2-vibrato.wav",
+      "truth": "voice-low-G2-vibrato.csv",
+      "category": "voice",
+      "description": "Low \"ah\" around G2 (98 Hz) with ±30 cent vibrato.",
+      "durationSeconds": 2.5,
+      "peakDbfs": -6
+    },
+    {
+      "file": "voice-mid-A3-vibrato.wav",
+      "truth": "voice-mid-A3-vibrato.csv",
+      "category": "voice",
+      "description": "Mid \"ah\" around A3 (220 Hz) with ±30 cent vibrato.",
+      "durationSeconds": 2.5,
+      "peakDbfs": -6
+    },
+    {
+      "file": "voice-high-A4-vibrato.wav",
+      "truth": "voice-high-A4-vibrato.csv",
+      "category": "voice",
+      "description": "High \"ah\" around A4 (440 Hz) with ±30 cent vibrato.",
+      "durationSeconds": 2.5,
+      "peakDbfs": -6
+    },
+    {
+      "file": "voice-glide-C3-C4.wav",
+      "truth": "voice-glide-C3-C4.csv",
+      "category": "voice",
+      "description": "Sung slide from C3 up to C4 over 2 seconds.",
+      "durationSeconds": 3,
+      "peakDbfs": -6
+    },
+    {
+      "file": "voice-scale-C4-G4.wav",
+      "truth": "voice-scale-C4-G4.csv",
+      "category": "voice",
+      "description": "Five sung notes C4 D4 E4 F4 G4, 0.5 s each with short gaps. For the range finder.",
+      "durationSeconds": 3,
+      "peakDbfs": -6
+    },
+    {
+      "file": "speech-like.wav",
+      "truth": "speech-like.csv",
+      "category": "voice",
+      "description": "Speech-like pattern: short voiced syllables with falling pitch (about 140→110 Hz), \"s\" hiss between them, and pauses.",
+      "durationSeconds": 3,
+      "peakDbfs": -6
+    },
+    {
+      "file": "breathy-A3.wav",
+      "truth": "breathy-A3.csv",
+      "category": "noisy",
+      "description": "Breathy \"ah\" at 220 Hz: as much breath hiss as voice (SNR 0 dB).",
+      "durationSeconds": 2,
+      "peakDbfs": -6
+    },
+    {
+      "file": "room-noise-A4-snr20.wav",
+      "truth": "room-noise-A4-snr20.csv",
+      "category": "noisy",
+      "description": "\"Ah\" at 440 Hz in room noise, signal-to-noise ratio 20 dB.",
+      "durationSeconds": 2,
+      "peakDbfs": -6
+    },
+    {
+      "file": "room-noise-A4-snr10.wav",
+      "truth": "room-noise-A4-snr10.csv",
+      "category": "noisy",
+      "description": "\"Ah\" at 440 Hz in room noise, signal-to-noise ratio 10 dB.",
+      "durationSeconds": 2,
+      "peakDbfs": -6
+    },
+    {
+      "file": "room-noise-A4-snr0.wav",
+      "truth": "room-noise-A4-snr0.csv",
+      "category": "noisy",
+      "description": "\"Ah\" at 440 Hz in room noise, signal-to-noise ratio 0 dB (noise as loud as the voice).",
+      "durationSeconds": 2,
+      "peakDbfs": -6
+    },
+    {
+      "file": "quiet-A4.wav",
+      "truth": "quiet-A4.csv",
+      "category": "quiet",
+      "description": "Sine at 440 Hz, very quiet (peak −50 dBFS). Tests the volume threshold.",
+      "durationSeconds": 2,
+      "peakDbfs": -50
+    },
+    {
+      "file": "whisper-noise.wav",
+      "truth": "whisper-noise.csv",
+      "category": "no-pitch",
+      "description": "Whisper-like hiss with no pitch.",
+      "durationSeconds": 2,
+      "peakDbfs": -12
+    },
+    {
+      "file": "room-noise.wav",
+      "truth": "room-noise.csv",
+      "category": "no-pitch",
+      "description": "Room rumble and hiss with no pitch.",
+      "durationSeconds": 2,
+      "peakDbfs": -20
+    },
+    {
+      "file": "near-silence.wav",
+      "truth": "near-silence.csv",
+      "category": "no-pitch",
+      "description": "Almost silent: faint hiss at about −80 dBFS.",
+      "durationSeconds": 2,
+      "peakDbfs": -80
+    }
+  ]
+}
