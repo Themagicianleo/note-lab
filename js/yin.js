@@ -27,7 +27,10 @@
 export const YIN_DEFAULTS = {
   minHz: 50,        // lowest pitch to look for
   maxHz: 1500,      // highest pitch to look for
-  threshold: 0.15,  // a dip must go below this to count (the YIN paper suggests 0.10–0.15)
+  // A dip must go below this to count. The YIN paper uses 0.10. On our test
+  // signals 0.15 read a sung E4 as E5 (its 2nd harmonic was ~6× louder than
+  // the fundamental); 0.10 fixed that and found pitch just as often elsewhere.
+  threshold: 0.10,
 };
 
 // Detect the pitch of `samples` (an array of numbers between −1 and +1).
