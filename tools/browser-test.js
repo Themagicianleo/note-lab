@@ -196,6 +196,75 @@ try {
     await browser.close();
   }
 
+  // 1f. Ear training: notes and intervals (no microphone needed).
+  {
+    const { browser, page, errors } = await openPage([], []);
+    // Record every frequency the page plays, so the test knows the right answer.
+    await page.evaluate(() => {
+      window.__played = [];
+      const original = AudioContext.prototype.createOscillator;
+      AudioContext.prototype.createOscillator = function () {
+        const osc = original.call(this);
+        const start = osc.start.bind(osc);
+        osc.start = (when) => { window.__played.push(osc.frequency.value); start(when); };
+        return osc;
+      };
+    });
+    const nameOf = (hz) => ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'][((Math.round(69 + 12 * Math.log2(hz / 440)) % 12) + 12) % 12];
+
+    await page.click('#tab-ear');
+    report(await page.isVisible('#ear-notes') && !(await page.isVisible('#start-panel')), 'train: opens without the microphone');
+
+    await page.click('#note-play');
+    let played = await page.evaluate(() => window.__played);
+    report(Math.abs(played[0] - 261.63) < 0.01 && played.length === 2, 'train: plays C4 reference, then the note', JSON.stringify(played.map((f) => f.toFixed(1))));
+    await page.click(`#note-answers button[data-key="${nameOf(played[1])}"]`);
+    const right = await page.textContent('#note-feedback');
+    await page.evaluate(() => { window.__played = []; });
+    await page.click('#note-play');
+    played = await page.evaluate(() => window.__played);
+    const wrongName = nameOf(played[1]) === 'C' ? 'D' : 'C';
+    await page.click(`#note-answers button[data-key="${wrongName}"]`);
+    const wrong = await page.textContent('#note-feedback');
+    const total = await page.textContent('#note-stats tfoot');
+    report(right.startsWith('Correct') && wrong.startsWith('Not quite') && total.includes('1 / 2'),
+      'train: note answers are scored', `"${right.slice(0, 30)}…" / "${wrong.slice(0, 40)}…" / total ${total.trim()}`);
+
+    await page.click('#ear-mode-intervals');
+    await page.evaluate(() => { window.__played = []; });
+    await page.click('#interval-play');
+    played = await page.evaluate(() => window.__played);
+    const semitones = Math.round(Math.abs(12 * Math.log2(played[1] / played[0])));
+    await page.click(`#interval-answers button[data-key="${semitones}"]`);
+    const intervalFeedback = await page.textContent('#interval-feedback');
+    report(intervalFeedback.startsWith('Correct') && intervalFeedback.includes('Memory aid'),
+      'train: interval answer is scored', `${semitones} semitones → "${intervalFeedback.slice(0, 60)}…"`);
+
+    // Scores are saved on the device and come back after a reload.
+    await page.reload();
+    await page.click('#tab-ear');
+    const saved = await page.textContent('#note-stats tfoot');
+    report(saved.includes('1 / 2') && !errors.length, 'train: scores survive a reload', `${saved.trim()}${errors.length ? ` errors: ${errors}` : ''}`);
+    await browser.close();
+  }
+
+  // 1g. Sing-back: target fixed to C4, the "microphone" sings a C4 sine (and E4 at 330 Hz = +2 cents).
+  for (const [file, targetIndex, expected] of [['sine-C4.wav', 7, /^Excellent.*\(0 cents from C4\)/], ['sine-E4-330Hz.wav', 9, /^Excellent.*\(\+2 cents from E4\)/]]) {
+    const { browser, page, errors } = await fakeMic(file);
+    await page.click('#tab-ear');
+    await page.click('#ear-mode-singback');
+    report(await page.isVisible('#singback-need-mic') && await page.isDisabled('#singback-play'), `sing-back (${file}): asks for the microphone first`);
+    await page.click('#singback-start-mic');
+    await page.waitForSelector('#singback-play:not([disabled])', { timeout: 5000 });
+    await page.evaluate((i) => { Math.random = () => (i + 0.5) / 12; }, targetIndex); // mid targets: C3 D3 E3 F3 G3 A3 B3 C4 D4 E4 F4 G4
+    await page.click('#singback-play');
+    await page.waitForFunction(() => document.getElementById('singback-result').textContent.length > 0, null, { timeout: 12000 });
+    const result = await page.textContent('#singback-result');
+    report(expected.test(result) && !errors.length, `sing-back (${file}): scored`, `"${result}"`);
+    if (file === 'sine-E4-330Hz.wav') await page.locator('#ear').screenshot({ path: `${ROOT}docs/screenshots/singback.png` });
+    await browser.close();
+  }
+
   // 2. Permission denied. Headless Chromium has no permission prompt to refuse, so we
   //    make getUserMedia fail with the same error a real "Don't Allow" gives (NotAllowedError).
   {
