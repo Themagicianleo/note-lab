@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>How Note Lab works</title>
+  <meta name="description" content="A beginner's guide to frequency, pitch, notes, octaves and cents, and how Note Lab detects them.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="theme-color" content="#3157d5">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="module">
+    import { registerServiceWorker } from './js/register-sw.js';
+    registerServiceWorker(null);
+  </script>
+</head>
+<body>
+  <header>
+    <h1>How it works</h1>
+    <p class="tagline">A beginner's guide to sound, notes and what Note Lab measures.</p>
+    <nav class="header-links" aria-label="Back"><a href="./">← Back to Note Lab</a></nav>
+  </header>
+
+  <main class="guide">
+    <section class="card">
+      <h2>1. Sound and frequency</h2>
+      <p>
+        Sound is air vibrating: pushed back and forth very quickly, like a guitar string or your vocal
+        cords moving. <strong>Frequency</strong> is how many times per second that vibration repeats.
+        It's measured in <strong>hertz (Hz)</strong>: 440 Hz means 440 vibrations every second.
+      </p>
+      <p>Humans hear roughly from 20 Hz (a very deep rumble) to 20 000 Hz (a thin, high hiss), and less of the top end as we get older.</p>
+    </section>
+
+    <section class="card">
+      <h2>2. Pitch</h2>
+      <p>
+        <strong>Pitch</strong> is how high or low a sound <em>feels</em> to us. Faster vibration = higher pitch.
+        For a single musical note, the pitch you hear matches its lowest repeating frequency, the
+        <strong>fundamental</strong>. Not every sound has a pitch: a whisper, the "sss" in "sun" or wind noise
+        don't repeat regularly, so there's no note to find. That's when Note Lab says <em>"no clear pitch"</em>.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>3. Notes, semitones and octaves</h2>
+      <p>
+        Western music uses 12 note names that repeat: <strong>C, C#, D, D#, E, F, F#, G, G#, A, A#, B</strong>.
+        Each step is a <strong>semitone</strong> (one piano key, white or black). C# ("C sharp") is the
+        black key just above C. It can also be called D♭ ("D flat").
+      </p>
+      <p>
+        An <strong>octave</strong> is 12 semitones, and it <strong>doubles the frequency</strong>. Notes an
+        octave apart sound "the same, but higher", so they get the same name. The number after the name says
+        which octave: <strong>A4</strong> is the A above middle C, <strong>A3</strong> is one octave lower.
+      </p>
+      <table class="stats guide-table">
+        <thead><tr><th scope="col">Note</th><th scope="col">Frequency</th></tr></thead>
+        <tbody>
+          <tr><td>A2</td><td>110 Hz</td></tr>
+          <tr><td>A3</td><td>220 Hz</td></tr>
+          <tr><td>A4</td><td>440 Hz</td></tr>
+          <tr><td>A5</td><td>880 Hz</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Middle C is <strong>C4</strong> (about 261.63 Hz). Octave numbers go up at each C, so B3 is just below C4.</p>
+    </section>
+
+    <section class="card">
+      <h2>4. Cents: how in tune you are</h2>
+      <p>
+        A <strong>cent</strong> is one hundredth of a semitone. "+12 cents" means a little sharp (too high);
+        "−20 cents" means a little flat (too low). ±50 cents is the furthest you can be from a note before you're
+        closer to the next one. Many people start to notice a difference of roughly 5–25 cents, depending on the sound
+        and on practice.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>5. The formula (and a worked example)</h2>
+      <p>Note Lab uses the standard "equal temperament" formula, with <strong>A4 = 440 Hz</strong> as the reference (you can change it in Settings):</p>
+      <pre class="formula">note number n = 69 + 12 × log2(frequency ÷ 440)
+nearest note m = round(n)
+cents          = 100 × (n − m)
+frequency      = 440 × 2^((m − 69) ÷ 12)</pre>
+      <p class="small">"Note number" counts piano keys: A4 = 69, middle C = 60. log2 means "how many times do I double 1 to get this number".</p>
+      <p><strong>Example: what note is 330 Hz?</strong></p>
+      <ol>
+        <li>330 ÷ 440 = 0.75</li>
+        <li>log2(0.75) = −0.41504 (going down from 1 to 0.75 is about 0.42 of a "halving")</li>
+        <li>× 12 = −4.98045 semitones below A4</li>
+        <li>n = 69 − 4.98045 = <strong>64.01955</strong></li>
+        <li>Nearest note: 64. That's 5 semitones below A4, which is <strong>E4</strong></li>
+        <li>Cents: 100 × 0.01955 = <strong>+2 cents</strong> (very slightly sharp)</li>
+      </ol>
+      <p>So Note Lab shows <strong>E4 · 330.0 Hz · +2 cents</strong>. A perfectly tuned E4 would be 440 × 2^(−5/12) = 329.63 Hz.</p>
+    </section>
+
+    <section class="card">
+      <h2>6. Harmonics: why one note is many frequencies</h2>
+      <p>
+        A real note isn't one pure frequency. Alongside the fundamental there are quieter <strong>harmonics</strong>
+        at 2×, 3×, 4×… that frequency. For A3 (220 Hz): 440, 660, 880 Hz and so on. How loud each harmonic is gives
+        an instrument or voice its <strong>tone colour</strong> (timbre). That's why a piano and a flute playing the same note sound different.
+      </p>
+      <p>
+        You can see harmonics in the <strong>Spectrum</strong> tab. Surprisingly, the <em>loudest</em> peak is
+        often a harmonic, not the note you hear. Vowels boost certain regions (called formants), so a low "ah"
+        can be loudest around 700 Hz. That's why Note Lab doesn't just pick the loudest frequency.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>7. How Note Lab finds the pitch</h2>
+      <p>
+        About 60 times a second, Note Lab takes the latest ~0.04 seconds of sound from the microphone and uses a
+        method called <strong>YIN</strong>. In plain words: a pitched sound repeats itself, so YIN slides a copy
+        of the sound along the original and looks for the <em>shortest</em> shift where the two match almost
+        perfectly. That shift is one vibration, and frequency = samples per second ÷ samples per vibration.
+      </p>
+      <ul>
+        <li><strong>Volume threshold:</strong> very quiet sound is ignored, so background hiss doesn't make random notes.</li>
+        <li><strong>Clarity check:</strong> if the sound doesn't repeat clearly enough (breath, consonants, noise), it says "no clear pitch" instead of guessing.</li>
+        <li><strong>Range:</strong> in Voice mode it only looks between the lowest and highest pitch of your chosen voice range, which rules out impossible answers such as an octave too low.</li>
+        <li><strong>Smoothing:</strong> it shows the middle value (median) of the last few readings so the display doesn't flicker. More smoothing = steadier but slower.</li>
+      </ul>
+      <p class="small">Measured accuracy and known weak spots are listed in the project README. Most measurements so far use computer-generated test sounds, which are easier than real voices.</p>
+    </section>
+
+    <section class="card">
+      <h2>8. The two kinds of "dB"</h2>
+      <p>
+        <strong>Decibels (dB)</strong> compare loudness on a scale where every 20 dB is 10× in amplitude.
+        Note Lab shows <strong>dBFS</strong>, "decibels relative to full scale": <strong>0 dBFS</strong> is the
+        loudest sound the microphone input can handle, and everything else is negative (−20, −40, …).
+      </p>
+      <p>
+        This is <em>not</em> the "dB" of a sound level meter (like "a conversation is about 60 dB"). That needs a
+        calibrated microphone. A phone's microphone isn't calibrated, and the phone may adjust its own sensitivity.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>9. What Note Lab can't do (yet)</h2>
+      <ul>
+        <li><strong>Chords:</strong> it follows one note at a time. With several notes at once, the result can't be trusted.</li>
+        <li><strong>Octave mistakes</strong> still happen sometimes, especially with rough or very breathy voices.</li>
+        <li><strong>Very low notes</strong> (below about 50 Hz) need the tuner's "Low" range, which reacts a little slower.</li>
+        <li><strong>Noisy rooms</strong> make "no clear pitch" more common.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>10. Privacy</h2>
+      <p>
+        All sound is processed on your device, inside the browser. Microphone audio is never recorded, stored,
+        uploaded or sent anywhere. Only your settings and training scores are saved, in this browser, so they're
+        there next time.
+      </p>
+    </section>
+
+    <section class="card small">
+      <h2>Quick glossary</h2>
+      <dl class="glossary">
+        <dt>Hz (hertz)</dt><dd>vibrations per second</dd>
+        <dt>Fundamental</dt><dd>the lowest repeating frequency of a note; sets its pitch</dd>
+        <dt>Harmonic</dt><dd>a quieter frequency at a whole-number multiple of the fundamental</dd>
+        <dt>Semitone</dt><dd>one piano key; 1/12 of an octave</dd>
+        <dt>Octave</dt><dd>double the frequency; same note name</dd>
+        <dt>Cent</dt><dd>1/100 of a semitone</dd>
+        <dt>Interval</dt><dd>the distance between two notes, e.g. a perfect 5th = 7 semitones</dd>
+        <dt>Sharp / flat</dt><dd>a bit too high / a bit too low (or the black-key names, C# / D♭)</dd>
+        <dt>dBFS</dt><dd>level compared with the loudest the input can handle (0 dBFS)</dd>
+        <dt>EQ</dt><dd>equaliser: turning ranges of frequencies up or down</dd>
+      </dl>
+    </section>
+  </main>
+
+  <footer class="small"><a href="./">← Back to Note Lab</a></footer>
+</body>
+</html>
