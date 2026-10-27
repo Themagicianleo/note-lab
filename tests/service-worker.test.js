@@ -1,0 +1,33 @@
+// Checks that sw.js saves every file the app needs for offline use, and only
+// files that exist. (Forgetting a new file here would break offline use.)
+
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
+
+const root = new URL('../', import.meta.url).pathname;
+const sw = readFileSync(`${root}sw.js`, 'utf8');
+const listed = [...sw.match(/const FILES = \[([\s\S]*?)\];/)[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+
+test('every app file is in the offline list', () => {
+  const appFiles = [
+    'index.html', 'how-it-works.html', 'manifest.json', 'css/style.css',
+    ...readdirSync(`${root}js`).filter((f) => f.endsWith('.js')).map((f) => `js/${f}`),
+    ...readdirSync(`${root}icons`).map((f) => `icons/${f}`),
+  ];
+  for (const file of appFiles) assert.ok(listed.includes(file), `${file} is missing from FILES in sw.js`);
+});
+
+test('every file in the offline list exists', () => {
+  for (const file of listed.filter((f) => f !== './')) assert.ok(existsSync(`${root}${file}`), `${file} is listed in sw.js but doesn't exist`);
+});
+
+test('manifest points at existing icons and uses relative paths (works on GitHub Pages)', () => {
+  const manifest = JSON.parse(readFileSync(`${root}manifest.json`, 'utf8'));
+  assert.equal(manifest.start_url, './');
+  assert.equal(manifest.display, 'standalone');
+  for (const icon of manifest.icons) {
+    assert.ok(!icon.src.startsWith('/'), `${icon.src} should be relative`);
+    assert.ok(existsSync(`${root}${icon.src}`), `${icon.src} doesn't exist`);
+  }
+});
