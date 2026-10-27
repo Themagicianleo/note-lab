@@ -242,3 +242,20 @@ footer { padding-top: 8px; padding-bottom: 24px; text-align: center; }
 .range-results dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
 .voice-settings { margin-top: 16px; }
 .voice-settings summary { font-weight: 600; cursor: pointer; padding: 6px 0; }
+
+/* --- spectrum --- */
+.spectrum-chart {
+  display: block;
+  width: 100%;
+  height: 280px;
+  border-radius: 8px;
+  touch-action: none; /* let a finger slide across the chart without scrolling the page */
+}
+.spectrum-pointer { min-height: 3em; margin: 6px 0; }
+.spectrum-controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.spectrum-controls button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+h3 { font-size: 1rem; margin: 16px 0 6px; }
+.spectrum-peaks { margin: 0; padding-left: 22px; font-variant-numeric: tabular-nums; }
+.spectrum-help { margin-top: 14px; }
+.spectrum-help summary { font-weight: 600; cursor: pointer; padding: 6px 0; }
+.band-list { padding-left: 20px; }

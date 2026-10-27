@@ -4,22 +4,26 @@
 //   Start button → microphone → (about 60 times a second):
 //     read samples → PitchTracker (level, volume gate, YIN, smoothing) → active view
 //
-// Two modes (tabs), each with its own detection settings:
-//   Tuner – instruments; a standard or a low range
-//   Voice – a voice range preset, adjustable volume threshold and smoothing,
-//           pitch graph and range finder
+// Three modes (tabs), each with its own settings:
+//   Tuner    – instruments; a standard or a low range
+//   Voice    – a voice range preset, adjustable volume threshold and smoothing,
+//              pitch graph and range finder
+//   Spectrum – no pitch detection; an FFT shows how loud each frequency is
 // ------------------------------------------------------------
 
 import { startMicrophone, checkMicrophoneSupport } from './audio-input.js';
 import { PitchTracker, DEFAULT_GATE_DB } from './pitch-tracker.js';
 import { DEFAULT_SMOOTHING_LEVEL } from './smoothing.js';
 import { frequencyToNote, DEFAULT_A4 } from './pitch-math.js';
+import { levelDb } from './level.js';
+import { computeSpectrum } from './spectrum.js';
 import { VOICE_PRESETS, describeRange } from './voice-ranges.js';
 import { RangeFinder } from './range-finder.js';
 import { createTunerView } from './tuner-view.js';
 import { createVoiceView } from './voice-view.js';
 import { createLevelMeter } from './level-meter.js';
 import { createPitchGraph } from './pitch-graph.js';
+import { createSpectrumView } from './spectrum-view.js';
 
 // ---------- settings (a settings page comes in Phase 6) ----------
 
@@ -34,8 +38,15 @@ const settings = {
   voice: { preset: 'mid', minHz: 80, maxHz: 400, gateDb: -55, smoothingLevel: DEFAULT_SMOOTHING_LEVEL },
 };
 
+// Spectrum: 8192 samples (~170 ms) gives bins about 6 Hz wide, enough to
+// separate low notes. Fewer samples would react faster but blur the bass.
+const SPECTRUM_WINDOW = 8192;
+
 // The detection settings for the current mode.
 function currentConfig() {
+  if (activeTab === 'spectrum') {
+    return { minHz: 20, maxHz: 20000, windowSize: SPECTRUM_WINDOW, gateDb: DEFAULT_GATE_DB, smoothingLevel: DEFAULT_SMOOTHING_LEVEL };
+  }
   if (activeTab === 'tuner') {
     return { ...TUNER_RANGES[settings.tuner.range], gateDb: DEFAULT_GATE_DB, smoothingLevel: DEFAULT_SMOOTHING_LEVEL };
   }
@@ -56,13 +67,20 @@ const startButton = byId('start-button');
 const stopButton = byId('stop-button');
 const listeningBar = byId('listening-bar');
 const message = byId('message');
-const tabs = { tuner: byId('tab-tuner'), voice: byId('tab-voice') };
-const panels = { tuner: byId('tuner'), voice: byId('voice') };
+const tabs = { tuner: byId('tab-tuner'), voice: byId('tab-voice'), spectrum: byId('tab-spectrum') };
+const panels = { tuner: byId('tuner'), voice: byId('voice'), spectrum: byId('spectrum') };
 
 const tunerView = createTunerView();
 const levelMeter = createLevelMeter();
 const graph = createPitchGraph(byId('pitch-graph'));
 const rangeFinder = new RangeFinder({ a4: settings.a4 });
+const spectrumView = createSpectrumView({
+  canvas: byId('spectrum-chart'),
+  peaksList: byId('spectrum-peaks'),
+  pointerText: byId('spectrum-pointer'),
+  freezeButton: byId('spectrum-freeze'),
+  peakHoldBox: byId('spectrum-peak-hold'),
+});
 const voiceView = createVoiceView({
   onRangeChange({ preset, minHz, maxHz }) {
     settings.voice.preset = preset;
@@ -93,10 +111,13 @@ function applyConfig() {
   if (mic) {
     mic.analyser.fftSize = config.windowSize; // how many samples each reading uses
     buffer = new Float32Array(config.windowSize);
-    byId('tech-info').textContent =
-      `Sample rate ${mic.sampleRate} Hz · window ${config.windowSize} samples ` +
-      `(${((1000 * config.windowSize) / mic.sampleRate).toFixed(0)} ms) · range ${config.minHz}–${config.maxHz} Hz · A4 = ${settings.a4} Hz`;
+    const windowText = `Sample rate ${mic.sampleRate} Hz · window ${config.windowSize} samples ` +
+      `(${((1000 * config.windowSize) / mic.sampleRate).toFixed(0)} ms)`;
+    byId('tech-info').textContent = activeTab === 'spectrum'
+      ? `${windowText} · each frequency bin is ${(mic.sampleRate / config.windowSize).toFixed(1)} Hz wide`
+      : `${windowText} · range ${config.minHz}–${config.maxHz} Hz · A4 = ${settings.a4} Hz`;
   }
+  spectrumView.reset();
   levelMeter.setGate(config.gateDb);
   graph.setRange(config.minHz, config.maxHz, settings.a4);
   graph.clear();
@@ -115,6 +136,7 @@ function showTab(name) {
 }
 tabs.tuner.addEventListener('click', () => showTab('tuner'));
 tabs.voice.addEventListener('click', () => showTab('voice'));
+tabs.spectrum.addEventListener('click', () => showTab('spectrum'));
 
 document.querySelectorAll('input[name="tuner-range"]').forEach((radio) =>
   radio.addEventListener('change', () => { settings.tuner.range = radio.value; applyConfig(); }));
@@ -162,6 +184,7 @@ function stopListening() {
   listeningBar.hidden = true;
   panels.tuner.hidden = true;
   panels.voice.hidden = true;
+  panels.spectrum.hidden = true;
   startPanel.hidden = false;
   startButton.disabled = false;
   startButton.textContent = 'Start listening';
@@ -172,10 +195,20 @@ function stopListening() {
 function tick(now) {
   frameRequest = requestAnimationFrame(tick);
   if (now - lastReading < MIN_MS_BETWEEN_READINGS) return;
+  const elapsed = now - lastReading;
   lastReading = now;
 
-  // 1. Copy the latest samples from the microphone, 2. run the pipeline.
+  // 1. Copy the latest samples from the microphone.
   mic.analyser.getFloatTimeDomainData(buffer);
+
+  // Spectrum mode: no pitch detection, just the FFT.
+  if (activeTab === 'spectrum') {
+    levelMeter.update(levelDb(buffer));
+    spectrumView.update(computeSpectrum(buffer, mic.sampleRate), elapsed);
+    return;
+  }
+
+  // 2. Run the pitch pipeline.
   const result = tracker.process(buffer, mic.sampleRate);
   const note = result.smoothed ? frequencyToNote(result.smoothed, settings.a4) : null;
 

@@ -24,6 +24,7 @@
     <nav class="tabs" role="tablist" aria-label="Mode">
       <button type="button" role="tab" id="tab-tuner" aria-selected="true" aria-controls="tuner">Tuner</button>
       <button type="button" role="tab" id="tab-voice" aria-selected="false" aria-controls="voice">Voice</button>
+      <button type="button" role="tab" id="tab-spectrum" aria-selected="false" aria-controls="spectrum">Spectrum</button>
     </nav>
 
     <!-- Shown before listening starts -->
@@ -121,6 +122,50 @@
           <div class="slider-ends small" aria-hidden="true"><span>Fast</span><span>Steady</span></div>
           <p id="smoothing-help" class="small">Steady: the needle and line wobble less, but take longer to follow a new note and can hide short gaps. Fast: shows every change straight away, including vibrato and the odd wrong reading.</p>
         </fieldset>
+      </details>
+    </section>
+
+    <!-- ================= SPECTRUM ================= -->
+    <section id="spectrum" class="card" role="tabpanel" aria-labelledby="tab-spectrum" hidden>
+      <h2>Which frequencies are loudest?</h2>
+      <canvas id="spectrum-chart" class="spectrum-chart" aria-label="Live chart of how loud each frequency is"></canvas>
+      <p id="spectrum-pointer" class="small spectrum-pointer">Touch or point at the chart to read a frequency.</p>
+      <div class="spectrum-controls">
+        <button id="spectrum-freeze" type="button" aria-pressed="false">Freeze</button>
+        <label><input id="spectrum-peak-hold" type="checkbox" checked> Peak hold (dashed line)</label>
+      </div>
+
+      <h3>Loudest frequencies right now</h3>
+      <ol id="spectrum-peaks" class="spectrum-peaks"><li>–</li></ol>
+
+      <details class="spectrum-help" open>
+        <summary>What am I looking at?</summary>
+        <p class="small">
+          Every sound is a mix of many frequencies. This chart shows <strong>how loud each frequency is</strong>:
+          low (deep) sounds on the left, high (bright) sounds on the right. Every doubling of frequency
+          (100 → 200 Hz, 1k → 2k) is one octave and takes the same width, which matches how we hear.
+          Height is the level in dBFS: higher = louder.
+        </p>
+        <p class="small">
+          An <strong>equaliser (EQ)</strong> turns some of these ranges up or down. The shaded bands are the names
+          people use when talking about EQ (the edges are conventions, not exact):
+        </p>
+        <ul class="small band-list">
+          <li><strong>Sub-bass</strong> (20–60 Hz): felt more than heard: deep rumble, the thump of a kick drum.</li>
+          <li><strong>Bass</strong> (60–250 Hz): warmth and fullness; bass notes, low piano, men's voices.</li>
+          <li><strong>Low mids</strong> (250–500 Hz): body; too much sounds muddy or boxy.</li>
+          <li><strong>Mids</strong> (500 Hz–2 kHz): where most instruments and vowel sounds live.</li>
+          <li><strong>Upper mids</strong> (2–4 kHz): clarity and bite; our ears are most sensitive here.</li>
+          <li><strong>Presence</strong> (4–6 kHz): closeness and definition; too much sounds harsh.</li>
+          <li><strong>Brilliance</strong> (6–20 kHz): air and sparkle; cymbals and the hiss of "s".</li>
+        </ul>
+        <p class="small"><strong>Try this:</strong> hum (bass and low mids), say "sssss" (brilliance), say "shhh" (a bit lower than "s"),
+          sing "ee" then "oo" on the same note and watch the peaks move, or play one note and spot its harmonics:
+          peaks at 1×, 2×, 3×… the note's frequency.</p>
+        <p class="small"><strong>The loudest peak isn't always the note you hear.</strong> A voice's loudest frequency is often
+          a harmonic boosted by the vowel shape, so the Tuner and Voice modes use a pitch detector instead.</p>
+        <p class="small">This shows what <em>your microphone</em> hears. Phone and laptop mics pick up very low (below ~100 Hz)
+          and very high sounds less well, so those parts may look quieter than they really are.</p>
       </details>
     </section>
 
