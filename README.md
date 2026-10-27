@@ -9,12 +9,14 @@ from instruments and the human voice. Ear training is coming in a later phase.
 Microphone audio is never recorded, stored, uploaded or sent anywhere. There is
 no server, no account and no tracking.
 
-> **Status:** Phase 2 of 6 (tuner) is done. Voice mode, the spectrum view, ear
-> training and offline/iPhone install are still to come.
+> **Status:** Phases 1–3 of 6 are done (pitch maths, tuner, voice mode). The
+> spectrum view, ear training and offline/iPhone install are still to come.
 
-![Tuner screenshot](docs/screenshots/tuner.png)
+| Tuner | Voice mode |
+|---|---|
+| <img src="docs/screenshots/tuner.png" alt="Tuner screenshot" width="280"> | <img src="docs/screenshots/voice.png" alt="Voice mode screenshot" width="280"> |
 
-*Screenshot from the automated Chromium test, with a generated vibrato voice as the "microphone".*
+*Screenshots from the automated Chromium test, with generated test sounds as the "microphone".*
 
 ## How to use
 
@@ -32,6 +34,26 @@ no server, no account and no tracking.
      calibrated sound level meter (dB SPL).
 4. If the sound is too quiet or isn't clearly pitched, the app shows
    **No clear note** instead of guessing.
+5. For a bass or other very low instrument, choose **Instrument range → Low**.
+
+### Voice mode
+
+Tap the **Voice** tab (before or after starting). You'll see:
+
+- **The current pitch**, e.g. `G2 · 98.0 Hz · −3 cents`, or **No clear pitch**
+  with the reason: *too quiet* (below the volume threshold) or *breath, noise
+  or a consonant* (loud enough, but not clearly pitched).
+- **Clarity**: the detector's confidence that the sound is pitched (0–100%).
+- **A scrolling pitch graph** of the last 8 seconds. It has a horizontal line
+  for every note and labels for the Cs (or every natural note when there's
+  room). The line is the smoothed pitch. Faint dots are raw readings, so you
+  can see what the smoothing removes.
+- **Range finder**: sing your lowest comfortable note and hold it for about
+  half a second, then your highest. It records the lowest and highest notes
+  you held steady and the range between them, e.g. "1 octave + 7 semitones".
+  Results stay in the page only and are cleared when you close it.
+- **Voice settings**: detection range (Low / Mid / High / Custom), volume
+  threshold, and smoothing (Fast ↔ Steady). All are explained below.
 
 ## How the detection works
 
@@ -78,6 +100,98 @@ a second.
   pitch. A median ignores a few odd readings, such as a one-off octave jump.
   The cost is a short delay when you change note.
 
+### Voice detection range: how it reduces octave errors
+
+YIN looks for a repeat of the sound by trying every possible length of one
+vibration. The range tells it which lengths to try. A low pitch has a long
+vibration, a high pitch a short one:
+
+```
+shortest vibration tried = sample rate ÷ max Hz      longest = sample rate ÷ min Hz
+e.g. Mid voice at 48 kHz:   48000 ÷ 800 = 60 samples      48000 ÷ 100 = 480 samples
+```
+
+Anything outside that window **can't be chosen**. The most common octave
+mistake on low voices is reading **one octave too low**. It happens when the
+sound repeats exactly every *two* vibrations, e.g. a rough or creaky voice
+where every other vocal pulse is a little different. If the range starts above
+that too-low pitch, the mistake becomes impossible.
+
+| Preset | Range | Intended for |
+|---|---|---|
+| Low | 65–500 Hz (C2–B4) | bass, baritone, most men speaking |
+| Mid | 100–800 Hz (G2–G5) | tenor, alto, most women speaking |
+| High | 150–1200 Hz (D3–D6) | soprano, children |
+| Custom | 40–2000 Hz, max ≥ 1.5 × min | anything else |
+
+**Measured on the generated files** (raw readings):
+
+| Rough low voice (G2 with a sub-harmonic) | Found | Wrong note |
+|---|---|---|
+| Range 35–1500 Hz | 99% | **100%, all read as G1 (octave low)** |
+| Low preset (65–500 Hz) | 0%: "no clear pitch" | 0% |
+
+| All voice-like files | Found | Median error |
+|---|---|---|
+| Range 35–1500 Hz | 100% | 2.5 cents |
+| Low preset | 100% | 1.3 cents |
+| Mid preset | 86% (the low G2 voice is below it) | 1.2 cents |
+| High preset | 67% (low voices and speech are below it) | 1.1 cents |
+
+What this shows:
+
+- The right range **removed the octave error**. It didn't produce the right
+  note, though. The app says "no clear pitch" because, inside the range, the
+  sound wasn't clearly periodic enough to pass YIN's strict test. I chose not
+  to loosen that test: it would mean guessing, based on artificial files.
+- A narrower range is also **more precise** (2.5 → ~1.2 cents), because each
+  window has more samples left to compare.
+- A range that **doesn't include your voice** mostly gives "no clear pitch",
+  not wrong notes. In one case (G2 with the Mid preset), 9% of readings were
+  wrong. **Pick a range that covers all your notes.**
+
+### Volume threshold and "no clear pitch"
+
+Two separate checks stop random numbers:
+
+1. **Volume threshold** (voice default −55 dBFS, slider −80 to −20). Anything
+   quieter isn't analysed at all. Use it against background noise: watch the
+   level meter while you're silent and set the threshold above that level.
+2. **Clarity check** (inside YIN). Loud sounds that don't repeat regularly,
+   like breath, whispers, "s"/"sh"/"f" consonants and hiss, fail it.
+
+On the generated files: whisper, room noise and near-silence showed a note
+**0%** of the time. The hissy consonants in the speech-like file showed a
+note 0% of the time.
+
+### Smoothness vs responsiveness
+
+The smoothing keeps the last few readings and shows their median. More
+readings means a steadier display, but a slower one. Measured with
+`npm run tradeoff` ([results](docs/evaluation/smoothing-tradeoff.md)):
+
+| Smoothing | Readings kept | New note appears after | Short gaps (0.1 s) visible | Needle wobble on vibrato (true ≈ 21 cents) |
+|---|---|---|---|---|
+| Fastest | 1 (~17 ms) | 19 ms | 5 of 5 | 20.1 cents |
+| Fast | 3 (~50 ms) | 36 ms | 5 of 5 | 19.5 cents |
+| **Balanced** (default) | 7 (~117 ms) | 69 ms | 5 of 5 | 13.6 cents |
+| Steady | 15 (~250 ms) | 106 ms | 0 of 5 | 8.9 cents |
+| Steadiest | 25 (~417 ms) | 189 ms | 0 of 5 | 5.8 cents |
+
+**In plain words:** *Fast* shows your vibrato and every change (good for
+watching technique). *Steady* hides vibrato and shows the average pitch (good
+for "am I on the note?"), but notes take up to ~0.2 s to appear and short
+breaks disappear. These times don't include the ~43 ms of sound each reading
+needs, or any delay in your device's audio system.
+
+### Range finder: what counts as "stable"
+
+A note counts when the smoothed pitch stays within **70 cents** of one note
+for **0.3 s**. The 70-cent allowance is so vibrato doesn't break it. Slides
+and one-off readings don't count. Tested: the generated C4–G4 scale gives
+exactly C4 → G4. A slide from C3 to C4 counts only the two held ends, not the
+notes slid through.
+
 ### Why YIN and not autocorrelation? (measured)
 
 Both were run on the same test files (`npm run evaluate`). Columns: **Found** =
@@ -102,20 +216,25 @@ so the app uses YIN.
 > than real voices and instruments, so **real-world accuracy will be lower**.
 > Measurements on real recordings will be added separately.
 
-YIN as used by the app (2048-sample window, −60 dBFS gate), before smoothing.
-Full tables: [`docs/evaluation/`](docs/evaluation/).
+YIN with a 2048-sample window and a −60 dBFS gate, before smoothing. It
+searches 35–1500 Hz, a little wider than the tuner's 50–1500 Hz, so the
+very-low and octave-trap cases show up. Full tables, including each voice
+preset and the 4096-sample window: [`docs/evaluation/`](docs/evaluation/).
 
 | Test group | Found | Median error | Wrong note (>50c) | Octave errors | False notes in no-pitch sounds |
 |---|---|---|---|---|---|
 | Clean tones (sine, bright) | 100% | 0.1 cents | 0% | 0% | – |
 | Weak fundamental | 100% | 0.0 cents | 0% | 0% | – |
+| Rough low voice with sub-harmonic | 99% | 1200 cents | **100%** | **100%** (read an octave low) | – |
+| … same, with any range starting ≥ 50 Hz | 0%: "no clear pitch" | – | 0% | 0% | – |
 | Voice-like | 100% | 2.5 cents | 0% | 0% | 0% |
 | Room noise, SNR 20 dB / 10 dB | 100% / 98% | 0.2 / 0.5 cents | 0% | 0% | – |
 | Room noise, SNR 0 dB | 0%: "no clear note" | – | – | – | – |
 | Breathy voice (breath as loud as voice) | 0%: "no clear note" | – | – | – | – |
 | Quiet tone (−50 dBFS peak) | 100% | 0.1 cents | 0% | 0% | – |
 | Guitar low E2 (82 Hz) | 100% | 0.0 cents | 0% | 0% | – |
-| Bass low E1 (41 Hz) | 2% (out of range) | – | – | – | – |
+| Bass low E1 (41 Hz), standard window | 2% (out of range) | – | – | – | – |
+| Bass low E1, tuner "Low" range (4096 window) | 100% | 0.0 cents | 0% | 0% | – |
 | Whisper, room noise, near-silence | – | – | – | – | **0%** |
 
 **What the smoothing does to these numbers:** the smoothed display holds each
@@ -125,8 +244,8 @@ moment-by-moment true pitch, smoothed voice readings are off by a median of
 and slides, not wrong notes: the wrong-note rate stays at 1%. The hold also
 means a note stays on screen for a moment after you stop. In the short
 (0.1 s) gaps of the scale and speech tests, 34% of gap moments still showed
-the previous note. Voice mode
-(Phase 3) will let you choose between steadier and faster.
+the previous note. Voice mode lets you choose between steadier and faster
+(see *Smoothness vs responsiveness* above).
 
 **A tuning decision made from these tests:** YIN's threshold started at 0.15.
 That read a vowel-like E4, whose 2nd harmonic was ~6× louder than its
@@ -139,15 +258,23 @@ generated signals, it still needs checking on real recordings.
 - **One note at a time.** Chords and several notes at once are not supported.
   The app will show one of the notes, or "no clear note", and shouldn't be trusted.
 - **Octave errors** are reduced, not eliminated. A sound whose 2nd harmonic is
-  much louder than the fundamental can still be read an octave high.
+  much louder than the fundamental can still be read an octave high. A rough
+  or creaky voice can be read an octave **low** if the range reaches that low.
+  With a suitable range it shows "no clear pitch" instead, so very rough or
+  creaky singing may not register.
+- **The range must cover your voice.** Notes outside the selected range show
+  "no clear pitch", or occasionally a wrong note (9% of readings in one test).
+- **Range finder** counts a note only after 0.3 s within 70 cents. Very short
+  notes don't count, and a note sung about halfway between two notes may not
+  settle on either.
 - **Breathy or whispered sound** has little or no pitch. At equal breath and
   voice level the app says "no clear note". That's intended, but it means very
   breathy singing may not register.
-- **Very low notes:** with the 2048-sample window the lowest detectable pitch
-  is about 47 Hz at 48 kHz (50 Hz is the set minimum). A bass guitar's low E
-  (41 Hz) isn't detected. A 4096-sample window detects it (100% on the test
-  file), but it's slower and handled vibrato worse (90% found), so it will be
-  a low-range option in Phase 3.
+- **Very low notes:** with the standard 2048-sample window the lowest
+  detectable pitch is about 47 Hz at 48 kHz. For a bass's low E (41 Hz), use
+  the tuner's **Low** range (4096 samples, 100% on the test file). It reacts
+  more slowly (~85–93 ms of sound per reading). In tests it also handled vocal
+  vibrato worse (90% found vs 100%), so voice mode keeps the 2048 window.
 - **Noisy rooms:** fine at 10–20 dB SNR on the test files, nothing at 0 dB.
 - **The dB meter** is relative to this microphone (dBFS), not a calibrated
   sound level. iPhones may also adjust the mic level automatically.
@@ -166,8 +293,10 @@ Things to check on iPhone (please report back):
 2. Tap Start: you should see the permission prompt, then the tuner.
 3. Tap "Don't Allow" once: you should get the "blocked" message with steps to fix it.
 4. Hum a steady note: the note should be steady, and the level should move with your voice.
-5. Switch to another app and back: the tuner should continue, or tell you to tap Start.
-6. Whether iOS respects "no echo cancellation / noise suppression / auto gain".
+5. Voice tab: sing a slow scale. The graph should scroll smoothly (not stutter),
+   and the range finder should fill in. Try each smoothing setting.
+6. Switch to another app and back: the tuner should continue, or tell you to tap Start.
+7. Whether iOS respects "no echo cancellation / noise suppression / auto gain".
    If quiet sounds get louder by themselves, it doesn't.
 
 ## Running the tests
@@ -175,11 +304,13 @@ Things to check on iPhone (please report back):
 Needs [Node.js](https://nodejs.org) 18 or newer. There are no packages to install.
 
 ```sh
-npm test               # unit tests: pitch maths, YIN, smoothing, dB level, WAV files
+npm test               # unit tests: pitch maths, YIN, smoothing, dB level, ranges,
+                       # range finder (incl. full pipeline on generated files), WAV files
 npm run table          # note/frequency table for checking by hand
 npm run make-signals   # regenerate the test WAV files (identical every time)
 npm run evaluate       # score the detectors on test-audio/generated
-npm run evaluate -- --window=4096   # try other settings (also --threshold, --gate, --min, --max)
+npm run evaluate -- --preset=low    # try other settings (also --window, --threshold, --gate, --min, --max, --smoothing)
+npm run tradeoff                    # smoothness vs responsiveness for each smoothing level
 node tools/browser-test.js          # optional; needs Playwright + Chromium installed
 ```
 
@@ -198,9 +329,17 @@ phase by phase at the owner's direction:
   explained each step. The owner approves each phase before the next.
 - The formulas are the standard equal-temperament relationships. YIN follows
   de Cheveigné & Kawahara (2002). Nothing was invented.
-- The accuracy numbers come from running the code (`npm run evaluate`) and
-  weren't estimated. The AI also caught and fixed its own mistakes this way:
-  a wrong truth label for the plucked note, a threshold that caused an octave
-  error, and a needle animation that pointed the wrong way during vibrato.
+- The accuracy numbers come from running the code (`npm run evaluate`,
+  `npm run tradeoff`) and weren't estimated. The AI also caught and fixed its
+  own mistakes this way: a wrong truth label for the plucked note, a threshold
+  that caused an octave error, a needle animation that pointed the wrong way
+  during vibrato, and a broken "release time" measurement.
+- Where test results suggested loosening detection to get more notes (the
+  rough-voice case), the AI kept the strict behaviour. "No clear pitch" is
+  better than a guess tuned on artificial data. That choice is documented
+  rather than hidden.
+- Typical voice ranges in the presets come from general music and speech
+  knowledge (e.g. men speaking ≈ 85–155 Hz). They're broad guides, not
+  measurements of any particular person.
 - The AI can't hear and has no iPhone, so iPhone behaviour and real-world
   accuracy have to be checked by a person.

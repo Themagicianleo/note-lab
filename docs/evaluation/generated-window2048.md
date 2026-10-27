@@ -23,6 +23,7 @@ Window 2048 samples, 60 readings/s, gate -60 dBFS, range 35–1500 Hz, YIN thres
 | voice-high-A4-vibrato | 100% | 4.8 | 0% | 0% | – |
 | voice-low-G2-vibrato | 100% | 2.3 | 0% | 0% | – |
 | voice-mid-A3-vibrato | 100% | 3.6 | 0% | 0% | – |
+| voice-rough-G2-subharmonic | 99% | 1200.0 | 100% | 100% | – |
 | voice-scale-C4-G4 | 100% | 0.0 | 0% | 0% | 0% |
 | weak-fundamental-A2 | 100% | 0.0 | 0% | 0% | – |
 | whisper-noise | – | – | – | – | 0% |
@@ -37,9 +38,9 @@ Window 2048 samples, 60 readings/s, gate -60 dBFS, range 35–1500 Hz, YIN thres
 | no-pitch | – | – | – | – | 0% |
 | quiet | 100% | 0.1 | 0% | 0% | – |
 | voice | 100% | 2.5 | 0% | 0% | 0% |
-| octave-trap | 100% | 0.0 | 0% | 0% | – |
+| octave-trap | 99% | 1200.0 | 55% | 55% | – |
 
-### YIN (smoothed): per file
+### YIN (smoothed: Balanced): per file
 
 | File | Found | Median (cents) | >50c | Octave | False |
 |---|---|---|---|---|---|
@@ -61,11 +62,12 @@ Window 2048 samples, 60 readings/s, gate -60 dBFS, range 35–1500 Hz, YIN thres
 | voice-high-A4-vibrato | 99% | 28.6 | 0% | 0% | – |
 | voice-low-G2-vibrato | 98% | 26.4 | 0% | 0% | – |
 | voice-mid-A3-vibrato | 99% | 26.9 | 0% | 0% | – |
+| voice-rough-G2-subharmonic | 97% | 1200.0 | 100% | 100% | – |
 | voice-scale-C4-G4 | 93% | 0.0 | 0% | 0% | 75% |
 | weak-fundamental-A2 | 97% | 0.0 | 0% | 0% | – |
 | whisper-noise | – | – | – | – | 0% |
 
-### YIN (smoothed): per category
+### YIN (smoothed: Balanced): per category
 
 | File | Found | Median (cents) | >50c | Octave | False |
 |---|---|---|---|---|---|
@@ -75,7 +77,7 @@ Window 2048 samples, 60 readings/s, gate -60 dBFS, range 35–1500 Hz, YIN thres
 | no-pitch | – | – | – | – | 0% |
 | quiet | 98% | 0.1 | 0% | 0% | – |
 | voice | 96% | 22.9 | 1% | 0% | 34% |
-| octave-trap | 97% | 0.0 | 0% | 0% | – |
+| octave-trap | 97% | 1200.0 | 56% | 56% | – |
 
 ### Autocorrelation (raw): per file
 
@@ -99,6 +101,7 @@ Window 2048 samples, 60 readings/s, gate -60 dBFS, range 35–1500 Hz, YIN thres
 | voice-high-A4-vibrato | 100% | 6.6 | 17% | 12% | – |
 | voice-low-G2-vibrato | 100% | 2.7 | 5% | 5% | – |
 | voice-mid-A3-vibrato | 100% | 4.8 | 7% | 7% | – |
+| voice-rough-G2-subharmonic | 100% | 1200.0 | 100% | 100% | – |
 | voice-scale-C4-G4 | 100% | 1200.0 | 93% | 75% | 0% |
 | weak-fundamental-A2 | 100% | 1200.0 | 99% | 99% | – |
 | whisper-noise | – | – | – | – | 0% |
@@ -113,4 +116,4 @@ Window 2048 samples, 60 readings/s, gate -60 dBFS, range 35–1500 Hz, YIN thres
 | no-pitch | – | – | – | – | 0% |
 | quiet | 100% | 0.0 | 0% | 0% | – |
 | voice | 100% | 5.2 | 24% | 20% | 0% |
-| octave-trap | 100% | 1200.0 | 99% | 99% | – |
+| octave-trap | 100% | 1200.0 | 100% | 100% | – |
