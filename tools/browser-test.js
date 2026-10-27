@@ -145,15 +145,20 @@ try {
     report(text === expected, `voice: ${file}`, `"${text}"`);
 
     if (file === 'whisper-noise.wav') {
+      // The voice settings live on the Settings page; the Voice tab links to it.
+      await page.click('#voice-open-settings');
       await page.fill('#custom-min', '200');
       await page.fill('#custom-max', '250');
       await page.click('#custom-apply');
       const error = await page.textContent('#range-error');
-      report(await page.isVisible('#range-error') && error.includes('1.5'), 'voice: too-narrow custom range is refused', `"${error}"`);
+      report(await page.isVisible('#range-error') && error.includes('1.5'), 'settings: too-narrow custom range is refused', `"${error}"`);
       await page.fill('#custom-max', '500');
       await page.click('#custom-apply');
+      await page.click('#close-settings');
       const info = await page.textContent('#tech-info');
-      report(!(await page.isVisible('#range-error')) && info.includes('200–500 Hz'), 'voice: valid custom range is applied', info);
+      const summary = await page.textContent('#voice-settings-summary');
+      report(!(await page.isVisible('#range-error')) && info.includes('200–500 Hz') && summary.startsWith('Custom range') && await page.isVisible('#voice'),
+        'settings: valid custom range is applied and shown on the Voice tab', `${summary} · ${info}`);
     }
     await browser.close();
   }
@@ -262,6 +267,64 @@ try {
     const result = await page.textContent('#singback-result');
     report(expected.test(result) && !errors.length, `sing-back (${file}): scored`, `"${result}"`);
     if (file === 'sine-E4-330Hz.wav') await page.locator('#ear').screenshot({ path: `${ROOT}docs/screenshots/singback.png` });
+    await browser.close();
+  }
+
+  // 1h. Settings: reference pitch A4 = 442 changes the reading of a 440 Hz tone; saved after reload; reset.
+  {
+    const { browser, page, errors } = await fakeMic('sine-A4.wav');
+    await page.click('#open-settings');
+    await page.fill('#a4-input', '44');
+    await page.dispatchEvent('#a4-input', 'change');
+    const a4Error = await page.isVisible('#a4-error');
+    await page.click('#a4-suggestions button:has-text("442 Hz")');
+    const preview = await page.textContent('#a4-preview');
+    await page.fill('#tuner-gate-slider', '-50');
+    await page.dispatchEvent('#tuner-gate-slider', 'input');
+    await page.click('#close-settings');
+    await page.click('#start-button');
+    const { text } = await mostCommonText(page, '#note-details');
+    report(a4Error && preview.includes('C4 = 262.8 Hz') && text === 'A4 · 440.0 Hz · -8 cents',
+      'settings: A4 = 442 Hz → a 440 Hz tone reads −8 cents', `"${text}" · ${preview}`);
+
+    await page.reload();
+    await page.click('#open-settings');
+    const savedA4 = await page.inputValue('#a4-input');
+    const savedGate = await page.textContent('#tuner-gate-value');
+    report(savedA4 === '442' && savedGate === '-50 dBFS', 'settings: saved after a reload', `A4 ${savedA4}, gate ${savedGate}`);
+    await page.locator('#settings').screenshot({ path: `${ROOT}docs/screenshots/settings.png` });
+
+    await page.click('#reset-settings');
+    report((await page.inputValue('#a4-input')) === '440' && !errors.length, 'settings: reset to defaults', errors.join(' '));
+    await browser.close();
+  }
+
+  // 1i. How-it-works page, manifest and offline use.
+  {
+    const browser = await chromium.launch();
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+
+    await page.goto(`${URL_}how-it-works.html`);
+    const guide = await page.textContent('main');
+    report(guide.includes('E4 · 330.0 Hz · +2 cents') && guide.includes('dBFS'), 'how-it-works page loads with the worked example');
+
+    const manifest = await page.evaluate(async () => (await fetch('manifest.json')).json());
+    const iconStatus = await page.evaluate(async (icons) => Promise.all(icons.map(async (i) => (await fetch(i.src)).status)), manifest.icons);
+    report(manifest.display === 'standalone' && iconStatus.every((s) => s === 200), 'manifest and icons are served', JSON.stringify(iconStatus));
+
+    await page.goto(URL_);
+    await page.waitForFunction(() => document.getElementById('offline-status').textContent.includes('Ready'), null, { timeout: 10000 });
+    await page.waitForTimeout(500); // let the cache finish filling
+    await context.setOffline(true);
+    await page.reload();
+    await page.click('#tab-ear');
+    const offlineOk = await page.isVisible('#ear-notes');
+    await page.goto(`${URL_}how-it-works.html`);
+    const offlineGuide = (await page.textContent('h1')) === 'How it works';
+    report(offlineOk && offlineGuide && !errors.length, 'works offline after the first visit (app and guide page)', errors.join(' '));
     await browser.close();
   }
 
