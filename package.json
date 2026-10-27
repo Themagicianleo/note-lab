@@ -10,7 +10,8 @@
     "table": "node tools/print-note-table.js",
     "make-signals": "node tools/make-test-signals.js",
     "evaluate": "node tools/evaluate.js",
-    "tradeoff": "node tools/smoothing-tradeoff.js"
+    "tradeoff": "node tools/smoothing-tradeoff.js",
+    "spectrum-check": "node tools/spectrum-check.js"
   },
   "engines": {
     "node": ">=18"
