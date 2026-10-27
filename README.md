@@ -9,12 +9,12 @@ from instruments and the human voice. Ear training is coming in a later phase.
 Microphone audio is never recorded, stored, uploaded or sent anywhere. There is
 no server, no account and no tracking.
 
-> **Status:** Phases 1–3 of 6 are done (pitch maths, tuner, voice mode). The
-> spectrum view, ear training and offline/iPhone install are still to come.
+> **Status:** Phases 1–4 of 6 are done (pitch maths, tuner, voice mode,
+> spectrum). Ear training and offline/iPhone install are still to come.
 
-| Tuner | Voice mode |
-|---|---|
-| <img src="docs/screenshots/tuner.png" alt="Tuner screenshot" width="280"> | <img src="docs/screenshots/voice.png" alt="Voice mode screenshot" width="280"> |
+| Tuner | Voice mode | Spectrum |
+|---|---|---|
+| <img src="docs/screenshots/tuner.png" alt="Tuner screenshot" width="240"> | <img src="docs/screenshots/voice.png" alt="Voice mode screenshot" width="240"> | <img src="docs/screenshots/spectrum.png" alt="Spectrum screenshot" width="240"> |
 
 *Screenshots from the automated Chromium test, with generated test sounds as the "microphone".*
 
@@ -54,6 +54,21 @@ Tap the **Voice** tab (before or after starting). You'll see:
   Results stay in the page only and are cleared when you close it.
 - **Voice settings**: detection range (Low / Mid / High / Custom), volume
   threshold, and smoothing (Fast ↔ Steady). All are explained below.
+
+### Spectrum
+
+Tap the **Spectrum** tab to see **how loud each frequency is** in any sound,
+not just notes. It's useful for learning about EQ.
+
+- Low frequencies on the left, high on the right (20 Hz – 20 kHz). Each
+  octave takes the same width. Height is the level in dBFS.
+- Shaded **EQ bands** (Sub-bass, Bass, Low mids, Mids, Upper mids, Presence,
+  Brilliance), with a plain explanation of each under the chart.
+- **Loudest frequencies right now**: up to 5 peaks, each with its frequency,
+  nearest note name (for musical pitches), level and band.
+- **Touch or point** at the chart to read the frequency, band and level there.
+- **Peak hold** (dashed line) shows recent loud moments, falling 20 dB per
+  second. **Freeze** pauses the chart so you can study it.
 
 ## How the detection works
 
@@ -192,6 +207,48 @@ and one-off readings don't count. Tested: the generated C4–G4 scale gives
 exactly C4 → G4. A slide from C3 to C4 counts only the two held ends, not the
 notes slid through.
 
+### How the spectrum works (`js/fft.js`, `js/spectrum.js`)
+
+1. Take the latest **8192 samples** (~170 ms at 48 kHz).
+2. Fade the ends in and out (a *Hann window*). Without this, the sudden start
+   and end of the piece of sound would smear energy across all frequencies.
+3. Run an **FFT** (Fast Fourier Transform). It measures how much of each of
+   4096 evenly spaced frequencies ("bins") is present. Bin width = sample rate
+   ÷ 8192 ≈ **5.9 Hz** at 48 kHz.
+4. Scale so a sine wave of amplitude A reads **20 × log10(A) dBFS**: a
+   full-scale sine reads 0, half of that reads −6.
+5. For display, smooth over time (60% previous + 40% new) so the line doesn't
+   jitter, and find peaks. A parabola fitted through the top bins gives a more
+   exact peak frequency.
+
+The FFT is my own short implementation, not the browser's built-in analyser.
+That way the maths is in a file you can read and test. It's checked in the
+tests against a slow, direct calculation, and each reading takes ~0.7 ms on a
+desktop computer. **The trade-off:** a bigger window separates low notes
+better (finer bins), but reacts more slowly and blurs quick changes. 8192 is a
+compromise.
+
+**Two different "dB" numbers:** the level meter shows the **RMS level of the
+whole sound**. The spectrum shows the **amplitude at each frequency**. A pure
+sine peaking at −6 dBFS in the spectrum shows about −9 dBFS on the meter (RMS
+is 3 dB lower for a sine). Both are correct; they measure different things.
+
+**Measured on generated files** (`npm run spectrum-check`,
+[full results](docs/evaluation/spectrum-check.md)):
+
+| File | Contains | Loudest frequency found | Level |
+|---|---|---|---|
+| sine-A4 | A4, 440 Hz | 440.0 Hz | −5.99 dBFS (true −6.02) |
+| sine-C4 | C4, 261.63 Hz | 261.5 Hz | −5.83 dBFS (true −6.02) |
+| sine-E4-330Hz | 330 Hz | 330.1 Hz | −5.86 dBFS (true −6.02) |
+| weak-fundamental-A2 | A2, 110 Hz | **220 Hz (A3)** | −11.3 dBFS |
+| voice-low-G2-vibrato | G2, ≈98 Hz | **679 Hz**: the "ah" vowel's resonance | −19.7 dBFS |
+
+On pure tones the spectrum is within **0.13 Hz and 0.2 dB**. The last two
+rows are the EQ lesson: **the loudest frequency is often not the note you
+hear.** It can be a harmonic or a resonance of the vowel. That's why the Tuner
+and Voice modes use YIN and don't just pick the biggest peak.
+
 ### Why YIN and not autocorrelation? (measured)
 
 Both were run on the same test files (`npm run evaluate`). Columns: **Found** =
@@ -278,6 +335,16 @@ generated signals, it still needs checking on real recordings.
 - **Noisy rooms:** fine at 10–20 dB SNR on the test files, nothing at 0 dB.
 - **The dB meter** is relative to this microphone (dBFS), not a calibrated
   sound level. iPhones may also adjust the mic level automatically.
+- **The spectrum shows what the microphone hears.** Phone and laptop mics
+  pick up very low (below ~100 Hz) and very high frequencies less well. iPhone
+  audio processing may also change the balance, so don't treat the chart as
+  a lab measurement of the room.
+- **Spectrum resolution:** bins are ~6 Hz wide, so two frequencies closer than
+  about 12 Hz (e.g. two low notes a semitone apart below ~200 Hz) can merge
+  into one peak. The 170 ms window also blurs very fast changes like drum hits.
+- **Spectrum peaks are not a chord detector.** You'll see peaks for every
+  note's harmonics, which overlap. Naming the notes of a chord from them isn't
+  supported.
 - **Accuracy numbers** are from generated signals only, so far.
 
 ## Desktop vs iPhone
@@ -295,8 +362,10 @@ Things to check on iPhone (please report back):
 4. Hum a steady note: the note should be steady, and the level should move with your voice.
 5. Voice tab: sing a slow scale. The graph should scroll smoothly (not stutter),
    and the range finder should fill in. Try each smoothing setting.
-6. Switch to another app and back: the tuner should continue, or tell you to tap Start.
-7. Whether iOS respects "no echo cancellation / noise suppression / auto gain".
+6. Spectrum tab: say "sssss" (the peak should be far right) and hum (left).
+   Slide a finger across the chart; the page shouldn't scroll while you do.
+7. Switch to another app and back: the tuner should continue, or tell you to tap Start.
+8. Whether iOS respects "no echo cancellation / noise suppression / auto gain".
    If quiet sounds get louder by themselves, it doesn't.
 
 ## Running the tests
@@ -304,13 +373,14 @@ Things to check on iPhone (please report back):
 Needs [Node.js](https://nodejs.org) 18 or newer. There are no packages to install.
 
 ```sh
-npm test               # unit tests: pitch maths, YIN, smoothing, dB level, ranges,
+npm test               # unit tests: pitch maths, YIN, smoothing, dB level, ranges, FFT/spectrum,
                        # range finder (incl. full pipeline on generated files), WAV files
 npm run table          # note/frequency table for checking by hand
 npm run make-signals   # regenerate the test WAV files (identical every time)
 npm run evaluate       # score the detectors on test-audio/generated
 npm run evaluate -- --preset=low    # try other settings (also --window, --threshold, --gate, --min, --max, --smoothing)
 npm run tradeoff                    # smoothness vs responsiveness for each smoothing level
+npm run spectrum-check              # spectrum peaks and levels on generated files
 node tools/browser-test.js          # optional; needs Playwright + Chromium installed
 ```
 
@@ -333,7 +403,8 @@ phase by phase at the owner's direction:
   `npm run tradeoff`) and weren't estimated. The AI also caught and fixed its
   own mistakes this way: a wrong truth label for the plucked note, a threshold
   that caused an octave error, a needle animation that pointed the wrong way
-  during vibrato, and a broken "release time" measurement.
+  during vibrato, a broken "release time" measurement, and spectrum labels
+  that showed "1000 Hz" instead of "1.00 kHz" or were cut off.
 - Where test results suggested loosening detection to get more notes (the
   rough-voice case), the AI kept the strict behaviour. "No clear pitch" is
   better than a guess tuned on artificial data. That choice is documented
