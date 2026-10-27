@@ -23,31 +23,35 @@
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { readWav } from './wav.js';
+import { runPipeline, READINGS_PER_SECOND } from './run-pipeline.js';
 import { detectPitchYin } from '../js/yin.js';
 import { detectPitchAutocorrelation } from '../js/autocorrelation.js';
-import { PitchSmoother } from '../js/smoothing.js';
-import { levelDb } from '../js/level.js';
+import { DEFAULT_SMOOTHING_LEVEL, SMOOTHING_LEVELS } from '../js/smoothing.js';
+import { VOICE_PRESETS } from '../js/voice-ranges.js';
 import { centsBetween } from '../js/pitch-math.js';
 
 // Command-line options look like --window=4096. Anything else is the folder.
 const args = process.argv.slice(2);
-const option = (name, fallback) => {
+const text = (name) => {
   const found = args.find((a) => a.startsWith(`--${name}=`));
-  return found ? Number(found.split('=')[1]) : fallback;
+  return found ? found.split('=')[1] : undefined;
 };
+const option = (name, fallback) => (text(name) !== undefined ? Number(text(name)) : fallback);
 
 const folder = args.find((a) => !a.startsWith('--')) || new URL('../test-audio/generated/', import.meta.url).pathname;
 const WINDOW = option('window', 2048);
-const READINGS_PER_SECOND = 60;            // like requestAnimationFrame in the browser
 const GATE_DB = option('gate', -60);       // windows quieter than this count as "no pitch"
-const RANGE = { minHz: option('min', 35), maxHz: option('max', 1500) };
+// --preset=low|mid|high uses a voice range preset instead of --min/--max.
+const preset = VOICE_PRESETS[text('preset')];
+const RANGE = preset ? { minHz: preset.minHz, maxHz: preset.maxHz } : { minHz: option('min', 35), maxHz: option('max', 1500) };
+const SMOOTHING = option('smoothing', DEFAULT_SMOOTHING_LEVEL); // index into SMOOTHING_LEVELS
 const threshold = option('threshold', undefined); // YIN threshold; undefined = the default
-if (threshold !== undefined) RANGE.threshold = threshold;
+const yin = (s, sr, o) => detectPitchYin(s, sr, threshold === undefined ? o : { ...o, threshold });
 
 const CONFIGS = [
-  { label: 'YIN (raw)', detect: detectPitchYin, smooth: false },
-  { label: 'YIN (smoothed)', detect: detectPitchYin, smooth: true },
-  { label: 'Autocorrelation (raw)', detect: detectPitchAutocorrelation, smooth: false },
+  { label: 'YIN (raw)', detect: yin, smoothingLevel: 0 },
+  { label: `YIN (smoothed: ${SMOOTHING_LEVELS[SMOOTHING].label})`, detect: yin, smoothingLevel: SMOOTHING },
+  { label: 'Autocorrelation (raw)', detect: detectPitchAutocorrelation, smoothingLevel: 0 },
 ];
 
 // Read "time_s,f0_hz" rows into an array of f0 values, one per 10 ms.
@@ -59,25 +63,16 @@ const truthAt = (truth, seconds) => truth[Math.min(truth.length - 1, Math.max(0,
 
 function evaluateFile(wavPath, truth, config) {
   const { sampleRate, samples } = readWav(wavPath);
-  // The app's real window holds 2048 samples. At 44.1 kHz that is a bit longer in time.
-  const hop = sampleRate / READINGS_PER_SECOND;
-  const smoother = new PitchSmoother();
   const stats = { voiced: 0, found: 0, errors: [], gross: 0, octave: 0, unvoiced: 0, falseNotes: 0 };
+  const trackerOptions = { windowSize: WINDOW, ...RANGE, gateDb: GATE_DB, smoothingLevel: config.smoothingLevel, detect: config.detect };
 
-  for (let start = 0; start + WINDOW <= samples.length; start += hop) {
-    const from = Math.round(start);
-    const window = samples.subarray(from, from + WINDOW);
-
-    // Detector + volume gate, then optional smoothing (fed every window, like the app).
-    let frequency = null;
-    if (levelDb(window) >= GATE_DB) {
-      frequency = config.detect(window, sampleRate, RANGE).frequency;
-    }
-    if (config.smooth) frequency = smoother.push(frequency);
+  // Volume gate → detector → smoothing, exactly as in the app.
+  runPipeline(samples, sampleRate, trackerOptions, ({ startSample, result }) => {
+    const frequency = result.smoothed;
 
     // The truth for this window: all voiced, all unvoiced, or mixed (skip).
-    const t0 = from / sampleRate;
-    const t1 = (from + WINDOW) / sampleRate;
+    const t0 = startSample / sampleRate;
+    const t1 = (startSample + WINDOW) / sampleRate;
     const values = [];
     for (let t = t0; t <= t1; t += 0.01) values.push(truthAt(truth, t));
     const allVoiced = values.every((v) => v > 0);
@@ -97,7 +92,7 @@ function evaluateFile(wavPath, truth, config) {
       stats.unvoiced++;
       if (frequency) stats.falseNotes++;
     }
-  }
+  });
   return stats;
 }
 
