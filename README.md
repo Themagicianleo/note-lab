@@ -3,27 +3,48 @@
 A personal, non-commercial web app that listens **live** to your microphone and
 shows which musical note is playing, its frequency and how many cents sharp or
 flat it is, for example `A3 · 220.0 Hz · 0 cents`. It is meant for single notes
-from instruments and the human voice. Ear training is coming in a later phase.
+from instruments and the human voice. It also has a live spectrum view (for
+learning about EQ), ear training, and a beginner's guide. It works offline and
+can be installed on an iPhone home screen.
 
 **Privacy:** all audio processing happens on your device, in the browser.
 Microphone audio is never recorded, stored, uploaded or sent anywhere. There is
-no server, no account and no tracking.
+no server, no account and no tracking. Only your settings and training scores
+are saved, in your own browser.
 
-> **Status:** Phases 1–4 of 6 are done (pitch maths, tuner, voice mode,
-> spectrum). Ear training and offline/iPhone install are still to come.
+> **Status:** all 6 phases are built and tested in desktop Chromium:
+> pitch maths, tuner, voice mode, spectrum, ear training, and offline /
+> settings / guide. **Not yet tested on a real iPhone, and not yet measured on
+> real recordings.** See [Desktop vs iPhone](#desktop-vs-iphone) and
+> [Measured accuracy](#measured-accuracy).
 
 | Tuner | Voice mode | Spectrum |
 |---|---|---|
 | <img src="docs/screenshots/tuner.png" alt="Tuner screenshot" width="240"> | <img src="docs/screenshots/voice.png" alt="Voice mode screenshot" width="240"> | <img src="docs/screenshots/spectrum.png" alt="Spectrum screenshot" width="240"> |
 
+| Ear training (sing-back) | Settings |
+|---|---|
+| <img src="docs/screenshots/singback.png" alt="Sing-back screenshot" width="240"> | <img src="docs/screenshots/settings.png" alt="Settings screenshot" width="240"> |
+
 *Screenshots from the automated Chromium test, with generated test sounds as the "microphone".*
+
+## Getting it running
+
+- **On your computer:** `npm start`, then open <http://localhost:8000>.
+  (Needs [Node.js](https://nodejs.org) 18+, nothing to install.)
+- **Online, for your phone (GitHub Pages):** in the GitHub repo go to
+  **Settings → Pages → Build and deployment → Deploy from a branch**, choose
+  `main` and `/ (root)`, and save. After a minute the app is at
+  `https://<your-user-name>.github.io/note-lab/`. It must be **https**, or the
+  microphone won't work.
+- **Install on iPhone:** open that address in **Safari**, tap **Share → Add to
+  Home Screen**. It then opens full-screen like an app, and works offline after
+  the first visit.
 
 ## How to use
 
-1. Run it locally: `npm start`, then open <http://localhost:8000>. (Or use the
-   GitHub Pages address once it's enabled.)
-2. Tap **Start listening**. Your browser asks for microphone permission.
-3. Play or sing **one steady note**. You'll see:
+1. Tap **Start listening**. Your browser asks for microphone permission.
+2. Play or sing **one steady note**. You'll see:
    - the note name and octave (big),
    - `note · frequency · cents` (one decimal place for Hz),
    - a needle: left is flat (too low), middle is in tune, right is sharp (too high).
@@ -32,9 +53,9 @@ no server, no account and no tracking.
    - the **input level in dBFS**. 0 dBFS is the loudest sound the input can
      take, so normal sounds read below 0, e.g. −30 dBFS. This is **not** a
      calibrated sound level meter (dB SPL).
-4. If the sound is too quiet or isn't clearly pitched, the app shows
+3. If the sound is too quiet or isn't clearly pitched, the app shows
    **No clear note** instead of guessing.
-5. For a bass or other very low instrument, choose **Instrument range → Low**.
+4. For a bass or other very low instrument, choose **Instrument range → Low**.
 
 ### Voice mode
 
@@ -52,7 +73,8 @@ Tap the **Voice** tab (before or after starting). You'll see:
   half a second, then your highest. It records the lowest and highest notes
   you held steady and the range between them, e.g. "1 octave + 7 semitones".
   Results stay in the page only and are cleared when you close it.
-- **Voice settings**: detection range (Low / Mid / High / Custom), volume
+- **Voice settings** (summary line, plus a button to open them on the
+  Settings page): detection range (Low / Mid / High / Custom), volume
   threshold, and smoothing (Fast ↔ Steady). All are explained below.
 
 ### Spectrum
@@ -69,6 +91,45 @@ not just notes. It's useful for learning about EQ.
 - **Touch or point** at the chart to read the frequency, band and level there.
 - **Peak hold** (dashed line) shows recent loud moments, falling 20 dB per
   second. **Freeze** pauses the chart so you can study it.
+
+### Ear training (Train tab)
+
+Notes and intervals don't need the microphone. They only play sounds.
+
+- **Notes, guess the note:** the app plays a note and you tap its name.
+  By default it plays **C4 first as a reference**, because most people can't
+  name notes without one (perfect pitch is rare). With a reference you learn to
+  judge the distance. Choose the C major scale (white keys), all 12 notes, or
+  two octaves. After answering, tap any note button to hear it and compare.
+  Accuracy is tracked **per note**.
+- **Intervals, name the gap:** the app plays two notes and you name the
+  interval (minor 2nd … octave). Tick which intervals to practise (it starts
+  with a gentle set: major 2nd, major 3rd, perfect 4th, perfect 5th, octave),
+  and choose upwards, downwards or together. Each answer shows a well-known
+  song as a memory aid. Accuracy is tracked **per interval**.
+- **Sing-back:** the app plays a target note in your voice range, then
+  listens while you sing it, showing live how many cents off you are. Once
+  you've held a steady note for ~0.7 s it gives a result, e.g.
+  `Good: 18 cents flat (too low)`. If you sing the right note in another
+  octave, it says so and scores it ignoring the octave. It keeps your average
+  and recent results.
+
+Scores are saved on the device; reset them on the Settings page.
+
+### Settings and the "How it works" page
+
+**⚙ Settings** (top of the page) holds everything adjustable, saved on the
+device:
+- **Reference pitch (A4)**, 400–480 Hz: quick choices 415 / 432 / 440 / 442,
+  a preview of what that does to other notes, and *Play A4*. Every note name,
+  cents value and training tone follows it.
+- **Sensitivity:** volume thresholds for the tuner and for voice/sing-back.
+- **Voice range** and **smoothing**.
+- **Reset** training scores or settings.
+
+**How it works** (link at the top) is a plain-language guide: frequency, pitch,
+notes, octaves, cents, the formula with a worked example, harmonics, YIN, dBFS,
+limits and privacy. It also works offline.
 
 ## How the detection works
 
@@ -249,6 +310,39 @@ rows are the EQ lesson: **the loudest frequency is often not the note you
 hear.** It can be a harmonic or a resonance of the vowel. That's why the Tuner
 and Voice modes use YIN and don't just pick the biggest peak.
 
+### How ear training plays and judges notes (`js/tone-player.js`, `js/ear-training.js`)
+
+- **Tones** are generated in the browser (Web Audio oscillators), not
+  recordings: a fundamental plus a few quieter harmonics, for a soft organ-like
+  sound, with a 15 ms fade-in and a 150 ms fade-out so they don't click.
+  **Checked:** rendered offline in Chromium and measured with the app's own YIN
+  detector, C3, A3, C4, A4 and C5 all play at **0 cents**.
+- **Sing-back never listens to its own note.** The microphone input is ignored
+  until 0.25 s after the target has faded. Otherwise it would score the
+  speaker instead of you.
+- **"Steady"** means the readings stayed within 60 cents of each other for
+  0.7 s (that allows gentle vibrato). The result is their median. After 8 s
+  without a steady note it says so, instead of guessing.
+- **The labels** *Excellent / Good / Close* mean within 10 / 25 / 50 cents.
+  They're friendly display choices, not a standard.
+- **Checked end to end** in Chromium with a fake microphone: target C4 with
+  a C4 tone "sung" back → `0 cents`; target E4 with the 330 Hz test tone →
+  `+2 cents`, matching the worked example.
+
+### Offline use and installing (`sw.js`, `manifest.json`)
+
+- A **service worker** (`sw.js`) is a small script the browser keeps. On the
+  first visit it saves the app's own files. After that, it tries the network
+  first, so you always get the latest version when online, and falls back to
+  the saved copy when you're offline. Nothing else is stored: no audio, no data
+  about you. (The test WAVs aren't cached; the app never uses them.)
+- **`manifest.json`** and the **icons** (`icons/`, made by `tools/make-icons.js`
+  from one SVG) let browsers install the app. iPhone uses
+  `apple-touch-icon.png` and the `apple-mobile-web-app-*` tags in `index.html`.
+- A unit test checks that every app file is in the offline list. A browser
+  test loads the app, switches the network off, reloads, and checks that the
+  app and the guide page still work.
+
 ### Why YIN and not autocorrelation? (measured)
 
 Both were run on the same test files (`npm run evaluate`). Columns: **Found** =
@@ -345,6 +439,17 @@ generated signals, it still needs checking on real recordings.
 - **Spectrum peaks are not a chord detector.** You'll see peaks for every
   note's harmonics, which overlap. Naming the notes of a chord from them isn't
   supported.
+- **Ear training sound on iPhone:** the ring/silent switch may mute the
+  tones. The app asks Safari (16.4+) to play anyway, but that isn't tested on a
+  real iPhone; the page shows a hint. While the microphone is on, iPhones may
+  play sound more quietly or through the earpiece, so **headphones** help with
+  sing-back.
+- **Sing-back** needs you to hold a steady note for ~0.7 s. Very short or
+  very wobbly notes time out with "No steady note heard".
+- **Note guessing without the reference** is very hard for most people, and
+  that's normal; it's why the reference is on by default.
+- **Offline** works only after one online visit, and only in a browser that
+  supports service workers (current Safari, Chrome, Firefox, Edge).
 - **Accuracy numbers** are from generated signals only, so far.
 
 ## Desktop vs iPhone
@@ -367,13 +472,20 @@ Things to check on iPhone (please report back):
 7. Switch to another app and back: the tuner should continue, or tell you to tap Start.
 8. Whether iOS respects "no echo cancellation / noise suppression / auto gain".
    If quiet sounds get louder by themselves, it doesn't.
+9. Train tab → Notes: tap *Play a note* **with the silent switch on and off**.
+   Do you hear it both times?
+10. Sing-back with and without headphones: is the target note loud enough while
+    the mic is on? Does the result look right?
+11. **Add to Home Screen**, open it from the icon, then turn on Airplane Mode and
+    open it again. Does it still load? Does it ask for the microphone every time?
+12. Settings: change A4 to 442, close and reopen the app. Is it remembered?
 
 ## Running the tests
 
 Needs [Node.js](https://nodejs.org) 18 or newer. There are no packages to install.
 
 ```sh
-npm test               # unit tests: pitch maths, YIN, smoothing, dB level, ranges, FFT/spectrum,
+npm test               # unit tests: pitch maths, YIN, smoothing, dB level, ranges, FFT/spectrum, ear training, settings, offline file list,
                        # range finder (incl. full pipeline on generated files), WAV files
 npm run table          # note/frequency table for checking by hand
 npm run make-signals   # regenerate the test WAV files (identical every time)
@@ -382,6 +494,25 @@ npm run evaluate -- --preset=low    # try other settings (also --window, --thres
 npm run tradeoff                    # smoothness vs responsiveness for each smoothing level
 npm run spectrum-check              # spectrum peaks and levels on generated files
 node tools/browser-test.js          # optional; needs Playwright + Chromium installed
+node tools/make-icons.js            # optional; re-render the icons (needs Playwright)
+```
+
+## Project layout
+
+```
+index.html, how-it-works.html   the app and the beginner's guide
+manifest.json, sw.js, icons/     install + offline
+css/style.css                    all styles (light and dark)
+js/pitch-math.js                 ★ frequency ↔ note maths (start here)
+js/yin.js, js/smoothing.js, js/level.js, js/pitch-tracker.js   pitch detection pipeline
+js/fft.js, js/spectrum.js        spectrum maths
+js/voice-ranges.js, js/range-finder.js, js/ear-training.js, js/settings.js   other logic
+js/*-view.js, js/app.js, …       page code (what you see and tap)
+js/autocorrelation.js            only for the YIN comparison, not used by the app
+tests/                           unit tests (npm test)
+tools/                           test-signal generator, evaluators, local server, browser test
+test-audio/generated/            generated test WAVs + truth files
+docs/evaluation/, docs/screenshots/   measured results and screenshots
 ```
 
 ## Dependencies
@@ -392,7 +523,7 @@ isn't part of the app and isn't installed by this project.
 
 ## How AI help was used
 
-This project is being built with Claude Code (an AI coding assistant), working
+This project was built with Claude Code (an AI coding assistant), working
 phase by phase at the owner's direction:
 
 - The AI wrote the code, tests, test-signal generator and this README, and
@@ -412,5 +543,13 @@ phase by phase at the owner's direction:
 - Typical voice ranges in the presets come from general music and speech
   knowledge (e.g. men speaking ≈ 85–155 Hz). They're broad guides, not
   measurements of any particular person.
+- In the ear-training and offline phases, tests caught a "+0 cents" display
+  bug, an unhandled error when rendering tones offline, and a page missing
+  from the offline list (caught by the new test before it was ever shipped).
+  Reading the code before running it caught a start-up crash (code using a
+  variable before it was created).
+- When asked to carry out the last phases without stopping, the AI still
+  tested and committed each step separately. Everything above about iPhone
+  behaviour is a list of things to check, not something that was tested.
 - The AI can't hear and has no iPhone, so iPhone behaviour and real-world
   accuracy have to be checked by a person.
