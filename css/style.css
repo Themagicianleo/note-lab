@@ -173,3 +173,72 @@ button:disabled { opacity: 0.6; cursor: wait; }
 .tech-info { margin-bottom: 0; }
 
 footer { padding-top: 8px; padding-bottom: 24px; text-align: center; }
+
+/* --- tabs --- */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin: 12px 0 0;
+  background: var(--meter);
+  padding: 4px;
+  border-radius: 12px;
+}
+.tabs button {
+  flex: 1;
+  border: none;
+  background: transparent;
+  border-radius: 9px;
+  font-weight: 600;
+}
+.tabs button[aria-selected="true"] {
+  background: var(--card);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+/* --- option groups (radios, sliders) --- */
+.options {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 14px 0 0;
+}
+.options legend { font-weight: 600; padding: 0 4px; }
+.options label { display: block; padding: 6px 0; }
+.options input[type="radio"] { margin-right: 6px; }
+.options input[type="range"] { width: 100%; }
+.options .small { margin: 6px 0 0; }
+.custom-range { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 4px; }
+.custom-range label { padding: 0; }
+.custom-range input { width: 5.5em; font: inherit; padding: 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); }
+.field-error { color: var(--warn-text); background: var(--warn-bg); padding: 6px 8px; border-radius: 6px; margin: 8px 0 0; }
+.slider-ends { display: flex; justify-content: space-between; }
+
+/* --- voice mode --- */
+.voice-now {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-variant-numeric: tabular-nums;
+}
+.voice-note { font-size: 3rem; font-weight: 700; line-height: 1.1; min-width: 2.6em; }
+.voice-details { font-size: 1.05rem; }
+.voice-clarity { margin: 0 0 8px; }
+.pitch-graph {
+  display: block;
+  width: 100%;
+  height: 260px;
+  border-radius: 8px;
+}
+.range-finder { margin-top: 16px; }
+.range-results {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+.range-results div { background: var(--meter); border-radius: 8px; padding: 8px; }
+.range-results dt { font-size: 0.8rem; color: var(--muted); }
+.range-results dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.voice-settings { margin-top: 16px; }
+.voice-settings summary { font-weight: 600; cursor: pointer; padding: 6px 0; }

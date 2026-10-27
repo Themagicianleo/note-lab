@@ -20,9 +20,14 @@
       All audio is processed here in your browser. Nothing is recorded, stored or sent anywhere.
     </p>
 
+    <!-- Mode tabs -->
+    <nav class="tabs" role="tablist" aria-label="Mode">
+      <button type="button" role="tab" id="tab-tuner" aria-selected="true" aria-controls="tuner">Tuner</button>
+      <button type="button" role="tab" id="tab-voice" aria-selected="false" aria-controls="voice">Voice</button>
+    </nav>
+
     <!-- Shown before listening starts -->
     <section id="start-panel" class="card">
-      <h2>Tuner</h2>
       <p>
         Note Lab needs your <strong>microphone</strong> to hear which note you play or sing.
         After you tap the button, your browser will ask for permission.
@@ -33,8 +38,8 @@
     <!-- Error and status messages -->
     <div id="message" class="message" role="alert" hidden></div>
 
-    <!-- Shown while listening -->
-    <section id="tuner" class="card" hidden>
+    <!-- ================= TUNER ================= -->
+    <section id="tuner" class="card" role="tabpanel" aria-labelledby="tab-tuner" hidden>
       <div class="note-display">
         <span id="note-name" class="note-name">–</span><span id="note-octave" class="note-octave"></span>
       </div>
@@ -55,7 +60,72 @@
       </div>
       <p id="tuning-hint" class="tuning-hint">Hold one steady note.</p>
 
-      <!-- Input level in dBFS -->
+      <fieldset class="options">
+        <legend>Instrument range</legend>
+        <label><input type="radio" name="tuner-range" value="standard" checked> Standard (50–1500 Hz)</label>
+        <label><input type="radio" name="tuner-range" value="low"> Low instruments, e.g. bass (30–400 Hz)</label>
+        <p class="small">"Low" uses twice as much sound per reading (4096 samples) so it can see very slow vibrations like a bass's low E (41 Hz). It reacts a little more slowly.</p>
+      </fieldset>
+    </section>
+
+    <!-- ================= VOICE ================= -->
+    <section id="voice" class="card" role="tabpanel" aria-labelledby="tab-voice" hidden>
+      <div class="voice-now">
+        <span id="voice-note" class="voice-note">–</span>
+        <span id="voice-details" class="voice-details">No clear pitch</span>
+      </div>
+      <p id="voice-clarity" class="small voice-clarity">Clarity –</p>
+
+      <canvas id="pitch-graph" class="pitch-graph" aria-label="Graph of your pitch over the last 8 seconds"></canvas>
+      <p class="small">Line = your pitch (smoothed). Dots = raw readings. Gaps = no clear pitch.</p>
+
+      <div class="range-finder">
+        <h2>Range finder</h2>
+        <p class="small">Sing your lowest comfortable note and hold it for about half a second, then your highest. Only notes held steady count.</p>
+        <dl class="range-results">
+          <div><dt>Lowest</dt><dd id="range-low">–</dd></div>
+          <div><dt>Highest</dt><dd id="range-high">–</dd></div>
+          <div><dt>Range</dt><dd id="range-span">–</dd></div>
+        </dl>
+        <button id="range-reset" type="button">Reset range</button>
+      </div>
+
+      <details class="voice-settings" open>
+        <summary>Voice settings</summary>
+
+        <fieldset class="options">
+          <legend>Detection range</legend>
+          <label><input type="radio" name="voice-preset" value="low"> Low voice <span class="small">(bass, baritone, most men speaking)</span></label>
+          <label><input type="radio" name="voice-preset" value="mid" checked> Mid voice <span class="small">(tenor, alto, most women speaking)</span></label>
+          <label><input type="radio" name="voice-preset" value="high"> High voice <span class="small">(soprano, children)</span></label>
+          <label><input type="radio" name="voice-preset" value="custom"> Custom</label>
+          <div class="custom-range">
+            <label>Min <input id="custom-min" type="number" inputmode="numeric" min="40" max="2000" value="80"> Hz</label>
+            <label>Max <input id="custom-max" type="number" inputmode="numeric" min="40" max="2000" value="400"> Hz</label>
+            <button id="custom-apply" type="button">Use custom range</button>
+          </div>
+          <p id="range-error" class="field-error" role="alert" hidden></p>
+          <p id="range-description" class="small"></p>
+          <p class="small">The detector only looks for pitches inside this range. That rules out answers that are impossible for your voice, like a reading an octave too low. If a note you sing is outside the range, you'll see "no clear pitch", so choose a range that includes all your notes.</p>
+        </fieldset>
+
+        <fieldset class="options">
+          <legend>Volume threshold: <span id="gate-value">−55 dBFS</span></legend>
+          <input id="gate-slider" type="range" min="-80" max="-20" step="1" value="-55" aria-describedby="gate-help">
+          <p id="gate-help" class="small">Sounds quieter than this are ignored, so breathing and background noise don't produce random notes. In a noisy room, move it right (to a higher number), above the level the meter shows when you're silent.</p>
+        </fieldset>
+
+        <fieldset class="options">
+          <legend>Smoothing: <span id="smoothing-value">Balanced</span></legend>
+          <input id="smoothing-slider" type="range" min="0" max="4" step="1" value="2" aria-describedby="smoothing-help">
+          <div class="slider-ends small" aria-hidden="true"><span>Fast</span><span>Steady</span></div>
+          <p id="smoothing-help" class="small">Steady: the needle and line wobble less, but take longer to follow a new note and can hide short gaps. Fast: shows every change straight away, including vibrato and the odd wrong reading.</p>
+        </fieldset>
+      </details>
+    </section>
+
+    <!-- ============ shared while listening ============ -->
+    <section id="listening-bar" class="card" hidden>
       <div class="level">
         <span class="level-label">Input level</span>
         <div class="level-bar">
@@ -69,8 +139,7 @@
         It shows how loud the sound is to this microphone. It is <em>not</em> a calibrated sound level meter.
         The thin line marks the volume threshold: anything quieter is ignored.
       </p>
-
-      <button id="stop-button" type="button">Stop</button>
+      <button id="stop-button" type="button">Stop listening</button>
       <p id="tech-info" class="small tech-info"></p>
     </section>
 
@@ -78,8 +147,8 @@
       <h2>Good to know</h2>
       <ul>
         <li>Works best with <strong>one note at a time</strong>. Chords are not supported.</li>
-        <li>"No clear note" means the sound was too quiet or not clearly pitched, so nothing is shown rather than a guess.</li>
-        <li>Very low notes (below about 50 Hz) are outside the tuner's range for now.</li>
+        <li>"No clear note" or "no clear pitch" means the sound was too quiet or not clearly pitched (breath, a consonant, noise), so nothing is shown rather than a guess.</li>
+        <li>Your range-finder results stay in this page only and disappear when you close it.</li>
       </ul>
     </section>
   </main>
