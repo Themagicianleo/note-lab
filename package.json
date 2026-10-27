@@ -7,7 +7,8 @@
   "scripts": {
     "test": "node --test tests/*.test.js",
     "table": "node tools/print-note-table.js",
-    "make-signals": "node tools/make-test-signals.js"
+    "make-signals": "node tools/make-test-signals.js",
+    "evaluate": "node tools/evaluate.js"
   },
   "engines": {
     "node": ">=18"
