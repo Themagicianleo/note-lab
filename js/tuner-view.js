@@ -1,8 +1,8 @@
 // tuner-view.js
 // ------------------------------------------------------------
-// Updates the tuner part of the page: note name, details line,
-// sharp/flat needle and the input level (dBFS) meter.
-// It only displays things; all the measuring happens elsewhere.
+// Updates the tuner part of the page: note name, details line and
+// the sharp/flat needle. It only displays things; all the measuring
+// happens elsewhere.
 // ------------------------------------------------------------
 
 import { formatNote } from './pitch-math.js';
@@ -10,10 +10,6 @@ import { formatNote } from './pitch-math.js';
 // The needle turns green within this many cents. This is only a display
 // choice for beginners, not a measured accuracy.
 export const IN_TUNE_CENTS = 5;
-
-// The level meter shows this range of dBFS.
-const METER_MIN_DB = -90;
-const METER_MAX_DB = 0;
 
 const byId = (id) => document.getElementById(id);
 
@@ -24,36 +20,12 @@ export function createTunerView() {
     details: byId('note-details'),
     needle: byId('needle'),
     hint: byId('tuning-hint'),
-    levelFill: byId('level-fill'),
-    levelGate: byId('level-gate'),
-    levelText: byId('level-text'),
-    techInfo: byId('tech-info'),
   };
 
-  // Where on the meter (0–100%) a dB value goes.
-  const meterPercent = (db) =>
-    (100 * (Math.min(METER_MAX_DB, Math.max(METER_MIN_DB, db)) - METER_MIN_DB)) / (METER_MAX_DB - METER_MIN_DB);
-
   return {
-    // Show where the volume gate is on the level meter.
-    setGate(gateDb) {
-      el.levelGate.style.left = `${meterPercent(gateDb)}%`;
-      el.levelGate.title = `Sounds quieter than ${gateDb} dBFS are ignored`;
-    },
-
-    setTechInfo(text) {
-      el.techInfo.textContent = text;
-    },
-
-    // state = { note, reason, levelDb }
-    //   note   – result of frequencyToNote, or null
-    //   reason – why there is no note: 'quiet' or 'unclear'
-    update({ note, reason, levelDb }) {
-      // --- level meter ---
-      el.levelFill.style.width = `${meterPercent(levelDb)}%`;
-      el.levelText.textContent = levelDb <= -100 ? 'silent' : `${levelDb.toFixed(0)} dBFS`;
-
-      // --- no note ---
+    // note   – result of frequencyToNote, or null
+    // reason – why there is no note: 'quiet' or 'unclear'
+    update({ note, reason }) {
       if (!note) {
         el.noteName.textContent = '–';
         el.noteOctave.textContent = '';
@@ -65,7 +37,6 @@ export function createTunerView() {
         return;
       }
 
-      // --- a note ---
       const cents = note.cents;
       el.noteName.textContent = note.name;
       el.noteOctave.textContent = note.octave;
