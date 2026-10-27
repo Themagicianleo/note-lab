@@ -18,6 +18,18 @@
 // when you change note. At ~60 readings per second, 7 readings ≈ 0.12 s.
 // ------------------------------------------------------------
 
+// Choices for the "Fast ↔ Steady" control. historySize = how many readings
+// are remembered; minValid = how many must have a pitch before one is shown.
+// At about 60 readings a second, each reading is roughly 17 ms.
+export const SMOOTHING_LEVELS = [
+  { label: 'Fastest (no smoothing)', historySize: 1, minValid: 1 },
+  { label: 'Fast', historySize: 3, minValid: 2 },
+  { label: 'Balanced', historySize: 7, minValid: 4 },
+  { label: 'Steady', historySize: 15, minValid: 8 },
+  { label: 'Steadiest', historySize: 25, minValid: 13 },
+];
+export const DEFAULT_SMOOTHING_LEVEL = 2; // 'Balanced', the Phase 2 setting
+
 export function median(values) {
   if (values.length === 0) return null;
   const sorted = [...values].sort((a, b) => a - b);
