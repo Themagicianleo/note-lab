@@ -1,0 +1,16 @@
+{
+  "name": "note-lab",
+  "version": "0.1.0",
+  "description": "A browser app that listens to the microphone and shows the note you are playing or singing. All audio stays on your device.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/",
+    "table": "node tools/print-note-table.js",
+    "make-signals": "node tools/make-test-signals.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
