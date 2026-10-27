@@ -218,6 +218,17 @@ add('weak-fundamental-A2', 'octave-trap',
     return { samples: normalise(makeTone(2, f0At, levelAt, weakFundamental), -6), f0At, levelAt };
   });
 
+add('voice-rough-G2-subharmonic', 'octave-trap',
+  'Rough/creaky low "ah" at G2 (98 Hz): every other vocal pulse differs, adding a sub-harmonic at 49 Hz about 10 dB down. Easy to misread an octave LOW.', 2.5, () => {
+    // Built on a 49 Hz base: even harmonics of 49 Hz are the real voice at 98 Hz,
+    // odd ones are the weaker sub-harmonic "roughness" (0.3 ≈ −10 dB).
+    const voice = (k, hz) => (k % 2 === 0 ? vowelAh(k / 2, hz) : 0.3 * vowelAh(Math.max(1, k / 2), hz));
+    const truthF0 = () => noteToFrequency('G', 2);
+    const levelAt = fadeInOut(0, 2.5, 0.08);
+    const samples = normalise(makeTone(2.5, () => truthF0() / 2, levelAt, voice), -6);
+    return { samples, f0At: truthF0, levelAt };
+  });
+
 // --- low notes ---
 add('plucked-E2', 'low', 'Guitar-like low E (82.41 Hz) that fades away after being plucked.', 2.5, () => {
   const hz = noteToFrequency('E', 2);

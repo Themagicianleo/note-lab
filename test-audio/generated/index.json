@@ -42,6 +42,14 @@
       "peakDbfs": -6
     },
     {
+      "file": "voice-rough-G2-subharmonic.wav",
+      "truth": "voice-rough-G2-subharmonic.csv",
+      "category": "octave-trap",
+      "description": "Rough/creaky low \"ah\" at G2 (98 Hz): every other vocal pulse differs, adding a sub-harmonic at 49 Hz about 10 dB down. Easy to misread an octave LOW.",
+      "durationSeconds": 2.5,
+      "peakDbfs": -6
+    },
+    {
       "file": "plucked-E2.wav",
       "truth": "plucked-E2.csv",
       "category": "low",
