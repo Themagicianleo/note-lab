@@ -122,7 +122,10 @@ Full tables: [`docs/evaluation/`](docs/evaluation/).
 note a little longer (about 0.1 s) and evens out vibrato. Measured against the
 moment-by-moment true pitch, smoothed voice readings are off by a median of
 **23 cents**, versus 2.5 raw. That's mostly the display trailing behind vibrato
-and slides, not wrong notes: the wrong-note rate stays at 1%. Voice mode
+and slides, not wrong notes: the wrong-note rate stays at 1%. The hold also
+means a note stays on screen for a moment after you stop. In the short
+(0.1 s) gaps of the scale and speech tests, 34% of gap moments still showed
+the previous note. Voice mode
 (Phase 3) will let you choose between steadier and faster.
 
 **A tuning decision made from these tests:** YIN's threshold started at 0.15.
