@@ -158,6 +158,44 @@ try {
     await browser.close();
   }
 
+  // 1e. Spectrum mode: harmonics of a bright A3, pointer readout, freeze.
+  {
+    const { browser, page, errors } = await fakeMic('bright-A3.wav');
+    await page.click('#tab-spectrum');
+    await page.click('#start-button');
+    await page.waitForSelector('#spectrum:not([hidden])', { timeout: 5000 });
+    await page.waitForTimeout(1200);
+    const peaks = await page.$$eval('#spectrum-peaks li', (items) => items.map((li) => li.textContent));
+    const info = await page.textContent('#tech-info');
+    // Allow 2%: on a busy machine Chromium's fake microphone has once delivered
+    // all frequencies ~1% low (218/436/663 Hz). The ratios must still be 1:2.
+    const hz = peaks.map((p) => parseFloat(p));
+    const fundamentalOk = Math.abs(hz[0] / 220 - 1) < 0.02 && peaks[0].includes('A3');
+    const harmonicOk = hz.some((h) => Math.abs(h / hz[0] - 2) < 0.01);
+    report(fundamentalOk && harmonicOk && info.includes('8192') && !errors.length,
+      'spectrum: bright A3 shows 220 Hz and its harmonic 440 Hz', `${JSON.stringify(peaks.slice(0, 3))} · ${info}${errors.length ? ` errors: ${errors}` : ''}`);
+
+    // Point at the chart near 1 kHz (x is on a log scale between the margins).
+    const box = await page.locator('#spectrum-chart').boundingBox();
+    const left = box.x + 34;
+    const x = left + (box.width - 34) * Math.log(1000 / 20) / Math.log(20000 / 20);
+    await page.mouse.move(x, box.y + box.height / 2);
+    await page.waitForTimeout(100);
+    const pointer = await page.textContent('#spectrum-pointer');
+    report(/^(9\d\d Hz|1\.0\d kHz)/.test(pointer) && pointer.includes('Mids'), 'spectrum: pointer readout near 1 kHz', `"${pointer.slice(0, 60)}…"`);
+
+    await page.click('#spectrum-freeze');
+    const frozenPeaks = await page.textContent('#spectrum-peaks');
+    await page.waitForTimeout(500);
+    report((await page.textContent('#spectrum-peaks')) === frozenPeaks && (await page.getAttribute('#spectrum-freeze', 'aria-pressed')) === 'true',
+      'spectrum: Freeze stops updates');
+    await page.click('#spectrum-freeze');
+    await page.mouse.move(0, 0);
+    await page.waitForTimeout(800);
+    await page.locator('#spectrum').screenshot({ path: `${ROOT}docs/screenshots/spectrum.png` });
+    await browser.close();
+  }
+
   // 2. Permission denied. Headless Chromium has no permission prompt to refuse, so we
   //    make getUserMedia fail with the same error a real "Don't Allow" gives (NotAllowedError).
   {
