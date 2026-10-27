@@ -291,3 +291,30 @@ button.answer.wrong { background: var(--warn-bg); color: var(--warn-text); borde
 .need-mic p { margin: 0 0 8px; }
 .singback-target { font-size: 1.2rem; font-weight: 600; min-height: 1.5em; }
 .singback-meter .in-tune-zone { left: 45%; width: 10%; } /* ±10 cents on a ±100 scale */
+
+/* --- header links, settings --- */
+.header-links { display: flex; gap: 16px; align-items: center; margin: 0 0 4px; }
+.header-links a, .link-button { color: var(--accent); font-size: 0.95rem; }
+.link-button { background: none; border: none; padding: 4px 0; min-height: 32px; text-decoration: underline; }
+a { color: var(--accent); }
+.a4-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.a4-row input { width: 6em; font: inherit; padding: 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); }
+.voice-settings-summary { margin-top: 16px; background: var(--meter); border-radius: 10px; padding: 8px 12px; }
+.voice-settings-summary p { margin: 0; }
+#close-settings { margin-top: 16px; }
+footer p { margin: 4px 0; }
+
+/* --- how it works page --- */
+.guide h2 { font-size: 1.15rem; }
+.guide p, .guide li { font-size: 0.98rem; }
+.guide-table { max-width: 260px; margin: 8px 0; }
+.formula {
+  background: var(--meter);
+  border-radius: 8px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  font-size: 0.9rem;
+}
+.glossary { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0; }
+.glossary dt { font-weight: 600; color: var(--text); }
+.glossary dd { margin: 0; }

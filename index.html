@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Note Lab</title>
   <meta name="description" content="See which musical note you are playing or singing. All audio is processed on your device.">
+  <!-- Installable app ("Add to Home Screen"): manifest, icons, colours -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="theme-color" content="#3157d5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Note Lab">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="stylesheet" href="css/style.css">
   <script type="module" src="js/app.js"></script>
 </head>
@@ -12,6 +21,10 @@
   <header>
     <h1>Note Lab</h1>
     <p class="tagline">See which note you're playing or singing.</p>
+    <nav class="header-links" aria-label="More">
+      <button id="open-settings" type="button" class="link-button">⚙ Settings</button>
+      <a href="how-it-works.html">How it works</a>
+    </nav>
   </header>
 
   <main>
@@ -92,38 +105,10 @@
         <button id="range-reset" type="button">Reset range</button>
       </div>
 
-      <details class="voice-settings" open>
-        <summary>Voice settings</summary>
-
-        <fieldset class="options">
-          <legend>Detection range</legend>
-          <label><input type="radio" name="voice-preset" value="low"> Low voice <span class="small">(bass, baritone, most men speaking)</span></label>
-          <label><input type="radio" name="voice-preset" value="mid" checked> Mid voice <span class="small">(tenor, alto, most women speaking)</span></label>
-          <label><input type="radio" name="voice-preset" value="high"> High voice <span class="small">(soprano, children)</span></label>
-          <label><input type="radio" name="voice-preset" value="custom"> Custom</label>
-          <div class="custom-range">
-            <label>Min <input id="custom-min" type="number" inputmode="numeric" min="40" max="2000" value="80"> Hz</label>
-            <label>Max <input id="custom-max" type="number" inputmode="numeric" min="40" max="2000" value="400"> Hz</label>
-            <button id="custom-apply" type="button">Use custom range</button>
-          </div>
-          <p id="range-error" class="field-error" role="alert" hidden></p>
-          <p id="range-description" class="small"></p>
-          <p class="small">The detector only looks for pitches inside this range. That rules out answers that are impossible for your voice, like a reading an octave too low. If a note you sing is outside the range, you'll see "no clear pitch", so choose a range that includes all your notes.</p>
-        </fieldset>
-
-        <fieldset class="options">
-          <legend>Volume threshold: <span id="gate-value">−55 dBFS</span></legend>
-          <input id="gate-slider" type="range" min="-80" max="-20" step="1" value="-55" aria-describedby="gate-help">
-          <p id="gate-help" class="small">Sounds quieter than this are ignored, so breathing and background noise don't produce random notes. In a noisy room, move it right (to a higher number), above the level the meter shows when you're silent.</p>
-        </fieldset>
-
-        <fieldset class="options">
-          <legend>Smoothing: <span id="smoothing-value">Balanced</span></legend>
-          <input id="smoothing-slider" type="range" min="0" max="4" step="1" value="2" aria-describedby="smoothing-help">
-          <div class="slider-ends small" aria-hidden="true"><span>Fast</span><span>Steady</span></div>
-          <p id="smoothing-help" class="small">Steady: the needle and line wobble less, but take longer to follow a new note and can hide short gaps. Fast: shows every change straight away, including vibrato and the odd wrong reading.</p>
-        </fieldset>
-      </details>
+      <div class="voice-settings-summary">
+        <p id="voice-settings-summary" class="small"></p>
+        <button id="voice-open-settings" type="button" class="small-button">Change voice settings</button>
+      </div>
     </section>
 
     <!-- ================= SPECTRUM ================= -->
@@ -262,6 +247,71 @@
       </div>
     </section>
 
+    <!-- ================= SETTINGS ================= -->
+    <section id="settings" class="card" aria-labelledby="settings-title" hidden>
+      <h2 id="settings-title">Settings</h2>
+      <p class="small">Changes apply straight away and are saved on this device only.</p>
+
+      <fieldset class="options">
+        <legend>Reference pitch (A4)</legend>
+        <div class="a4-row">
+          <label>A4 = <input id="a4-input" type="number" inputmode="decimal" min="400" max="480" step="0.1" value="440"> Hz</label>
+          <button id="a4-play" type="button" class="small-button">Play A4</button>
+        </div>
+        <div id="a4-suggestions" class="row"></div>
+        <p id="a4-error" class="field-error" role="alert" hidden></p>
+        <p id="a4-preview" class="small"></p>
+        <p class="small">440 Hz is the modern standard. Some orchestras tune a little higher (441–443), "baroque pitch" is about 415, and some people prefer 432. Every note name, cents value and training tone follows this setting.</p>
+      </fieldset>
+
+      <fieldset class="options">
+        <legend>Tuner volume threshold: <span id="tuner-gate-value">−60 dBFS</span></legend>
+        <input id="tuner-gate-slider" type="range" min="-80" max="-20" step="1" value="-60" aria-describedby="tuner-gate-help">
+        <p id="tuner-gate-help" class="small">This is the tuner's sensitivity. Left (lower number) = more sensitive, picks up quiet notes but also background noise. Right = only louder sounds count. Watch the input level while you're silent and set this above it.</p>
+      </fieldset>
+
+      <fieldset class="options">
+        <legend>Voice detection range</legend>
+        <label><input type="radio" name="voice-preset" value="low"> Low voice <span class="small">(bass, baritone, most men speaking)</span></label>
+        <label><input type="radio" name="voice-preset" value="mid" checked> Mid voice <span class="small">(tenor, alto, most women speaking)</span></label>
+        <label><input type="radio" name="voice-preset" value="high"> High voice <span class="small">(soprano, children)</span></label>
+        <label><input type="radio" name="voice-preset" value="custom"> Custom</label>
+        <div class="custom-range">
+          <label>Min <input id="custom-min" type="number" inputmode="numeric" min="40" max="2000" value="80"> Hz</label>
+          <label>Max <input id="custom-max" type="number" inputmode="numeric" min="40" max="2000" value="400"> Hz</label>
+          <button id="custom-apply" type="button">Use custom range</button>
+        </div>
+        <p id="range-error" class="field-error" role="alert" hidden></p>
+        <p id="range-description" class="small"></p>
+        <p class="small">The detector only looks for pitches inside this range. That rules out answers that are impossible for your voice, like a reading an octave too low. If a note you sing is outside the range, you'll see "no clear pitch", so choose a range that includes all your notes.</p>
+      </fieldset>
+
+      <fieldset class="options">
+        <legend>Voice &amp; sing-back volume threshold: <span id="gate-value">−55 dBFS</span></legend>
+        <input id="gate-slider" type="range" min="-80" max="-20" step="1" value="-55" aria-describedby="gate-help">
+        <p id="gate-help" class="small">Sounds quieter than this are ignored, so breathing and background noise don't produce random notes. In a noisy room, move it right (to a higher number), above the level the meter shows when you're silent.</p>
+      </fieldset>
+
+      <fieldset class="options">
+        <legend>Voice smoothing: <span id="smoothing-value">Balanced</span></legend>
+        <input id="smoothing-slider" type="range" min="0" max="4" step="1" value="2" aria-describedby="smoothing-help">
+        <div class="slider-ends small" aria-hidden="true"><span>Fast</span><span>Steady</span></div>
+        <p id="smoothing-help" class="small">Steady: the needle and line wobble less, but take longer to follow a new note and can hide short gaps. Fast: shows every change straight away, including vibrato and the odd wrong reading.</p>
+      </fieldset>
+
+      <fieldset class="options">
+        <legend>Your data</legend>
+        <p class="small">Scores and settings are stored in this browser only. Audio is never stored.</p>
+        <div class="row">
+          <button id="reset-scores" type="button" class="small-button">Reset all training scores</button>
+          <button id="reset-settings" type="button" class="small-button">Reset settings to defaults</button>
+        </div>
+        <p id="data-message" class="small" aria-live="polite"></p>
+      </fieldset>
+
+      <button id="close-settings" type="button" class="primary">Done</button>
+    </section>
+
     <!-- ============ shared while listening ============ -->
     <section id="listening-bar" class="card" hidden>
       <div class="level">
@@ -286,11 +336,14 @@
       <ul>
         <li>Works best with <strong>one note at a time</strong>. Chords are not supported.</li>
         <li>"No clear note" or "no clear pitch" means the sound was too quiet or not clearly pitched (breath, a consonant, noise), so nothing is shown rather than a guess.</li>
-        <li>Your range-finder results stay in this page only and disappear when you close it.</li>
+        <li>Your range-finder results stay in this page only and disappear when you close it. Settings and training scores are saved on this device only.</li>
       </ul>
     </section>
   </main>
 
-  <footer class="small">Note Lab · a personal learning project · no accounts, no tracking</footer>
+  <footer class="small">
+    <p id="offline-status" aria-live="polite"></p>
+    <p>Note Lab · a personal learning project · no accounts, no tracking · <a href="how-it-works.html">How it works</a></p>
+  </footer>
 </body>
 </html>

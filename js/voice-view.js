@@ -99,5 +99,17 @@ export function createVoiceView({ onRangeChange, onGateChange, onSmoothingChange
     setRangeDescription(text) {
       el.rangeDescription.textContent = text;
     },
+
+    // Show saved settings in the controls (they live on the Settings page).
+    setControls({ voicePreset, voiceMinHz, voiceMaxHz, voiceGateDb, smoothingLevel }) {
+      el.presets.forEach((radio) => { radio.checked = radio.value === voicePreset; });
+      el.customMin.value = voiceMinHz;
+      el.customMax.value = voiceMaxHz;
+      el.rangeError.hidden = true;
+      el.gateSlider.value = voiceGateDb;
+      el.gateValue.textContent = `${voiceGateDb} dBFS`;
+      el.smoothingSlider.value = smoothingLevel;
+      el.smoothingValue.textContent = SMOOTHING_LEVELS[smoothingLevel].label;
+    },
   };
 }

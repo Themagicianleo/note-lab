@@ -6,17 +6,19 @@
 //
 // Four modes (tabs), each with its own settings:
 //   Tuner    – instruments; a standard or a low range
-//   Voice    – a voice range preset, adjustable volume threshold and smoothing,
+//   Voice    – a voice range preset, volume threshold and smoothing,
 //              pitch graph and range finder
 //   Spectrum – no pitch detection; an FFT shows how loud each frequency is
 //   Train    – ear training. Notes and intervals only PLAY sounds (no mic);
 //              sing-back plays a note, then listens with the voice settings
+// Plus a Settings page (reference pitch, sensitivity, voice range, …),
+// saved on this device.
 // ------------------------------------------------------------
 
 import { startMicrophone, checkMicrophoneSupport } from './audio-input.js';
-import { PitchTracker, DEFAULT_GATE_DB } from './pitch-tracker.js';
-import { DEFAULT_SMOOTHING_LEVEL } from './smoothing.js';
-import { frequencyToNote, DEFAULT_A4 } from './pitch-math.js';
+import { PitchTracker } from './pitch-tracker.js';
+import { SMOOTHING_LEVELS, DEFAULT_SMOOTHING_LEVEL } from './smoothing.js';
+import { frequencyToNote } from './pitch-math.js';
 import { levelDb } from './level.js';
 import { computeSpectrum } from './spectrum.js';
 import { VOICE_PRESETS, describeRange } from './voice-ranges.js';
@@ -30,46 +32,56 @@ import { createTonePlayer } from './tone-player.js';
 import { createNoteTrainer } from './note-trainer-view.js';
 import { createIntervalTrainer } from './interval-trainer-view.js';
 import { createSingBack } from './singback-view.js';
-import { loadJSON, saveJSON } from './storage.js';
+import { createSettingsView } from './settings-view.js';
+import { SETTINGS_KEY, DEFAULT_SETTINGS, validateSettings, voiceRange } from './settings.js';
+import { loadJSON, saveJSON, removeKey } from './storage.js';
+import { registerServiceWorker } from './register-sw.js';
 
-// ---------- settings (a settings page comes in Phase 6) ----------
+// ---------- settings ----------
 
 const TUNER_RANGES = {
   standard: { minHz: 50, maxHz: 1500, windowSize: 2048 },
   low: { minHz: 30, maxHz: 400, windowSize: 4096 }, // bigger window to see very slow vibrations
 };
 
-const settings = {
-  a4: DEFAULT_A4,
-  tuner: { range: 'standard' },
-  voice: { preset: 'mid', minHz: 80, maxHz: 400, gateDb: -55, smoothingLevel: DEFAULT_SMOOTHING_LEVEL },
-};
-
 // Spectrum: 8192 samples (~170 ms) gives bins about 6 Hz wide, enough to
 // separate low notes. Fewer samples would react faster but blur the bass.
 const SPECTRUM_WINDOW = 8192;
 
+// Saved settings, checked (broken values fall back to defaults).
+let settings = validateSettings(loadJSON(SETTINGS_KEY, null));
+function changeSettings(changes) {
+  settings = validateSettings({ ...settings, ...changes });
+  saveJSON(SETTINGS_KEY, settings);
+  applyConfig();
+}
+
 // The detection settings for the current mode.
 function currentConfig() {
   if (activeTab === 'spectrum') {
-    return { minHz: 20, maxHz: 20000, windowSize: SPECTRUM_WINDOW, gateDb: DEFAULT_GATE_DB, smoothingLevel: DEFAULT_SMOOTHING_LEVEL };
+    return { minHz: 20, maxHz: 20000, windowSize: SPECTRUM_WINDOW, gateDb: settings.tunerGateDb, smoothingLevel: DEFAULT_SMOOTHING_LEVEL };
   }
   if (activeTab === 'tuner') {
-    return { ...TUNER_RANGES[settings.tuner.range], gateDb: DEFAULT_GATE_DB, smoothingLevel: DEFAULT_SMOOTHING_LEVEL };
+    return { ...TUNER_RANGES[settings.tunerRange], gateDb: settings.tunerGateDb, smoothingLevel: DEFAULT_SMOOTHING_LEVEL };
   }
-  const v = settings.voice;
-  if (activeTab === 'ear') {
-    // Sing-back: the voice settings, with the range of the chosen target notes.
-    const preset = VOICE_PRESETS[singBack ? singBack.rangeKey() : 'mid'];
-    return { minHz: preset.minHz, maxHz: preset.maxHz, windowSize: 2048, gateDb: v.gateDb, smoothingLevel: v.smoothingLevel };
-  }
-  const range = v.preset === 'custom' ? { minHz: v.minHz, maxHz: v.maxHz } : VOICE_PRESETS[v.preset];
-  return { minHz: range.minHz, maxHz: range.maxHz, windowSize: 2048, gateDb: v.gateDb, smoothingLevel: v.smoothingLevel };
+  // Voice, and sing-back (which searches the range of its target notes).
+  const range = activeTab === 'ear' ? VOICE_PRESETS[singBack.rangeKey()] : voiceRange(settings);
+  return { minHz: range.minHz, maxHz: range.maxHz, windowSize: 2048, gateDb: settings.voiceGateDb, smoothingLevel: settings.smoothingLevel };
 }
 
 // Readings per second: screens refresh 60–120 times a second; we cap it at
 // about 60 so the smoothing behaves the same on every device.
 const MIN_MS_BETWEEN_READINGS = 15;
+
+// ---------- state ----------
+
+let activeTab = 'tuner';
+let settingsOpen = false;
+let mic = null;          // the running microphone, or null
+let frameRequest = null; // the id from requestAnimationFrame, so we can cancel it
+let lastReading = 0;
+let buffer = null;
+const tracker = new PitchTracker();
 
 // ---------- page elements and views ----------
 
@@ -79,6 +91,8 @@ const startButton = byId('start-button');
 const stopButton = byId('stop-button');
 const listeningBar = byId('listening-bar');
 const message = byId('message');
+const tabList = document.querySelector('.tabs');
+const settingsPanel = byId('settings');
 const tabs = { tuner: byId('tab-tuner'), voice: byId('tab-voice'), spectrum: byId('tab-spectrum'), ear: byId('tab-ear') };
 const panels = { tuner: byId('tuner'), voice: byId('voice'), spectrum: byId('spectrum'), ear: byId('ear') };
 
@@ -95,21 +109,12 @@ const spectrumView = createSpectrumView({
 });
 const voiceView = createVoiceView({
   onRangeChange({ preset, minHz, maxHz }) {
-    settings.voice.preset = preset;
-    if (preset === 'custom') Object.assign(settings.voice, { minHz, maxHz });
-    applyConfig();
+    changeSettings(preset === 'custom' ? { voicePreset: preset, voiceMinHz: minHz, voiceMaxHz: maxHz } : { voicePreset: preset });
   },
-  onGateChange(db) { settings.voice.gateDb = db; applyConfig(); },
-  onSmoothingChange(level) { settings.voice.smoothingLevel = level; applyConfig(); },
+  onGateChange: (db) => changeSettings({ voiceGateDb: db }),
+  onSmoothingChange: (level) => changeSettings({ smoothingLevel: level }),
   onResetRange() { rangeFinder.reset(); voiceView.showRange(rangeFinder, settings.a4); },
 });
-
-let activeTab = 'tuner';
-let mic = null;          // the running microphone, or null
-let frameRequest = null; // the id from requestAnimationFrame, so we can cancel it
-let lastReading = 0;
-let buffer = null;
-const tracker = new PitchTracker();
 
 // ---------- ear training ----------
 // Scores are saved on this device (never audio): see js/storage.js.
@@ -118,14 +123,15 @@ const scores = loadJSON(SCORES_KEY, {});
 const saveScores = (part, value) => { scores[part] = value; saveJSON(SCORES_KEY, scores); };
 const player = createTonePlayer();
 const trainerOptions = { player, getA4: () => settings.a4, isListening: () => Boolean(mic) };
-createNoteTrainer({ ...trainerOptions, savedScores: scores.notes, onScoresChanged: (v) => saveScores('notes', v) });
-createIntervalTrainer({ ...trainerOptions, savedScores: scores.intervals, onScoresChanged: (v) => saveScores('intervals', v) });
+const noteTrainer = createNoteTrainer({ ...trainerOptions, savedScores: scores.notes, onScoresChanged: (v) => saveScores('notes', v) });
+const intervalTrainer = createIntervalTrainer({ ...trainerOptions, savedScores: scores.intervals, onScoresChanged: (v) => saveScores('intervals', v) });
 const singBack = createSingBack({
   ...trainerOptions,
   startListening: () => startListening(),
   savedResults: scores.singback,
   onResultsChanged: (v) => saveScores('singback', v),
 });
+singBack.setRangeKey(settings.voicePreset); // start with the user's voice range (if it's a preset)
 byId('singback-range').addEventListener('change', () => applyConfig());
 
 const exercises = { notes: byId('ear-notes'), intervals: byId('ear-intervals'), singback: byId('ear-singback') };
@@ -140,6 +146,50 @@ function showExercise(name) {
 }
 for (const key of Object.keys(exercises)) byId(`ear-mode-${key}`).addEventListener('click', () => showExercise(key));
 
+// ---------- settings page ----------
+
+const settingsView = createSettingsView({
+  onA4Change(a4) {
+    changeSettings({ a4 });
+    rangeFinder.a4 = settings.a4;
+    rangeFinder.reset(); // old notes were named with the old reference
+    voiceView.showRange(rangeFinder, settings.a4);
+  },
+  onPlayA4: () => player.playFrequency(settings.a4, { duration: 1.5 }),
+  onTunerGateChange: (db) => changeSettings({ tunerGateDb: db }),
+  onResetScores() {
+    removeKey(SCORES_KEY);
+    for (const key of Object.keys(scores)) delete scores[key];
+    noteTrainer.reset();
+    intervalTrainer.reset();
+    singBack.reset();
+  },
+  onResetSettings() {
+    settings = { ...DEFAULT_SETTINGS };
+    removeKey(SETTINGS_KEY);
+    showSettingsInControls();
+    applyConfig();
+  },
+});
+
+function showSettingsInControls() {
+  settingsView.setControls(settings);
+  voiceView.setControls(settings);
+  document.querySelectorAll('input[name="tuner-range"]').forEach((radio) => { radio.checked = radio.value === settings.tunerRange; });
+}
+
+function openSettings() {
+  settingsOpen = true;
+  showTab(activeTab);
+  settingsPanel.scrollIntoView({ block: 'start' });
+}
+function closeSettings() {
+  settingsOpen = false;
+  showTab(activeTab);
+}
+byId('open-settings').addEventListener('click', openSettings);
+byId('voice-open-settings').addEventListener('click', openSettings);
+byId('close-settings').addEventListener('click', closeSettings);
 
 function showMessage(text) {
   message.textContent = text;
@@ -163,21 +213,31 @@ function applyConfig() {
   levelMeter.setGate(config.gateDb);
   graph.setRange(config.minHz, config.maxHz, settings.a4);
   graph.clear();
-  voiceView.setRangeDescription(`Searching ${describeRange(config.minHz, config.maxHz, settings.a4)}`);
+
+  // Describe the voice settings (on the Settings page and the Voice tab).
+  const v = voiceRange(settings);
+  const presetName = settings.voicePreset === 'custom' ? 'Custom range' : VOICE_PRESETS[settings.voicePreset].label;
+  voiceView.setRangeDescription(`Searching ${describeRange(v.minHz, v.maxHz, settings.a4)}`);
+  byId('voice-settings-summary').textContent =
+    `${presetName}: ${describeRange(v.minHz, v.maxHz, settings.a4)} · threshold ${settings.voiceGateDb} dBFS · ` +
+    `smoothing ${SMOOTHING_LEVELS[settings.smoothingLevel].label}`;
 }
 
 // ---------- tabs ----------
 
 // Show a tab. Every tab except Train needs the microphone to be on; the
 // Train tab works without it (only sing-back asks for it).
+// While the Settings page is open, it's shown instead of the tabs.
 function showTab(name) {
   activeTab = name;
   for (const key of Object.keys(tabs)) {
     tabs[key].setAttribute('aria-selected', String(key === name));
-    panels[key].hidden = key !== name || (!mic && key !== 'ear');
+    panels[key].hidden = settingsOpen || key !== name || (!mic && key !== 'ear');
   }
-  startPanel.hidden = Boolean(mic) || name === 'ear';
-  listeningBar.hidden = !mic;
+  tabList.hidden = settingsOpen;
+  settingsPanel.hidden = !settingsOpen;
+  startPanel.hidden = settingsOpen || Boolean(mic) || name === 'ear';
+  listeningBar.hidden = settingsOpen || !mic;
   singBack.refresh();
   applyConfig();
 }
@@ -187,7 +247,7 @@ tabs.spectrum.addEventListener('click', () => showTab('spectrum'));
 tabs.ear.addEventListener('click', () => showTab('ear'));
 
 document.querySelectorAll('input[name="tuner-range"]').forEach((radio) =>
-  radio.addEventListener('change', () => { settings.tuner.range = radio.value; applyConfig(); }));
+  radio.addEventListener('change', () => changeSettings({ tunerRange: radio.value })));
 
 // ---------- start and stop ----------
 
@@ -205,7 +265,6 @@ async function startListening() {
   startButton.disabled = true;
   startButton.textContent = 'Waiting for permission…';
   try {
-    // Called directly inside the tap, as iPhone Safari requires.
     mic = await startMicrophone({
       fftSize: currentConfig().windowSize,
       onEnded: () => {
@@ -241,6 +300,7 @@ function stopListening() {
 
 function tick(now) {
   frameRequest = requestAnimationFrame(tick);
+  if (settingsOpen) return; // nothing to show while the Settings page is open
   if (now - lastReading < MIN_MS_BETWEEN_READINGS) return;
   const elapsed = now - lastReading;
   lastReading = now;
@@ -291,4 +351,6 @@ document.addEventListener('visibilitychange', async () => {
   }
 });
 
+showSettingsInControls();
 showTab(activeTab);
+registerServiceWorker(byId('offline-status'));
