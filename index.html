@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Note Lab</title>
+  <meta name="description" content="See which musical note you are playing or singing. All audio is processed on your device.">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Note Lab</h1>
+    <p class="tagline">See which note you're playing or singing.</p>
+  </header>
+
+  <main>
+    <p class="privacy">
+      <strong>Your sound stays on this device.</strong>
+      All audio is processed here in your browser. Nothing is recorded, stored or sent anywhere.
+    </p>
+
+    <!-- Shown before listening starts -->
+    <section id="start-panel" class="card">
+      <h2>Tuner</h2>
+      <p>
+        Note Lab needs your <strong>microphone</strong> to hear which note you play or sing.
+        After you tap the button, your browser will ask for permission.
+      </p>
+      <button id="start-button" class="primary" type="button">Start listening</button>
+    </section>
+
+    <!-- Error and status messages -->
+    <div id="message" class="message" role="alert" hidden></div>
+
+    <!-- Shown while listening -->
+    <section id="tuner" class="card" hidden>
+      <div class="note-display">
+        <span id="note-name" class="note-name">–</span><span id="note-octave" class="note-octave"></span>
+      </div>
+      <p id="note-details" class="note-details">No clear note</p>
+
+      <!-- Sharp/flat needle: left = flat, middle = in tune, right = sharp -->
+      <div class="needle-meter" aria-hidden="true">
+        <div class="in-tune-zone"></div>
+        <div class="tick" style="left: 0%"></div>
+        <div class="tick" style="left: 25%"></div>
+        <div class="tick centre" style="left: 50%"></div>
+        <div class="tick" style="left: 75%"></div>
+        <div class="tick" style="left: 100%"></div>
+        <div id="needle" class="needle idle"></div>
+      </div>
+      <div class="needle-labels" aria-hidden="true">
+        <span>−50 flat</span><span>0</span><span>sharp +50</span>
+      </div>
+      <p id="tuning-hint" class="tuning-hint">Hold one steady note.</p>
+
+      <!-- Input level in dBFS -->
+      <div class="level">
+        <span class="level-label">Input level</span>
+        <div class="level-bar">
+          <div id="level-fill" class="level-fill"></div>
+          <div id="level-gate" class="level-gate"></div>
+        </div>
+        <span id="level-text" class="level-text">–</span>
+      </div>
+      <p class="small">
+        <strong>dBFS</strong> = decibels below the loudest sound the microphone input can take (0 dBFS).
+        It shows how loud the sound is to this microphone. It is <em>not</em> a calibrated sound level meter.
+        The thin line marks the volume threshold: anything quieter is ignored.
+      </p>
+
+      <button id="stop-button" type="button">Stop</button>
+      <p id="tech-info" class="small tech-info"></p>
+    </section>
+
+    <section class="card small">
+      <h2>Good to know</h2>
+      <ul>
+        <li>Works best with <strong>one note at a time</strong>. Chords are not supported.</li>
+        <li>"No clear note" means the sound was too quiet or not clearly pitched, so nothing is shown rather than a guess.</li>
+        <li>Very low notes (below about 50 Hz) are outside the tuner's range for now.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="small">Note Lab · a personal learning project · no accounts, no tracking</footer>
+</body>
+</html>
