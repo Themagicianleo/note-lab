@@ -477,6 +477,50 @@ try {
     await browser.close();
   }
 
+  // 3.5 Pipes and strings: the worked examples, note names, playing and input checks.
+  {
+    const { browser, page, errors } = await openPage([], []);
+    await page.evaluate(() => {
+      window.__played = [];
+      const original = AudioContext.prototype.createOscillator;
+      AudioContext.prototype.createOscillator = function () {
+        const osc = original.call(this);
+        const start = osc.start.bind(osc);
+        osc.start = (...a) => { window.__played.push(osc.frequency.value); start(...a); };
+        return osc;
+      };
+    });
+    await page.click('#tab-lab');
+    await page.click('#lab-open-pipes');
+    const row = (n) => page.textContent(`#pipe-table tbody tr:nth-child(${n})`);
+    const open1 = await row(1);
+    report(open1.includes('343.2 Hz') && open1.includes('F4') && open1.includes('-30 cents'), 'lab pipes: open 0.5 m at 20 °C = 343.2 Hz ≈ F4 −30 cents', open1);
+    await page.click('#pipe-table button[data-play="1"]');
+    const played = await page.evaluate(() => window.__played[0]);
+    report(Math.abs(played - 343.21) < 0.05, 'lab pipes: Play plays the calculated frequency', String(played));
+    await page.fill('#pipe-temperature', '30');
+    await page.dispatchEvent('#pipe-temperature', 'input');
+    const warm = await row(1);
+    report(warm.includes('349.0 Hz'), 'lab pipes: 30 °C raises it to 349.0 Hz', warm); // 331.3·√(1+30/273.15)/1.0
+    await page.fill('#pipe-temperature', '20');
+    await page.dispatchEvent('#pipe-temperature', 'input');
+    await page.click('#pipe-kind-closed');
+    const closed = [await row(1), await row(2)];
+    report(closed[0].includes('171.6 Hz') && closed[1].includes('3×') && closed[1].includes('514.8 Hz'), 'lab pipes: closed pipe has odd harmonics 171.6, 514.8 Hz', closed.join(' / '));
+    await labScreenshot(page, 'lab-pipes');
+    await page.click('#pipe-kind-string');
+    const str = await row(1);
+    report(str.includes('185.8 Hz'), 'lab strings: 0.65 m, 70 N, 0.0012 kg/m = 185.8 Hz', str);
+    await page.fill('#string-diameter', '0.43');
+    await page.fill('#string-density', '7850');
+    await page.click('#string-mu-from-d');
+    report((await page.inputValue('#string-mu')) === '0.001140', 'lab strings: μ from diameter and density', await page.inputValue('#string-mu'));
+    await page.fill('#string-length', '0');
+    await page.dispatchEvent('#string-length', 'input');
+    report(await page.isVisible('#pipe-error') && !errors.length, 'lab strings: a zero length shows a message, not a number', await page.textContent('#pipe-error'));
+    await browser.close();
+  }
+
   // 2. Permission denied. Headless Chromium has no permission prompt to refuse, so we
   //    make getUserMedia fail with the same error a real "Don't Allow" gives (NotAllowedError).
   {

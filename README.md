@@ -290,6 +290,41 @@ scale is an "inferno"-style map whose brightness always rises with level.
   the brightest colour. The time label is estimated from the measured column
   rate. Mic frequency response darkens very low and very high regions.
 
+### 5. Pipe and string calculator
+
+Choose **open pipe**, **closed pipe** or **string**. For pipes, enter the length
+(m) and air temperature (°C), and optionally the inner diameter for an end
+correction. For strings, enter the length (m), tension (N) and mass per length
+μ (kg/m), or work out μ from the diameter and **a density you provide**. It
+shows the speed of sound with the working, the first 6 resonances with
+harmonic number and **nearest note** (Note Lab's pitch code, at your A4
+setting), *Play* buttons (pure tones), *Play all*, and a drawing of the
+selected mode's standing wave.
+
+- *Formulas:* c = 331.3·√(1 + T/273.15) m/s (ideal gas, c = √(γRT/M), dry air);
+  open pipe f_n = n·c/2L; closed pipe f_n = (2n−1)·c/4L; end correction
+  ΔL ≈ 0.6133·r per open end (unflanged; Levine & Schwinger, 1948); string
+  v = √(T/μ), f_n = n·v/2L (Mersenne's laws); μ = ρ·π·(d/2)².
+  Examples: 20 °C → 343.2 m/s; open 0.5 m → 343.2 Hz (F4 −30 cents);
+  closed 0.5 m → 171.6, 514.8 Hz; string 0.65 m / 70 N / 0.0012 kg/m → 185.8 Hz.
+- *Calculated:* everything on this page.
+- *How to test:* `npm test` runs each worked example above, plus the
+  end-correction example (r = 10 mm → 6.13 mm; 0.5 m open pipe → 335.0 Hz) and
+  checks the mode shapes (open ends = antinodes, closed end and string ends =
+  nodes). The browser test checks the same numbers on the page, the note names,
+  30 °C → 349.0 Hz, that *Play* really plays 343.2 Hz, the μ calculation, and
+  that a zero length shows a message. To try it yourself: measure a tube (e.g.
+  a kitchen-roll tube), enter its length, blow across one end or tap it, and
+  compare with the predicted f₁ (and record it on the compare page).
+- *Assumptions and limits:* ideal cylinders with perfectly open or closed
+  ends; dry air (humidity raises c by well under 1%); the end correction is
+  approximate and ignores its slight change with frequency; real instruments
+  (tone holes, cones, mouthpieces) differ, as do flanged ends (correction ≈
+  0.82·r). Strings are assumed perfectly flexible: real stiff strings (piano,
+  thick guitar strings) have higher modes slightly sharp, and wound strings
+  weigh more than μ = ρ·π·(d/2)² suggests. Phone speakers can't play low modes
+  well (below ~100–200 Hz).
+
 ## How the detection works
 
 ### From frequency to note (`js/pitch-math.js`)
