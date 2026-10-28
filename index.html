@@ -9,341 +9,413 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <meta name="theme-color" content="#3157d5">
+  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Note Lab">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <!-- glass.css: the shared Liquid Glass design (same file as the other apps). style.css: Note Lab's own parts. -->
+  <link rel="stylesheet" href="css/glass.css">
   <link rel="stylesheet" href="css/style.css">
   <script type="module" src="js/app.js"></script>
 </head>
 <body>
-  <header>
-    <h1>Note Lab</h1>
-    <p class="tagline">See which note you're playing or singing.</p>
-    <nav class="header-links" aria-label="More">
-      <button id="open-settings" type="button" class="link-button">⚙ Settings</button>
-      <a href="how-it-works.html">How it works</a>
-    </nav>
-  </header>
+  <!-- Soft coloured light behind the glass -->
+  <div class="ambient" aria-hidden="true"></div>
 
-  <main>
-    <p class="privacy">
+  <div class="wrap">
+    <header class="appbar">
+      <span class="brand"><img src="icons/icon.svg" alt=""> Note Lab</span>
+      <a class="capsule" href="how-it-works.html">How it works</a>
+      <button id="open-settings" type="button" class="capsule icon" aria-label="Settings" title="Settings">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+          <path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="large-title">
+      <h1 id="page-title">Tuner</h1>
+      <p id="page-subtitle" class="subtitle">Play or sing one steady note</p>
+    </div>
+
+    <p class="banner privacy">
       <strong>Your sound stays on this device.</strong>
       All audio is processed here in your browser. Nothing is recorded, stored or sent anywhere.
     </p>
 
-    <!-- Mode tabs -->
-    <nav class="tabs" role="tablist" aria-label="Mode">
-      <button type="button" role="tab" id="tab-tuner" aria-selected="true" aria-controls="tuner">Tuner</button>
-      <button type="button" role="tab" id="tab-voice" aria-selected="false" aria-controls="voice">Voice</button>
-      <button type="button" role="tab" id="tab-spectrum" aria-selected="false" aria-controls="spectrum">Spectrum</button>
-      <button type="button" role="tab" id="tab-ear" aria-selected="false" aria-controls="ear">Train</button>
-    </nav>
-
     <!-- Shown before listening starts -->
     <section id="start-panel" class="card">
-      <p>
-        Note Lab needs your <strong>microphone</strong> to hear which note you play or sing.
-        After you tap the button, your browser will ask for permission.
-      </p>
-      <button id="start-button" class="primary" type="button">Start listening</button>
+      <div class="card-body">
+        <p>
+          Note Lab needs your <strong>microphone</strong> to hear which note you play or sing.
+          After you tap the button, your browser will ask for permission.
+        </p>
+        <button id="start-button" class="btn btn-primary btn-big" type="button">Start listening</button>
+      </div>
     </section>
 
     <!-- Error and status messages -->
-    <div id="message" class="message" role="alert" hidden></div>
+    <div id="message" class="banner banner-warn" role="alert" hidden></div>
 
     <!-- ================= TUNER ================= -->
-    <section id="tuner" class="card" role="tabpanel" aria-labelledby="tab-tuner" hidden>
-      <div class="note-display">
-        <span id="note-name" class="note-name">–</span><span id="note-octave" class="note-octave"></span>
-      </div>
-      <p id="note-details" class="note-details">No clear note</p>
+    <section id="tuner" class="panel" role="tabpanel" aria-labelledby="tab-tuner" hidden>
+      <!-- The reading sits on a lit pane of glass -->
+      <div class="hero-tile tuner-tile">
+        <div class="note-display">
+          <span id="note-name" class="note-name">–</span><span id="note-octave" class="note-octave"></span>
+        </div>
+        <p id="note-details" class="note-details">No clear note</p>
 
-      <!-- Sharp/flat needle: left = flat, middle = in tune, right = sharp -->
-      <div class="needle-meter" aria-hidden="true">
-        <div class="in-tune-zone"></div>
-        <div class="tick" style="left: 0%"></div>
-        <div class="tick" style="left: 25%"></div>
-        <div class="tick centre" style="left: 50%"></div>
-        <div class="tick" style="left: 75%"></div>
-        <div class="tick" style="left: 100%"></div>
-        <div id="needle" class="needle idle"></div>
+        <!-- Sharp/flat needle: left = flat, middle = in tune, right = sharp -->
+        <div class="needle-meter" aria-hidden="true">
+          <div class="in-tune-zone"></div>
+          <div class="tick" style="left: 0%"></div>
+          <div class="tick" style="left: 25%"></div>
+          <div class="tick centre" style="left: 50%"></div>
+          <div class="tick" style="left: 75%"></div>
+          <div class="tick" style="left: 100%"></div>
+          <div id="needle" class="needle idle"></div>
+        </div>
+        <div class="needle-labels" aria-hidden="true">
+          <span>−50 flat</span><span>0</span><span>sharp +50</span>
+        </div>
+        <p id="tuning-hint" class="tuning-hint">Hold one steady note.</p>
       </div>
-      <div class="needle-labels" aria-hidden="true">
-        <span>−50 flat</span><span>0</span><span>sharp +50</span>
-      </div>
-      <p id="tuning-hint" class="tuning-hint">Hold one steady note.</p>
 
-      <fieldset class="options">
+      <fieldset class="card options">
         <legend>Instrument range</legend>
-        <label><input type="radio" name="tuner-range" value="standard" checked> Standard (50–1500 Hz)</label>
-        <label><input type="radio" name="tuner-range" value="low"> Low instruments, e.g. bass (30–400 Hz)</label>
-        <p class="small">"Low" uses twice as much sound per reading (4096 samples) so it can see very slow vibrations like a bass's low E (41 Hz). It reacts a little more slowly.</p>
+        <label class="choice"><input type="radio" name="tuner-range" value="standard" checked> Standard (50–1500 Hz)</label>
+        <label class="choice"><input type="radio" name="tuner-range" value="low"> Low instruments, e.g. bass (30–400 Hz)</label>
+        <p class="small muted">"Low" uses twice as much sound per reading (4096 samples) so it can see very slow vibrations like a bass's low E (41 Hz). It reacts a little more slowly.</p>
       </fieldset>
     </section>
 
     <!-- ================= VOICE ================= -->
-    <section id="voice" class="card" role="tabpanel" aria-labelledby="tab-voice" hidden>
-      <div class="voice-now">
-        <span id="voice-note" class="voice-note">–</span>
-        <span id="voice-details" class="voice-details">No clear pitch</span>
-      </div>
-      <p id="voice-clarity" class="small voice-clarity">Clarity –</p>
-
-      <canvas id="pitch-graph" class="pitch-graph" aria-label="Graph of your pitch over the last 8 seconds"></canvas>
-      <p class="small">Line = your pitch (smoothed). Dots = raw readings. Gaps = no clear pitch.</p>
-
-      <div class="range-finder">
-        <h2>Range finder</h2>
-        <p class="small">Sing your lowest comfortable note and hold it for about half a second, then your highest. Only notes held steady count.</p>
-        <dl class="range-results">
-          <div><dt>Lowest</dt><dd id="range-low">–</dd></div>
-          <div><dt>Highest</dt><dd id="range-high">–</dd></div>
-          <div><dt>Range</dt><dd id="range-span">–</dd></div>
-        </dl>
-        <button id="range-reset" type="button">Reset range</button>
+    <section id="voice" class="panel" role="tabpanel" aria-labelledby="tab-voice" hidden>
+      <div class="card">
+        <div class="card-body">
+          <div class="voice-now">
+            <span id="voice-note" class="voice-note">–</span>
+            <span id="voice-details" class="voice-details">No clear pitch</span>
+          </div>
+          <p id="voice-clarity" class="small muted voice-clarity">Clarity –</p>
+          <canvas id="pitch-graph" class="pitch-graph" aria-label="Graph of your pitch over the last 8 seconds"></canvas>
+          <p class="small muted">Line = your pitch (smoothed). Dots = raw readings. Gaps = no clear pitch.</p>
+        </div>
       </div>
 
-      <div class="voice-settings-summary">
-        <p id="voice-settings-summary" class="small"></p>
-        <button id="voice-open-settings" type="button" class="small-button">Change voice settings</button>
+      <div class="card range-finder">
+        <div class="card-head"><h2>Range finder</h2><button id="range-reset" type="button" class="btn btn-small">Reset</button></div>
+        <div class="card-body">
+          <p class="small muted">Sing your lowest comfortable note and hold it for about half a second, then your highest. Only notes held steady count.</p>
+          <dl class="range-results">
+            <div><dt>Lowest</dt><dd id="range-low">–</dd></div>
+            <div><dt>Highest</dt><dd id="range-high">–</dd></div>
+            <div><dt>Range</dt><dd id="range-span">–</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="card voice-settings-summary">
+        <div class="card-body">
+          <p id="voice-settings-summary" class="small muted"></p>
+          <button id="voice-open-settings" type="button" class="btn btn-small">Change voice settings</button>
+        </div>
       </div>
     </section>
 
     <!-- ================= SPECTRUM ================= -->
-    <section id="spectrum" class="card" role="tabpanel" aria-labelledby="tab-spectrum" hidden>
-      <h2>Which frequencies are loudest?</h2>
-      <canvas id="spectrum-chart" class="spectrum-chart" aria-label="Live chart of how loud each frequency is"></canvas>
-      <p id="spectrum-pointer" class="small spectrum-pointer">Touch or point at the chart to read a frequency.</p>
-      <div class="spectrum-controls">
-        <button id="spectrum-freeze" type="button" aria-pressed="false">Freeze</button>
-        <label><input id="spectrum-peak-hold" type="checkbox" checked> Peak hold (dashed line)</label>
+    <section id="spectrum" class="panel" role="tabpanel" aria-labelledby="tab-spectrum" hidden>
+      <div class="card">
+        <div class="card-body">
+          <canvas id="spectrum-chart" class="spectrum-chart" aria-label="Live chart of how loud each frequency is"></canvas>
+          <p id="spectrum-pointer" class="small muted spectrum-pointer">Touch or point at the chart to read a frequency.</p>
+          <div class="spectrum-controls">
+            <button id="spectrum-freeze" type="button" class="btn btn-small" aria-pressed="false">Freeze</button>
+            <label class="check"><input id="spectrum-peak-hold" type="checkbox" checked> Peak hold (dashed line)</label>
+          </div>
+        </div>
       </div>
 
-      <h3>Loudest frequencies right now</h3>
-      <ol id="spectrum-peaks" class="spectrum-peaks"><li>–</li></ol>
+      <div class="card">
+        <div class="card-head"><h2>Loudest frequencies right now</h2></div>
+        <div class="card-body">
+          <ol id="spectrum-peaks" class="spectrum-peaks"><li>–</li></ol>
+        </div>
+      </div>
 
-      <details class="spectrum-help" open>
+      <details class="card spectrum-help" open>
         <summary>What am I looking at?</summary>
-        <p class="small">
-          Every sound is a mix of many frequencies. This chart shows <strong>how loud each frequency is</strong>:
-          low (deep) sounds on the left, high (bright) sounds on the right. Every doubling of frequency
-          (100 → 200 Hz, 1k → 2k) is one octave and takes the same width, which matches how we hear.
-          Height is the level in dBFS: higher = louder.
-        </p>
-        <p class="small">
-          An <strong>equaliser (EQ)</strong> turns some of these ranges up or down. The shaded bands are the names
-          people use when talking about EQ (the edges are conventions, not exact):
-        </p>
-        <ul class="small band-list">
-          <li><strong>Sub-bass</strong> (20–60 Hz): felt more than heard: deep rumble, the thump of a kick drum.</li>
-          <li><strong>Bass</strong> (60–250 Hz): warmth and fullness; bass notes, low piano, men's voices.</li>
-          <li><strong>Low mids</strong> (250–500 Hz): body; too much sounds muddy or boxy.</li>
-          <li><strong>Mids</strong> (500 Hz–2 kHz): where most instruments and vowel sounds live.</li>
-          <li><strong>Upper mids</strong> (2–4 kHz): clarity and bite; our ears are most sensitive here.</li>
-          <li><strong>Presence</strong> (4–6 kHz): closeness and definition; too much sounds harsh.</li>
-          <li><strong>Brilliance</strong> (6–20 kHz): air and sparkle; cymbals and the hiss of "s".</li>
-        </ul>
-        <p class="small"><strong>Try this:</strong> hum (bass and low mids), say "sssss" (brilliance), say "shhh" (a bit lower than "s"),
-          sing "ee" then "oo" on the same note and watch the peaks move, or play one note and spot its harmonics:
-          peaks at 1×, 2×, 3×… the note's frequency.</p>
-        <p class="small"><strong>The loudest peak isn't always the note you hear.</strong> A voice's loudest frequency is often
-          a harmonic boosted by the vowel shape, so the Tuner and Voice modes use a pitch detector instead.</p>
-        <p class="small">This shows what <em>your microphone</em> hears. Phone and laptop mics pick up very low (below ~100 Hz)
-          and very high sounds less well, so those parts may look quieter than they really are.</p>
+        <div class="card-body">
+          <p class="small">
+            Every sound is a mix of many frequencies. This chart shows <strong>how loud each frequency is</strong>:
+            low (deep) sounds on the left, high (bright) sounds on the right. Every doubling of frequency
+            (100 → 200 Hz, 1k → 2k) is one octave and takes the same width, which matches how we hear.
+            Height is the level in dBFS: higher = louder.
+          </p>
+          <p class="small">
+            An <strong>equaliser (EQ)</strong> turns some of these ranges up or down. The shaded bands are the names
+            people use when talking about EQ (the edges are conventions, not exact):
+          </p>
+          <ul class="small band-list">
+            <li><strong>Sub-bass</strong> (20–60 Hz): felt more than heard: deep rumble, the thump of a kick drum.</li>
+            <li><strong>Bass</strong> (60–250 Hz): warmth and fullness; bass notes, low piano, men's voices.</li>
+            <li><strong>Low mids</strong> (250–500 Hz): body; too much sounds muddy or boxy.</li>
+            <li><strong>Mids</strong> (500 Hz–2 kHz): where most instruments and vowel sounds live.</li>
+            <li><strong>Upper mids</strong> (2–4 kHz): clarity and bite; our ears are most sensitive here.</li>
+            <li><strong>Presence</strong> (4–6 kHz): closeness and definition; too much sounds harsh.</li>
+            <li><strong>Brilliance</strong> (6–20 kHz): air and sparkle; cymbals and the hiss of "s".</li>
+          </ul>
+          <p class="small"><strong>Try this:</strong> hum (bass and low mids), say "sssss" (brilliance), say "shhh" (a bit lower than "s"),
+            sing "ee" then "oo" on the same note and watch the peaks move, or play one note and spot its harmonics:
+            peaks at 1×, 2×, 3×… the note's frequency.</p>
+          <p class="small"><strong>The loudest peak isn't always the note you hear.</strong> A voice's loudest frequency is often
+            a harmonic boosted by the vowel shape, so the Tuner and Voice modes use a pitch detector instead.</p>
+          <p class="small">This shows what <em>your microphone</em> hears. Phone and laptop mics pick up very low (below ~100 Hz)
+            and very high sounds less well, so those parts may look quieter than they really are.</p>
+        </div>
       </details>
     </section>
 
     <!-- ================= EAR TRAINING ================= -->
-    <section id="ear" class="card" role="tabpanel" aria-labelledby="tab-ear" hidden>
-      <div class="segmented" role="group" aria-label="Exercise">
+    <section id="ear" class="panel" role="tabpanel" aria-labelledby="tab-ear" hidden>
+      <div class="seg ear-seg" role="group" aria-label="Exercise">
         <button type="button" id="ear-mode-notes" aria-pressed="true">Notes</button>
         <button type="button" id="ear-mode-intervals" aria-pressed="false">Intervals</button>
         <button type="button" id="ear-mode-singback" aria-pressed="false">Sing-back</button>
       </div>
-      <p class="small ios-hint">🔈 On iPhone, check the ring/silent switch and volume if you hear nothing. Headphones help with sing-back.</p>
+      <p class="banner banner-info small">On iPhone, check the ring/silent switch and volume if you hear nothing. Headphones help with sing-back.</p>
 
       <!-- Guess the note -->
       <div id="ear-notes" class="exercise">
-        <h2>Guess the note</h2>
-        <label class="field">Notes to practise
-          <select id="note-set">
-            <option value="c-major">C major scale, one octave (C4–B4, white keys)</option>
-            <option value="chromatic">All 12 notes, one octave (C4–B4)</option>
-            <option value="two-octaves">All 12 notes, two octaves (C3–B4); answer the name only</option>
-          </select>
-        </label>
-        <label class="check"><input id="note-reference" type="checkbox" checked> Play C4 first as a reference (recommended: most people need one)</label>
-        <div class="row">
-          <button id="note-play" class="primary-inline" type="button">Play a note</button>
-          <button id="note-replay" type="button" disabled>Replay</button>
+        <div class="card">
+          <div class="card-head"><h2>Guess the note</h2></div>
+          <div class="card-body">
+            <label class="field"><span class="label">Notes to practise</span>
+              <select id="note-set" class="input">
+                <option value="c-major">C major scale, one octave (C4–B4, white keys)</option>
+                <option value="chromatic">All 12 notes, one octave (C4–B4)</option>
+                <option value="two-octaves">All 12 notes, two octaves (C3–B4); answer the name only</option>
+              </select>
+            </label>
+            <label class="check"><input id="note-reference" type="checkbox" checked> Play C4 first as a reference (recommended: most people need one)</label>
+            <div class="btn-row">
+              <button id="note-play" class="btn btn-primary" type="button">Play a note</button>
+              <button id="note-replay" class="btn" type="button" disabled>Replay</button>
+            </div>
+            <div id="note-answers" class="answers" aria-label="Your answer"></div>
+            <p id="note-feedback" class="feedback" aria-live="polite"></p>
+          </div>
         </div>
-        <div id="note-answers" class="answers" aria-label="Your answer"></div>
-        <p id="note-feedback" class="feedback" aria-live="polite"></p>
-        <h3>Your accuracy per note</h3>
-        <table id="note-stats" class="stats"></table>
-        <button id="note-reset" type="button" class="small-button">Reset note scores</button>
+        <div class="card">
+          <div class="card-head"><h2>Your accuracy per note</h2><button id="note-reset" type="button" class="btn btn-small">Reset</button></div>
+          <div class="card-body"><table id="note-stats" class="stats"></table></div>
+        </div>
       </div>
 
       <!-- Name the interval -->
       <div id="ear-intervals" class="exercise" hidden>
-        <h2>Name the interval</h2>
-        <p class="small">An interval is the distance between two notes, counted in semitones (piano keys). Start with a few very different ones, then add more.</p>
-        <fieldset class="options">
-          <legend>Intervals to practise</legend>
-          <div id="interval-choices" class="interval-choices"></div>
-        </fieldset>
-        <fieldset class="options">
-          <legend>How to play them</legend>
-          <label><input type="radio" name="interval-direction" value="up" checked> Upwards (low then high)</label>
-          <label><input type="radio" name="interval-direction" value="down"> Downwards (high then low)</label>
-          <label><input type="radio" name="interval-direction" value="together"> Together (at the same time)</label>
-        </fieldset>
-        <div class="row">
-          <button id="interval-play" class="primary-inline" type="button">Play an interval</button>
-          <button id="interval-replay" type="button" disabled>Replay</button>
+        <div class="card">
+          <div class="card-head"><h2>Name the interval</h2></div>
+          <div class="card-body">
+            <p class="small muted">An interval is the distance between two notes, counted in semitones (piano keys). Start with a few very different ones, then add more.</p>
+            <fieldset class="options plain">
+              <legend class="label">Intervals to practise</legend>
+              <div id="interval-choices" class="interval-choices"></div>
+            </fieldset>
+            <fieldset class="options plain">
+              <legend class="label">How to play them</legend>
+              <label class="choice"><input type="radio" name="interval-direction" value="up" checked> Upwards (low then high)</label>
+              <label class="choice"><input type="radio" name="interval-direction" value="down"> Downwards (high then low)</label>
+              <label class="choice"><input type="radio" name="interval-direction" value="together"> Together (at the same time)</label>
+            </fieldset>
+            <div class="btn-row">
+              <button id="interval-play" class="btn btn-primary" type="button">Play an interval</button>
+              <button id="interval-replay" class="btn" type="button" disabled>Replay</button>
+            </div>
+            <div id="interval-answers" class="answers" aria-label="Your answer"></div>
+            <p id="interval-feedback" class="feedback" aria-live="polite"></p>
+          </div>
         </div>
-        <div id="interval-answers" class="answers" aria-label="Your answer"></div>
-        <p id="interval-feedback" class="feedback" aria-live="polite"></p>
-        <h3>Your accuracy per interval</h3>
-        <table id="interval-stats" class="stats"></table>
-        <button id="interval-reset" type="button" class="small-button">Reset interval scores</button>
+        <div class="card">
+          <div class="card-head"><h2>Your accuracy per interval</h2><button id="interval-reset" type="button" class="btn btn-small">Reset</button></div>
+          <div class="card-body"><table id="interval-stats" class="stats"></table></div>
+        </div>
       </div>
 
       <!-- Sing it back -->
       <div id="ear-singback" class="exercise" hidden>
-        <h2>Sing it back</h2>
-        <p class="small">The app plays a note, then listens while you sing it and shows how many cents off you were. It doesn't listen while its own note is playing.</p>
-        <label class="field">Target notes for
-          <select id="singback-range">
-            <option value="low">Low voice (G2–D4)</option>
-            <option value="mid" selected>Mid voice (C3–G4)</option>
-            <option value="high">High voice (A3–E5)</option>
-          </select>
-        </label>
-        <div id="singback-need-mic" class="need-mic">
-          <p>Sing-back needs the microphone.</p>
-          <button id="singback-start-mic" type="button" class="primary-inline">Start microphone</button>
+        <div class="card">
+          <div class="card-head"><h2>Sing it back</h2></div>
+          <div class="card-body">
+            <p class="small muted">The app plays a note, then listens while you sing it and shows how many cents off you were. It doesn't listen while its own note is playing.</p>
+            <label class="field"><span class="label">Target notes for</span>
+              <select id="singback-range" class="input">
+                <option value="low">Low voice (G2–D4)</option>
+                <option value="mid" selected>Mid voice (C3–G4)</option>
+                <option value="high">High voice (A3–E5)</option>
+              </select>
+            </label>
+            <div id="singback-need-mic" class="need-mic">
+              <p>Sing-back needs the microphone.</p>
+              <button id="singback-start-mic" type="button" class="btn btn-primary">Start microphone</button>
+            </div>
+            <div class="btn-row">
+              <button id="singback-play" class="btn btn-primary" type="button" disabled>Play target note</button>
+              <button id="singback-replay" class="btn" type="button" disabled>Play again</button>
+            </div>
+            <p id="singback-target" class="singback-target"></p>
+            <div class="needle-meter singback-meter" aria-hidden="true">
+              <div class="in-tune-zone"></div>
+              <div class="tick centre" style="left: 50%"></div>
+              <div id="singback-bar" class="needle" hidden></div>
+            </div>
+            <div class="needle-labels" aria-hidden="true"><span>−100 flat</span><span>0</span><span>sharp +100</span></div>
+            <p id="singback-live" class="feedback" aria-live="polite"></p>
+            <p id="singback-result" class="feedback strong" aria-live="polite"></p>
+          </div>
         </div>
-        <div class="row">
-          <button id="singback-play" class="primary-inline" type="button" disabled>Play target note</button>
-          <button id="singback-replay" type="button" disabled>Play again</button>
+        <div class="card">
+          <div class="card-head"><h2>Your results</h2><button id="singback-reset" type="button" class="btn btn-small">Reset</button></div>
+          <div class="card-body">
+            <p id="singback-stats" class="small"></p>
+            <ol id="singback-history" class="small"></ol>
+            <p class="small muted">Scores are saved on this device only (never any audio). "Excellent / Good / Close" are friendly labels for within 10 / 25 / 50 cents, not a standard.</p>
+          </div>
         </div>
-        <p id="singback-target" class="singback-target"></p>
-        <div class="needle-meter singback-meter" aria-hidden="true">
-          <div class="in-tune-zone"></div>
-          <div class="tick centre" style="left: 50%"></div>
-          <div id="singback-bar" class="needle" hidden></div>
-        </div>
-        <div class="needle-labels" aria-hidden="true"><span>−100 flat</span><span>0</span><span>sharp +100</span></div>
-        <p id="singback-live" class="feedback" aria-live="polite"></p>
-        <p id="singback-result" class="feedback strong" aria-live="polite"></p>
-        <h3>Your results</h3>
-        <p id="singback-stats" class="small"></p>
-        <ol id="singback-history" class="small"></ol>
-        <button id="singback-reset" type="button" class="small-button">Reset sing-back results</button>
-        <p class="small">Scores are saved on this device only (never any audio). "Excellent / Good / Close" are friendly labels for within 10 / 25 / 50 cents, not a standard.</p>
       </div>
     </section>
 
     <!-- ================= SETTINGS ================= -->
-    <section id="settings" class="card" aria-labelledby="settings-title" hidden>
-      <h2 id="settings-title">Settings</h2>
-      <p class="small">Changes apply straight away and are saved on this device only.</p>
-
-      <fieldset class="options">
+    <section id="settings" class="panel" aria-label="Settings" hidden>
+      <fieldset class="card options">
         <legend>Reference pitch (A4)</legend>
         <div class="a4-row">
-          <label>A4 = <input id="a4-input" type="number" inputmode="decimal" min="400" max="480" step="0.1" value="440"> Hz</label>
-          <button id="a4-play" type="button" class="small-button">Play A4</button>
+          <label>A4 = <input id="a4-input" class="input" type="number" inputmode="decimal" min="400" max="480" step="0.1" value="440"> Hz</label>
+          <button id="a4-play" type="button" class="btn btn-small">Play A4</button>
         </div>
-        <div id="a4-suggestions" class="row"></div>
-        <p id="a4-error" class="field-error" role="alert" hidden></p>
+        <div id="a4-suggestions" class="btn-row"></div>
+        <p id="a4-error" class="banner banner-danger small" role="alert" hidden></p>
         <p id="a4-preview" class="small"></p>
-        <p class="small">440 Hz is the modern standard. Some orchestras tune a little higher (441–443), "baroque pitch" is about 415, and some people prefer 432. Every note name, cents value and training tone follows this setting.</p>
+        <p class="small muted">440 Hz is the modern standard. Some orchestras tune a little higher (441–443), "baroque pitch" is about 415, and some people prefer 432. Every note name, cents value and training tone follows this setting.</p>
       </fieldset>
 
-      <fieldset class="options">
+      <fieldset class="card options">
         <legend>Tuner volume threshold: <span id="tuner-gate-value">−60 dBFS</span></legend>
         <input id="tuner-gate-slider" type="range" min="-80" max="-20" step="1" value="-60" aria-describedby="tuner-gate-help">
-        <p id="tuner-gate-help" class="small">This is the tuner's sensitivity. Left (lower number) = more sensitive, picks up quiet notes but also background noise. Right = only louder sounds count. Watch the input level while you're silent and set this above it.</p>
+        <p id="tuner-gate-help" class="small muted">This is the tuner's sensitivity. Left (lower number) = more sensitive, picks up quiet notes but also background noise. Right = only louder sounds count. Watch the input level while you're silent and set this above it.</p>
       </fieldset>
 
-      <fieldset class="options">
+      <fieldset class="card options">
         <legend>Voice detection range</legend>
-        <label><input type="radio" name="voice-preset" value="low"> Low voice <span class="small">(bass, baritone, most men speaking)</span></label>
-        <label><input type="radio" name="voice-preset" value="mid" checked> Mid voice <span class="small">(tenor, alto, most women speaking)</span></label>
-        <label><input type="radio" name="voice-preset" value="high"> High voice <span class="small">(soprano, children)</span></label>
-        <label><input type="radio" name="voice-preset" value="custom"> Custom</label>
+        <label class="choice"><input type="radio" name="voice-preset" value="low"> Low voice <span class="small muted">(bass, baritone, most men speaking)</span></label>
+        <label class="choice"><input type="radio" name="voice-preset" value="mid" checked> Mid voice <span class="small muted">(tenor, alto, most women speaking)</span></label>
+        <label class="choice"><input type="radio" name="voice-preset" value="high"> High voice <span class="small muted">(soprano, children)</span></label>
+        <label class="choice"><input type="radio" name="voice-preset" value="custom"> Custom</label>
         <div class="custom-range">
-          <label>Min <input id="custom-min" type="number" inputmode="numeric" min="40" max="2000" value="80"> Hz</label>
-          <label>Max <input id="custom-max" type="number" inputmode="numeric" min="40" max="2000" value="400"> Hz</label>
-          <button id="custom-apply" type="button">Use custom range</button>
+          <label>Min <input id="custom-min" class="input" type="number" inputmode="numeric" min="40" max="2000" value="80"> Hz</label>
+          <label>Max <input id="custom-max" class="input" type="number" inputmode="numeric" min="40" max="2000" value="400"> Hz</label>
+          <button id="custom-apply" type="button" class="btn btn-small">Use custom range</button>
         </div>
-        <p id="range-error" class="field-error" role="alert" hidden></p>
+        <p id="range-error" class="banner banner-danger small" role="alert" hidden></p>
         <p id="range-description" class="small"></p>
-        <p class="small">The detector only looks for pitches inside this range. That rules out answers that are impossible for your voice, like a reading an octave too low. If a note you sing is outside the range, you'll see "no clear pitch", so choose a range that includes all your notes.</p>
+        <p class="small muted">The detector only looks for pitches inside this range. That rules out answers that are impossible for your voice, like a reading an octave too low. If a note you sing is outside the range, you'll see "no clear pitch", so choose a range that includes all your notes.</p>
       </fieldset>
 
-      <fieldset class="options">
+      <fieldset class="card options">
         <legend>Voice &amp; sing-back volume threshold: <span id="gate-value">−55 dBFS</span></legend>
         <input id="gate-slider" type="range" min="-80" max="-20" step="1" value="-55" aria-describedby="gate-help">
-        <p id="gate-help" class="small">Sounds quieter than this are ignored, so breathing and background noise don't produce random notes. In a noisy room, move it right (to a higher number), above the level the meter shows when you're silent.</p>
+        <p id="gate-help" class="small muted">Sounds quieter than this are ignored, so breathing and background noise don't produce random notes. In a noisy room, move it right (to a higher number), above the level the meter shows when you're silent.</p>
       </fieldset>
 
-      <fieldset class="options">
+      <fieldset class="card options">
         <legend>Voice smoothing: <span id="smoothing-value">Balanced</span></legend>
         <input id="smoothing-slider" type="range" min="0" max="4" step="1" value="2" aria-describedby="smoothing-help">
-        <div class="slider-ends small" aria-hidden="true"><span>Fast</span><span>Steady</span></div>
-        <p id="smoothing-help" class="small">Steady: the needle and line wobble less, but take longer to follow a new note and can hide short gaps. Fast: shows every change straight away, including vibrato and the odd wrong reading.</p>
+        <div class="slider-ends small muted" aria-hidden="true"><span>Fast</span><span>Steady</span></div>
+        <p id="smoothing-help" class="small muted">Steady: the needle and line wobble less, but take longer to follow a new note and can hide short gaps. Fast: shows every change straight away, including vibrato and the odd wrong reading.</p>
       </fieldset>
 
-      <fieldset class="options">
+      <fieldset class="card options">
         <legend>Your data</legend>
-        <p class="small">Scores and settings are stored in this browser only. Audio is never stored.</p>
-        <div class="row">
-          <button id="reset-scores" type="button" class="small-button">Reset all training scores</button>
-          <button id="reset-settings" type="button" class="small-button">Reset settings to defaults</button>
+        <p class="small muted">Scores and settings are stored in this browser only. Audio is never stored.</p>
+        <div class="btn-row">
+          <button id="reset-scores" type="button" class="btn btn-small btn-danger">Reset all training scores</button>
+          <button id="reset-settings" type="button" class="btn btn-small btn-danger">Reset settings to defaults</button>
         </div>
         <p id="data-message" class="small" aria-live="polite"></p>
       </fieldset>
 
-      <button id="close-settings" type="button" class="primary">Done</button>
+      <button id="close-settings" type="button" class="btn btn-primary btn-big">Done</button>
     </section>
 
     <!-- ============ shared while listening ============ -->
     <section id="listening-bar" class="card" hidden>
-      <div class="level">
-        <span class="level-label">Input level</span>
-        <div class="level-bar">
-          <div id="level-fill" class="level-fill"></div>
-          <div id="level-gate" class="level-gate"></div>
+      <div class="card-body">
+        <div class="level">
+          <span class="label">Input level</span>
+          <div class="level-bar">
+            <div id="level-fill" class="level-fill"></div>
+            <div id="level-gate" class="level-gate"></div>
+          </div>
+          <span id="level-text" class="level-text">–</span>
         </div>
-        <span id="level-text" class="level-text">–</span>
+        <p class="small muted">
+          <strong>dBFS</strong> = decibels below the loudest sound the microphone input can take (0 dBFS).
+          It shows how loud the sound is to this microphone. It is <em>not</em> a calibrated sound level meter.
+          The thin line marks the volume threshold: anything quieter is ignored.
+        </p>
+        <div class="btn-row">
+          <button id="stop-button" type="button" class="btn btn-danger">Stop listening</button>
+        </div>
+        <p id="tech-info" class="small muted tech-info"></p>
       </div>
-      <p class="small">
-        <strong>dBFS</strong> = decibels below the loudest sound the microphone input can take (0 dBFS).
-        It shows how loud the sound is to this microphone. It is <em>not</em> a calibrated sound level meter.
-        The thin line marks the volume threshold: anything quieter is ignored.
-      </p>
-      <button id="stop-button" type="button">Stop listening</button>
-      <p id="tech-info" class="small tech-info"></p>
     </section>
 
-    <section class="card small">
-      <h2>Good to know</h2>
-      <ul>
-        <li>Works best with <strong>one note at a time</strong>. Chords are not supported.</li>
-        <li>"No clear note" or "no clear pitch" means the sound was too quiet or not clearly pitched (breath, a consonant, noise), so nothing is shown rather than a guess.</li>
-        <li>Your range-finder results stay in this page only and disappear when you close it. Settings and training scores are saved on this device only.</li>
-      </ul>
+    <section class="card good-to-know">
+      <div class="card-head"><h2>Good to know</h2></div>
+      <div class="card-body">
+        <ul class="small">
+          <li>Works best with <strong>one note at a time</strong>. Chords are not supported.</li>
+          <li>"No clear note" or "no clear pitch" means the sound was too quiet or not clearly pitched (breath, a consonant, noise), so nothing is shown rather than a guess.</li>
+          <li>Your range-finder results stay in this page only and disappear when you close it. Settings and training scores are saved on this device only.</li>
+        </ul>
+      </div>
     </section>
-  </main>
 
-  <footer class="small">
-    <p id="offline-status" aria-live="polite"></p>
-    <p>Note Lab · a personal learning project · no accounts, no tracking · <a href="how-it-works.html">How it works</a></p>
-  </footer>
+    <footer class="small muted app-footer">
+      <p id="offline-status" aria-live="polite"></p>
+      <p>Note Lab · a personal learning project · no accounts, no tracking</p>
+    </footer>
+  </div>
+
+  <!-- Floating glass tab bar. Icons are this project's own line drawings. -->
+  <nav id="tabbar" class="tabbar" role="tablist" aria-label="Mode">
+    <button type="button" role="tab" id="tab-tuner" aria-selected="true" aria-controls="tuner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3.5 17a8.5 8.5 0 0 1 17 0"/><path d="M12 17l4.2-5.2"/><circle cx="12" cy="17" r="1.4" fill="currentColor"/><path d="M6.4 10.6l1 1M12 7.5V9M17.6 10.6l-1 1"/>
+      </svg>
+      <span>Tuner</span>
+    </button>
+    <button type="button" role="tab" id="tab-voice" aria-selected="false" aria-controls="voice">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/>
+      </svg>
+      <span>Voice</span>
+    </button>
+    <button type="button" role="tab" id="tab-spectrum" aria-selected="false" aria-controls="spectrum">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+        <path d="M4 20v-4M8 20v-9M12 20V5M16 20v-7M20 20v-3"/>
+      </svg>
+      <span>Spectrum</span>
+    </button>
+    <button type="button" role="tab" id="tab-ear" aria-selected="false" aria-controls="ear">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M9 17.5V6l10-2v11.5"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="15.5" r="2.5"/>
+      </svg>
+      <span>Train</span>
+    </button>
+  </nav>
 </body>
 </html>

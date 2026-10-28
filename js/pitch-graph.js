@@ -43,7 +43,8 @@ export function createPitchGraph(canvas, { seconds = 8 } = {}) {
   function colours() {
     const css = getComputedStyle(document.documentElement);
     const get = (name) => css.getPropertyValue(name).trim();
-    return { text: get('--text'), muted: get('--muted'), grid: get('--border'), line: get('--accent'), bg: get('--meter') };
+    // Names from glass.css: --fg text, --line hairlines, --blue accent, --fill a soft grey wash.
+    return { text: get('--fg'), muted: get('--muted'), grid: get('--line'), line: get('--blue'), bg: get('--fill') };
   }
 
   function drawGrid(c, width, plotHeight) {
@@ -140,7 +141,7 @@ export function createPitchGraph(canvas, { seconds = 8 } = {}) {
       ctx.textBaseline = 'alphabetic';
       ctx.fillText(`← last ${seconds} s`, LEFT_MARGIN, height - 3);
       ctx.textAlign = 'right';
-      ctx.fillText('now', width - 2, height - 3);
+      ctx.fillText('now', width - 8, height - 3); // clear of the rounded corner
       ctx.textAlign = 'left';
     },
   };

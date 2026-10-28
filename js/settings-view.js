@@ -43,7 +43,7 @@ export function createSettingsView({ onA4Change, onPlayA4, onTunerGateChange, on
   for (const hz of A4_SUGGESTIONS) {
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'small-button';
+    button.className = 'btn btn-small';
     button.textContent = `${hz} Hz`;
     button.addEventListener('click', () => applyA4(hz));
     el.suggestions.append(button);

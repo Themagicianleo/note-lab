@@ -91,7 +91,7 @@ const startButton = byId('start-button');
 const stopButton = byId('stop-button');
 const listeningBar = byId('listening-bar');
 const message = byId('message');
-const tabList = document.querySelector('.tabs');
+const tabList = byId('tabbar');
 const settingsPanel = byId('settings');
 const tabs = { tuner: byId('tab-tuner'), voice: byId('tab-voice'), spectrum: byId('tab-spectrum'), ear: byId('tab-ear') };
 const panels = { tuner: byId('tuner'), voice: byId('voice'), spectrum: byId('spectrum'), ear: byId('ear') };
@@ -181,7 +181,7 @@ function showSettingsInControls() {
 function openSettings() {
   settingsOpen = true;
   showTab(activeTab);
-  settingsPanel.scrollIntoView({ block: 'start' });
+  window.scrollTo({ top: 0 });
 }
 function closeSettings() {
   settingsOpen = false;
@@ -225,6 +225,20 @@ function applyConfig() {
 
 // ---------- tabs ----------
 
+// The large title at the top of the page changes with the tab.
+const PAGE_TITLES = {
+  tuner: ['Tuner', 'Play or sing one steady note'],
+  voice: ['Voice', 'Your pitch over time, and your range'],
+  spectrum: ['Spectrum', 'Which frequencies are loudest'],
+  ear: ['Train', 'Ear training with generated tones'],
+  settings: ['Settings', 'Saved on this device only'],
+};
+function showTitle(key) {
+  const [title, subtitle] = PAGE_TITLES[key];
+  byId('page-title').textContent = title;
+  byId('page-subtitle').textContent = subtitle;
+}
+
 // Show a tab. Every tab except Train needs the microphone to be on; the
 // Train tab works without it (only sing-back asks for it).
 // While the Settings page is open, it's shown instead of the tabs.
@@ -238,13 +252,14 @@ function showTab(name) {
   settingsPanel.hidden = !settingsOpen;
   startPanel.hidden = settingsOpen || Boolean(mic) || name === 'ear';
   listeningBar.hidden = settingsOpen || !mic;
+  showTitle(settingsOpen ? 'settings' : name);
   singBack.refresh();
   applyConfig();
 }
-tabs.tuner.addEventListener('click', () => showTab('tuner'));
-tabs.voice.addEventListener('click', () => showTab('voice'));
-tabs.spectrum.addEventListener('click', () => showTab('spectrum'));
-tabs.ear.addEventListener('click', () => showTab('ear'));
+// Tapping a tab starts at the top of that page, like iPhone apps.
+for (const name of Object.keys(tabs)) {
+  tabs[name].addEventListener('click', () => { showTab(name); window.scrollTo({ top: 0 }); });
+}
 
 document.querySelectorAll('input[name="tuner-range"]').forEach((radio) =>
   radio.addEventListener('change', () => changeSettings({ tunerRange: radio.value })));
@@ -280,6 +295,7 @@ async function startListening() {
   }
 
   showTab(activeTab);
+  window.scrollTo({ top: 0 }); // the start card is gone; show the new page from the top
   frameRequest = requestAnimationFrame(tick);
 }
 
@@ -350,6 +366,13 @@ document.addEventListener('visibilitychange', async () => {
     }
   }
 });
+
+// "Reduce Transparency" (iPhone/Mac accessibility setting): solid surfaces
+// instead of glass. glass.css does the rest when <html> has class "solid".
+const reduceTransparency = matchMedia('(prefers-reduced-transparency: reduce)');
+const applyTransparency = () => document.documentElement.classList.toggle('solid', reduceTransparency.matches);
+reduceTransparency.addEventListener?.('change', applyTransparency);
+applyTransparency();
 
 showSettingsInControls();
 showTab(activeTab);

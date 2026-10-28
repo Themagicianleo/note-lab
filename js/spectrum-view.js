@@ -80,7 +80,8 @@ export function createSpectrumView({ canvas, peaksList, pointerText, freezeButto
   function colours() {
     const css = getComputedStyle(document.documentElement);
     const get = (name) => css.getPropertyValue(name).trim();
-    return { text: get('--text'), muted: get('--muted'), grid: get('--border'), line: get('--accent'), bg: get('--meter'), card: get('--card') };
+    // Names from glass.css: --fg text, --line hairlines, --blue accent, --fill a soft grey wash.
+    return { text: get('--fg'), muted: get('--muted'), grid: get('--line'), line: get('--blue'), bg: get('--fill'), card: 'transparent' };
   }
 
   function fitToScreen() {
@@ -124,13 +125,22 @@ export function createSpectrumView({ canvas, peaksList, pointerText, freezeButto
     }
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
+    let lastLabelRight = -Infinity;
     for (const hz of [50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000]) {
       if (hz > maxHz()) continue;
       const x = Math.round(xOf(hz)) + 0.5;
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, plotBottom); ctx.stroke();
-      // Keep the label inside the canvas (the 20k line sits on the right edge).
-      ctx.textAlign = x > size.width - 12 ? 'right' : 'center';
-      ctx.fillText(hz >= 1000 ? `${hz / 1000}k` : String(hz), x, size.height - 2);
+      // Keep the label inside the canvas: the 20k line sits on the right edge,
+      // and the chart's rounded corner would cut it off.
+      const atEdge = x > size.width - 12;
+      const text = hz >= 1000 ? `${hz / 1000}k` : String(hz);
+      const textWidth = ctx.measureText(text).width;
+      const labelX = atEdge ? size.width - 8 : x;
+      const left = atEdge ? labelX - textWidth : labelX - textWidth / 2;
+      if (left < lastLabelRight + 4) continue; // would overlap the previous label on a narrow screen
+      ctx.textAlign = atEdge ? 'right' : 'center';
+      ctx.fillText(text, labelX, size.height - 2);
+      lastLabelRight = left + textWidth;
     }
 
     if (!current) return;

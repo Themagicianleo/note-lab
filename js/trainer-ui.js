@@ -11,7 +11,7 @@ export function renderAnswerButtons(container, options, onPick) {
   for (const { key, label } of options) {
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'answer';
+    button.className = 'btn answer';
     button.textContent = label;
     button.dataset.key = key;
     button.addEventListener('click', () => onPick(key));
