@@ -12,9 +12,10 @@ Microphone audio is never recorded, stored, uploaded or sent anywhere. There is
 no server, no account and no tracking. Only your settings and training scores
 are saved, in your own browser.
 
-> **Status:** all 6 phases are built and tested in desktop Chromium:
-> pitch maths, tuner, voice mode, spectrum, ear training, and offline /
-> settings / guide. **Not yet tested on a real iPhone, and not yet measured on
+> **Status:** all 6 phases and the 8 Acoustics Lab tools are built and tested
+> in desktop Chromium: pitch maths, tuner, voice mode, spectrum, ear training,
+> offline / settings / guide, and the Lab (waveform, harmonics, beats,
+> spectrogram, pipes and strings, room modes, RT60, compare with reality). **Not yet tested on a real iPhone, and not yet measured on
 > real recordings.** See [Desktop vs iPhone](#desktop-vs-iphone) and
 > [Measured accuracy](#measured-accuracy).
 
@@ -175,6 +176,10 @@ the bottom card shows what the browser **reports** it did
 
 A browser's report can't see processing done by the phone's hardware or
 operating system, so treat "off" as "the browser says it isn't adding any".
+
+| Lab menu | Harmonics | Spectrogram | Room modes |
+|---|---|---|---|
+| <img src="docs/screenshots/lab-menu.png" alt="Lab menu" width="190"> | <img src="docs/screenshots/lab-harmonics.png" alt="Harmonics viewer" width="190"> | <img src="docs/screenshots/lab-spectrogram.png" alt="Spectrogram" width="190"> | <img src="docs/screenshots/lab-room.png" alt="Room modes" width="190"> |
 
 ### 1. Waveform (oscilloscope)
 
@@ -394,6 +399,34 @@ modes (for the Schroeder frequency). Surfaces are saved on the device.
   2–4 kHz in large rooms). The result is only as good as the coefficients,
   which vary with the exact product, how it's mounted, and the test method
   (usually ISO 354).
+
+### 8. Compare with reality
+
+A log of **your own measurements next to the predictions**. Each entry has what
+you compared, the predicted value, your measured or heard value, the unit, how
+you measured it, and notes. It shows the difference in units, in **percent**,
+and for frequencies in **cents**, plus a summary of how far off the model was
+on average for each unit. The *Compare* buttons in Pipes and strings, Room
+modes and RT60 open this page with the prediction filled in. With the
+microphone on, *Use the pitch the mic hears now* fills in the measured value
+from a **steady** pitch reading (YIN, at least 12 of the last 15 readings
+agreeing). Entries are saved on the device and can be downloaded as **CSV**.
+
+- *Formulas:* d = measured − predicted; e = 100·d/predicted %;
+  cents = 1200·log2(measured/predicted) (Ellis, 1885). Example: 34.3 vs 36.0 Hz
+  → +1.7 Hz, +4.96 %, +83.7 cents.
+- *Measured:* your values (and the mic pitch, if used). *Calculated:* the
+  predictions and the differences.
+- *How to test:* `npm test` checks the example, that seconds get no cents, the
+  per-unit summary, and CSV escaping. The browser test goes Room modes →
+  *Compare* → enters 36.0 Hz → checks `+1.7 Hz (+5.0 %), +84 cents`, fills
+  440.0 Hz from the fake microphone, downloads the CSV, and checks the log
+  survives a reload and Delete works.
+- *Limits:* the comparison is only as good as the measurement. By ear,
+  room-mode frequencies are hard to pin down to better than a few Hz, and
+  notes go out of tune with temperature. Record how you measured, and repeat.
+  The microphone fill-in only measures a clear pitch (pipes, strings, sung
+  notes), not a room-mode peak or a reverberation time.
 
 ## How the detection works
 
@@ -743,6 +776,16 @@ Things to check on iPhone (please report back):
 11. **Add to Home Screen**, open it from the icon, then turn on Airplane Mode and
     open it again. Does it still load? Does it ask for the microphone every time?
 12. Settings: change A4 to 442, close and reopen the app. Is it remembered?
+13. **Lab → any microphone tool → Start microphone**, then read the line under
+    "Stop listening": *Microphone processing, as reported by this browser: …*.
+    Send me exactly what it says for echo cancellation, noise suppression and
+    automatic gain control, so the table in the Acoustics Lab section can be
+    filled in.
+14. Lab → Waveform: whistle; does the shape stand still? Lab → Spectrogram:
+    does it scroll smoothly at 2048 and at 8192?
+15. Lab → Beats with headphones and "one tone per ear": do you hear left/right
+    separation? Lab → Room modes → Play: can you hear the low modes at all on the
+    phone speaker? (Probably not below ~100 Hz; that's expected.)
 
 ## Running the tests
 
@@ -772,6 +815,8 @@ js/pitch-math.js                 ★ frequency ↔ note maths (start here)
 js/yin.js, js/smoothing.js, js/level.js, js/pitch-tracker.js   pitch detection pipeline
 js/fft.js, js/spectrum.js        spectrum maths
 js/voice-ranges.js, js/range-finder.js, js/ear-training.js, js/settings.js   other logic
+js/acoustics.js                  ★ all Acoustics Lab maths (with sources; tests/acoustics.test.js)
+js/lab/                          the eight Lab tools' pages, plus the Lab menu
 js/*-view.js, js/app.js, …       page code (what you see and tap)
 js/autocorrelation.js            only for the YIN comparison, not used by the app
 tests/                           unit tests (npm test)
@@ -813,6 +858,17 @@ phase by phase at the owner's direction:
   from the offline list (caught by the new test before it was ever shipped).
   Reading the code before running it caught a start-up crash (code using a
   variable before it was created).
+- For the Acoustics Lab, the AI used only standard, textbook formulas and
+  wrote each one's source on the page and in `js/acoustics.js`. It supplies no
+  absorption coefficients; the RT60 tool asks for them with sources. Its own
+  rules of thumb (e.g. "close pair" = within 3%) are labelled as such. The
+  tests caught: units being upper-cased ("HZ"), a getter that froze the
+  spectrogram's window size, colour saturation that misplaced peaks, and
+  three of its own wrong test expectations (more room-mode coincidences than
+  expected below 300 Hz; Schroeder frequency from a rounded RT60). The
+  automated test only covered desktop Chromium with a fake microphone; what
+  iPhone Safari reports about microphone processing still has to be read off
+  a real iPhone.
 - When asked to carry out the last phases without stopping, the AI still
   tested and committed each step separately. Everything above about iPhone
   behaviour is a list of things to check, not something that was tested.

@@ -343,6 +343,7 @@ try {
     const { browser, page, errors } = await fakeMic('sine-A4.wav');
     await page.click('#tab-lab');
     report(await page.isVisible('#lab-grid') && !(await page.isVisible('#start-panel')), 'lab: menu opens without the microphone');
+    await labScreenshot(page, 'lab-menu');
     await page.click('#lab-open-waveform');
     report(await page.isVisible('#lab-need-mic'), 'lab waveform: asks for the microphone first');
     await page.click('#lab-start-mic');
@@ -592,6 +593,41 @@ try {
     await page.click('#lab-open-rt60');
     const kept = await page.$$eval('#rt-surfaces .surface', (s) => s.length);
     report(kept === 4 && !errors.length, 'lab rt60: surfaces are saved on the device', `${kept} surfaces after reload${errors.length ? ` errors: ${errors}` : ''}`);
+    await browser.close();
+  }
+
+  // 3.8 Compare with reality.
+  {
+    const { browser, page, errors } = await fakeMic('sine-A4.wav');
+    await page.click('#tab-lab');
+    await page.click('#lab-open-room');
+    await page.click('#room-table button[data-compare="0"]');
+    const prefilled = [await page.inputValue('#reality-quantity'), await page.inputValue('#reality-predicted'), await page.inputValue('#reality-unit')];
+    report(await page.isVisible('#lab-reality') && prefilled[1] === '34.3' && prefilled[2] === 'Hz' && prefilled[0].startsWith('Room mode: length 1'),
+      'lab compare: Room modes "Compare" fills in the prediction', JSON.stringify(prefilled));
+    await page.fill('#reality-measured', '36.0');
+    await page.click('#reality-add');
+    const row = await page.textContent('#reality-table tbody tr:nth-child(1)');
+    const summary = await page.textContent('#reality-summary');
+    report(row.includes('+1.7 Hz (+5.0 %), +84 cents') && summary.includes('off by 5.0 %'), 'lab compare: 34.3 vs 36.0 Hz → +1.7 Hz, +5.0 %, +84 cents', `${row} · ${summary}`);
+
+    await page.click('#reality-start-mic');
+    await page.waitForTimeout(1500);
+    await page.click('#reality-use-mic');
+    report((await page.inputValue('#reality-measured')) === '440.0', 'lab compare: measured value from the microphone (440 Hz tone)', await page.inputValue('#reality-measured'));
+    await labScreenshot(page, 'lab-reality');
+
+    const [download] = await Promise.all([page.waitForEvent('download'), page.click('#reality-export')]);
+    const csv = await (await import('node:fs/promises')).readFile(await download.path(), 'utf8');
+    report(csv.startsWith('"Date","What","Unit","Predicted","Measured"') && csv.includes('"34.3","36"'), 'lab compare: CSV download', csv.split('\r\n')[1]);
+
+    await page.reload();
+    await page.click('#tab-lab');
+    await page.click('#lab-open-reality');
+    const kept = await page.$$eval('#reality-table tbody tr', (r) => r.length);
+    await page.click('#reality-table button[data-delete="0"]');
+    const empty = await page.textContent('#reality-table');
+    report(kept === 1 && empty.includes('No comparisons yet') && !errors.length, 'lab compare: saved after reload, and Delete works', `${kept} kept${errors.length ? ` errors: ${errors}` : ''}`);
     await browser.close();
   }
 
