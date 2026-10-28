@@ -308,3 +308,58 @@ export function coincidentModes(modes, tolerance = 0.03) {
 }
 
 export const schroederFrequency = (rt60, volume) => 2000 * Math.sqrt(rt60 / volume);
+
+// ============================================================
+// 7. Reverberation time (RT60)
+// ============================================================
+// RT60 (T60): the time for sound in a room to fade by 60 dB after the source stops.
+//
+// Total absorption ("equivalent absorption area"):
+//   A = Σ Sᵢ · αᵢ        (m², sometimes called metric sabins)
+//   Sᵢ = area of surface i (m²), αᵢ = its absorption coefficient (0 = reflects all,
+//   1 = absorbs all) in the frequency band being calculated.
+//
+// Sabine's formula (W. C. Sabine, ~1900):
+//   T60 = (24 · ln 10 / c) · V / A  ≈  0.161 · V / A    (s, with c ≈ 343 m/s)
+//   V = room volume (m³), c = speed of sound (m/s)
+// Example: V = 100 m³, A = 20 m² → T60 = 0.161 × 100 / 20 = 0.805 s.
+//
+// Eyring's formula (C. F. Eyring, 1930), better when absorption is high:
+//   T60 = (24 · ln 10 / c) · V / ( −S · ln(1 − ᾱ) ),   ᾱ = A / S,  S = total surface area (m²)
+// Example: same room with S = 130 m² → ᾱ = 0.1538 → T60 = 0.161 × 100 / (130 × 0.1671) = 0.741 s.
+//
+// Both assume a "diffuse" sound field: sound spread evenly in all directions,
+// with absorption spread fairly evenly over the surfaces. Neither includes
+// absorption by the air itself (noticeable at high frequencies in big rooms).
+
+export const RT60_BANDS = [125, 250, 500, 1000, 2000, 4000]; // octave-band centre frequencies (Hz)
+export const sabineConstant = (c) => (24 * Math.LN10) / c;   // 0.1610 s/m at c = 343.2 m/s
+
+// surfaces: [{ area, alpha: { 125: 0.1, … } }]; returns A for one band, or null if any α is missing.
+export function totalAbsorption(surfaces, band) {
+  let sum = 0;
+  for (const s of surfaces) {
+    const alpha = s.alpha[band];
+    if (!Number.isFinite(alpha)) return null;
+    sum += s.area * alpha;
+  }
+  return sum;
+}
+
+export const sabineRT60 = (volume, absorption, c) => (sabineConstant(c) * volume) / absorption;
+
+export function eyringRT60(volume, totalArea, meanAlpha, c) {
+  if (!(meanAlpha > 0 && meanAlpha < 1)) return null; // ln(1 − ᾱ) needs 0 < ᾱ < 1
+  return (sabineConstant(c) * volume) / (-totalArea * Math.log(1 - meanAlpha));
+}
+
+// Per-band results for a room. Returns [{ band, A, meanAlpha, sabine, eyring, missing }].
+export function rt60ByBand(volume, surfaces, c) {
+  const S = surfaces.reduce((sum, s) => sum + s.area, 0);
+  return RT60_BANDS.map((band) => {
+    const A = totalAbsorption(surfaces, band);
+    if (A === null || !(A > 0)) return { band, missing: true };
+    const meanAlpha = A / S;
+    return { band, A, meanAlpha, sabine: sabineRT60(volume, A, c), eyring: eyringRT60(volume, S, meanAlpha, c), missing: false };
+  });
+}

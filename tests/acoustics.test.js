@@ -214,3 +214,36 @@ test('coincident modes: 2nd length mode and 1st height mode both 68.6 Hz', () =>
 test('Schroeder frequency: T60 0.5 s, V 50 m³ → 200 Hz', () => {
   close(ac.schroederFrequency(0.5, 50), 200, 1e-9);
 });
+
+// ---------- 7. RT60 ----------
+// Example room: V = 100 m³, two surfaces: 50 m² with α = 0.10 and 80 m² with α = 0.1875.
+// A = 50 × 0.10 + 80 × 0.1875 = 5 + 15 = 20 m²; S = 130 m².
+
+test('Sabine constant: 24·ln(10)/c = 0.1610 at c = 343.2 m/s', () => {
+  close(ac.sabineConstant(343.2), 0.16101, 0.00001);
+});
+
+test('total absorption A = Σ S·α (and missing α → no result)', () => {
+  const surfaces = [{ area: 50, alpha: { 500: 0.1 } }, { area: 80, alpha: { 500: 0.1875 } }];
+  close(ac.totalAbsorption(surfaces, 500), 20, 1e-12);
+  assert.equal(ac.totalAbsorption(surfaces, 1000), null);
+});
+
+test('Sabine: V 100 m³, A 20 m² → 0.805 s', () => {
+  close(ac.sabineRT60(100, 20, 343.2), 0.8051, 0.0001); // 0.16101 × 100 / 20
+});
+
+test('Eyring: same room, S 130 m² → 0.741 s, and always ≤ Sabine', () => {
+  // ᾱ = 20/130 = 0.153846; −ln(1 − ᾱ) = 0.167054; 130 × 0.167054 = 21.717
+  close(ac.eyringRT60(100, 130, 20 / 130, 343.2), 0.7414, 0.0001);
+  for (const a of [0.05, 0.2, 0.5, 0.8]) assert.ok(ac.eyringRT60(100, 130, a, 343.2) < ac.sabineRT60(100, 130 * a, 343.2));
+  assert.equal(ac.eyringRT60(100, 130, 1, 343.2), null); // fully absorbing: formula undefined
+});
+
+test('RT60 by band: bands with a missing coefficient are marked, not guessed', () => {
+  const surfaces = [{ area: 50, alpha: { 125: 0.1, 500: 0.1 } }, { area: 80, alpha: { 125: 0.1875, 500: 0.1875 } }];
+  const r = ac.rt60ByBand(100, surfaces, 343.2);
+  assert.deepEqual(r.map((x) => x.band), [125, 250, 500, 1000, 2000, 4000]);
+  close(r[0].sabine, 0.8051, 0.0001);
+  assert.equal(r[1].missing, true);
+});
