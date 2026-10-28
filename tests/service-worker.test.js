@@ -3,17 +3,22 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 
 const root = new URL('../', import.meta.url).pathname;
 const sw = readFileSync(`${root}sw.js`, 'utf8');
+// Every file in a folder, including sub-folders, as "folder/sub/file" paths.
+const filesIn = (folder) => readdirSync(`${root}${folder}`, { recursive: true })
+  .map((f) => `${folder}/${f.split('\\').join('/')}`)
+  .filter((f) => !statSync(`${root}${f}`).isDirectory());
+
 const listed = [...sw.match(/const FILES = \[([\s\S]*?)\];/)[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
 
 test('every app file is in the offline list', () => {
   const appFiles = [
     'index.html', 'how-it-works.html', 'manifest.json',
     ...readdirSync(`${root}css`).filter((f) => f.endsWith('.css')).map((f) => `css/${f}`),
-    ...readdirSync(`${root}js`).filter((f) => f.endsWith('.js')).map((f) => `js/${f}`),
+    ...filesIn('js').filter((f) => f.endsWith('.js')),
     ...readdirSync(`${root}icons`).map((f) => `icons/${f}`),
   ];
   for (const file of appFiles) assert.ok(listed.includes(file), `${file} is missing from FILES in sw.js`);
