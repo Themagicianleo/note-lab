@@ -705,6 +705,22 @@ generated signals, it still needs checking on real recordings.
 
 - **One note at a time.** Chords and several notes at once are not supported.
   The app will show one of the notes, or "no clear note", and shouldn't be trusted.
+- **Songs and music with accompaniment** usually show "no clear pitch", and
+  that's deliberate. Measured with `node tools/polyphonic-check.js` (a
+  synthetic C-major melody over chords, bass and drums):
+
+  | Music | Clarity ≥ 90% (Note Lab) | ≥ 80% | ≥ 70% |
+  |---|---|---|---|
+  | Melody alone | 99% right | 99% right | 99% right |
+  | Melody + soft chords | nothing shown | 91% **wrong** notes | 94% wrong |
+  | Melody + bass + drums | 18% wrong, 0% right | 49% wrong | 85% wrong |
+
+  With several instruments, the mixture repeats at a rate set by the whole
+  chord, not the melody, so loosening the clarity requirement mostly adds
+  confident wrong notes. Even the strict setting shows a wrong note about 18%
+  of the time with a steady bass line. For songs, use **Spectrum** or the
+  **Lab → Spectrogram** (they show all the frequencies at once). For pitch,
+  play or sing one line alone, close to the microphone.
 - **Octave errors** are reduced, not eliminated. A sound whose 2nd harmonic is
   much louder than the fundamental can still be read an octave high. A rough
   or creaky voice can be read an octave **low** if the range reaches that low.
