@@ -558,6 +558,43 @@ try {
     await browser.close();
   }
 
+  // 3.7 RT60. NOTE: α = 0.1 below is a made-up TEST value to check the arithmetic,
+  //     not real material data.
+  {
+    const { browser, page, errors } = await openPage([], []);
+    await page.click('#tab-lab');
+    await page.click('#lab-open-rt60');
+    await page.click('#rt-from-room'); // default room 5 × 4 × 2.5 m
+    const volume = await page.inputValue('#rt-volume');
+    const areas = await page.$$eval('#rt-surfaces .area', (inputs) => inputs.map((i) => Number(i.value)));
+    report(volume === '50' && JSON.stringify(areas) === '[20,20,20,25]', 'lab rt60: room copied (V 50 m³; floor, ceiling, walls)', `${volume} m³, ${JSON.stringify(areas)}`);
+    const alphaInputs = await page.$$('#rt-surfaces input[data-band="500"]');
+    for (const input of alphaInputs) await input.fill('0.1');
+    await page.waitForTimeout(100);
+    const row500 = await page.textContent('#rt-table tbody tr:nth-child(3)');
+    const row125 = await page.textContent('#rt-table tbody tr:nth-child(1)');
+    const warnings = await page.$$eval('#rt-warnings li', (li) => li.map((x) => x.textContent));
+    report(row500.includes('8.50 m²') && row500.includes('0.95 s') && row125.includes('not calculated'),
+      'lab rt60: Sabine 0.161 × 50 / 8.5 = 0.95 s at 500 Hz; bands without α are not calculated', `${row500} | ${row125}`);
+    report(warnings.filter((w) => w.includes('no source')).length === 4, 'lab rt60: surfaces without a source are flagged', `${warnings.length} warnings`);
+    const sourceInputs = await page.$$('#rt-surfaces input[data-field="source"]');
+    for (const input of sourceInputs) await input.fill('Test value for the automated check, not real data');
+    await page.waitForTimeout(100);
+    report((await page.$$eval('#rt-warnings li', (li) => li.length)) === 0, 'lab rt60: warnings clear once sources are given');
+    await labScreenshot(page, 'lab-rt60');
+    await page.click('#rt-use-in-room');
+    await page.waitForTimeout(100);
+    const working = await page.textContent('#room-working');
+    // The value is passed as shown (0.95 s): 2000 × √(0.95/50) = 275.7 → 276 Hz.
+    report(await page.isVisible('#lab-room') && working.includes('√(0.95 / 50.0) = 276 Hz'), 'lab rt60 → room modes: Schroeder frequency 2000 × √(0.95/50) = 276 Hz', working.split('Schroeder')[1]);
+    await page.reload();
+    await page.click('#tab-lab');
+    await page.click('#lab-open-rt60');
+    const kept = await page.$$eval('#rt-surfaces .surface', (s) => s.length);
+    report(kept === 4 && !errors.length, 'lab rt60: surfaces are saved on the device', `${kept} surfaces after reload${errors.length ? ` errors: ${errors}` : ''}`);
+    await browser.close();
+  }
+
   // 2. Permission denied. Headless Chromium has no permission prompt to refuse, so we
   //    make getUserMedia fail with the same error a real "Don't Allow" gives (NotAllowedError).
   {

@@ -359,6 +359,42 @@ and EQ.
   standing out, not a sharp boundary. The mixing and EQ advice is general
   studio-acoustics guidance.
 
+### 7. RT60 estimator
+
+Enter the room volume (or **copy the room** from Room modes, which also adds
+floor, ceiling and wall areas) and the air temperature. Then add each surface
+with its **area** and its **absorption coefficients α** per octave band
+(125 Hz – 4 kHz), plus a **source** for them. **The app contains no absorption
+coefficients.** You provide them. Surfaces without a source are flagged, a
+band with a missing α is shown as "not calculated" (never guessed), and
+surface areas that don't add up to the copied room are flagged. It shows
+total absorption A, average ᾱ, the **Sabine** T60 and the **Eyring** T60 for
+comparison, per band, with a chart. You can send the 500 Hz value to Room
+modes (for the Schroeder frequency). Surfaces are saved on the device.
+
+- *Formulas:* A = Σ Sᵢ·αᵢ; Sabine T60 = (24·ln10/c)·V/A ≈ 0.161·V/A (Sabine,
+  ~1900); Eyring T60 = (24·ln10/c)·V/(−S·ln(1−ᾱ)), ᾱ = A/S (Eyring, 1930).
+  Example: V = 100 m³, 50 m² at α 0.10 + 80 m² at α 0.1875 → A = 20 m²,
+  Sabine 0.805 s, Eyring 0.741 s.
+- *Calculated* from **your** data.
+- *How to test:* `npm test` runs the example above (and checks that Eyring is
+  always below Sabine, and that a missing α gives no result). The browser test
+  uses made-up test values (α = 0.1, clearly not real data): 5 × 4 × 2.5 m →
+  A = 8.5 m² → Sabine 0.95 s at 500 Hz. It also checks the warnings, the
+  link to Room modes (Schroeder 276 Hz) and saving. To try it yourself: enter
+  your room with coefficients from a source you trust, then measure the real
+  RT60 (e.g. a free RT60 app, or clap and time the decay) and record both on
+  the compare page.
+- *Limits (stated on the page):* assumes a diffuse field with absorption
+  spread fairly evenly. Sabine overestimates when the average α is above about
+  0.2–0.3 (the page warns, and Eyring is usually closer then). Both are less
+  reliable with absorption concentrated on one surface, with odd shapes or
+  coupled rooms, and in small rooms at low frequencies (below the Schroeder
+  frequency, room modes dominate). Air absorption is ignored (it matters at
+  2–4 kHz in large rooms). The result is only as good as the coefficients,
+  which vary with the exact product, how it's mounted, and the test method
+  (usually ISO 354).
+
 ## How the detection works
 
 ### From frequency to note (`js/pitch-math.js`)
