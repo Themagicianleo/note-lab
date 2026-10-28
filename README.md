@@ -201,6 +201,38 @@ and **f = 1/T** is shown.
   example, they cut very low frequencies), so the shape is "as the mic sees
   it", not the exact air pressure.
 
+### 2. Harmonics viewer
+
+Finds the fundamental f₀ (YIN) and measures harmonics 1–10 in the spectrum.
+Bars show dB **relative to the loudest harmonic**; the table shows where each
+harmonic was found and how many cents it is from exactly n × f₀. **Compare:**
+capture sound A and sound B (each with a label), or make B a **calculated**
+tone (sine, square, sawtooth, or Note Lab's training tone) from its Fourier
+series. *Play it* plays that tone, so you can also capture it through your
+speaker and mic and see how they change a "perfect" tone.
+
+- *Formulas:* f_n = n × f₀ (Fourier's theorem; harmonic series), and
+  L = 20 × log10(a / a_ref) dB. Square wave: odd harmonics at 1/n; sawtooth:
+  all harmonics at 1/n (standard Fourier series).
+  Example: f₀ = 220 Hz → 440, 660, 880 Hz; half amplitude = −6.02 dB.
+- *Measured:* f₀, each harmonic's frequency, cents offset and relative level.
+  *Calculated:* the reference tones' bars.
+- *How to test:* `npm test` checks a synthetic 1/n tone: harmonic n comes out at
+  20·log10(1/n) dB within 0.4 dB and at n × 220 Hz within 0.5 Hz. A sine has
+  only harmonic 1, and the square-wave reference has 3rd at −9.54 dB and 5th at
+  −13.98 dB. In the browser test, the `bright-A3` file (220 Hz, 1/n) measured
+  2nd −5.9 dB and 3rd −9.4 dB, and A (measured) vs B (calculated sawtooth)
+  differed by 0.0–0.3 dB for n = 1–5. To try it yourself: sing "ee" and capture
+  it as A, then sing "oo" on the same note and capture it as B.
+- *Assumptions and limits:* the sound must have a clear pitch (one note).
+  Harmonics are searched within ±3% of n × f₀ (at least ±3 bins, at most ±40% of
+  f₀), so strongly inharmonic sounds (bells, drums) won't fit this model. Bins
+  are ~5.9 Hz wide (8192 samples), so for low notes the higher harmonics are
+  found precisely, but a harmonic below the noise (−90 dBFS) shows as "not
+  found". Readings are briefly off when a note starts, stops or changes (the
+  0.17 s window then holds two different sounds). Mic and speaker frequency
+  response colour the bars, especially below ~100 Hz and above ~10 kHz.
+
 ## How the detection works
 
 ### From frequency to note (`js/pitch-math.js`)

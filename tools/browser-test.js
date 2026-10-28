@@ -368,6 +368,31 @@ try {
     await browser.close();
   }
 
+  // 3.2 Harmonics: bright-A3 is a 220 Hz tone with harmonics at 1/n (like a sawtooth).
+  {
+    const { browser, page, errors } = await fakeMic('bright-A3.wav');
+    await page.click('#tab-lab');
+    await page.click('#lab-open-harmonics');
+    await page.click('#lab-start-mic');
+    await page.waitForTimeout(1500);
+    const f0 = await page.textContent('#harm-f0');
+    const level = async (n) => parseFloat((await page.textContent(`#harm-table tbody tr:nth-child(${n}) td:last-child`)) || 'NaN');
+    const [l1, l2, l3] = [await level(1), await level(2), await level(3)];
+    report(f0.includes('220.0 Hz') && Math.abs(l1) < 0.5 && Math.abs(l2 + 6.02) < 1 && Math.abs(l3 + 9.54) < 1,
+      'lab harmonics: measured levels of a 1/n tone', `${f0} · n1 ${l1} dB, n2 ${l2} dB, n3 ${l3} dB`);
+
+    await page.fill('#harm-label-a', 'Test file bright-A3');
+    await page.click('#harm-capture-a');
+    await page.selectOption('#harm-ref', 'sawtooth');
+    await page.click('#harm-use-ref');
+    const diffs = await page.$$eval('#harm-compare tbody tr td:last-child', (cells) => cells.slice(0, 5).map((td) => parseFloat(td.textContent)));
+    report(diffs.every((d) => Math.abs(d) < 1.5) && !errors.length,
+      'lab harmonics: measured A vs calculated sawtooth B differ by < 1.5 dB (n = 1–5)', JSON.stringify(diffs));
+    await page.click('#harm-play-ref');
+    await labScreenshot(page, 'lab-harmonics');
+    await browser.close();
+  }
+
   // 2. Permission denied. Headless Chromium has no permission prompt to refuse, so we
   //    make getUserMedia fail with the same error a real "Don't Allow" gives (NotAllowedError).
   {
