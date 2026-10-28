@@ -325,6 +325,40 @@ selected mode's standing wave.
   weigh more than μ = ρ·π·(d/2)² suggests. Phone speakers can't play low modes
   well (below ~100–200 Hz).
 
+### 6. Room modes calculator
+
+Enter the room's length, width and height (m) and the air temperature;
+optionally an RT60 (s) to see the Schroeder frequency. It lists the **axial
+modes** up to 150/300/500 Hz with nearest note, where each one is **silent**
+(its pressure nulls, in metres from a wall), *Play* (a pure tone, 3 s) and
+*Compare*. It marks them on a frequency chart (coloured by dimension), flags
+**close pairs** from different dimensions, and can also count and show the
+tangential and oblique modes. The page explains what modes mean for mixing
+and EQ.
+
+- *Model assumptions (stated on the page):* a rectangular room with perfectly
+  rigid, fully reflecting walls, empty, at a uniform temperature.
+- *Formulas:* Rayleigh, f = (c/2)·√((n_x/L)² + (n_y/W)² + (n_z/H)²); axial
+  f = n·c/2L; nulls at x = (2k−1)·L/(2n); Schroeder f_S ≈ 2000·√(T60/V)
+  (Schroeder 1962; Kuttruff, *Room Acoustics*). c from temperature as in tool 5.
+  Example: 5 × 4 × 2.5 m at 20 °C → length 34.3, 68.6, 103.0 Hz; width
+  42.9 Hz; height 68.6 Hz (a close pair with length 2); tangential (1,1,0)
+  54.9 Hz; 1st length mode silent at 2.5 m; T60 0.5 s, V 50 m³ → f_S 200 Hz.
+- *Calculated:* everything on this page.
+- *How to test:* `npm test` runs all the numbers in the example. The browser
+  test checks them on the page, that *Play* produces 34.32 Hz, and that a
+  negative height shows a message. To try it yourself: enter your room, play the
+  lowest few modes through **proper speakers** (not a phone), walk around and
+  listen for loud and quiet spots, then note what you hear on the compare page.
+- *Assumptions and limits:* real walls flex and absorb bass (especially
+  plasterboard), doors and windows leak, furniture scatters sound, and
+  non-rectangular rooms have different modes. Real modes are therefore
+  shifted and broader, and only the strongest few are clearly audible. The
+  "close pair" 3% threshold is this app's own simple rule of thumb, not a
+  standard. Schroeder's formula is an estimate of where modes stop
+  standing out, not a sharp boundary. The mixing and EQ advice is general
+  studio-acoustics guidance.
+
 ## How the detection works
 
 ### From frequency to note (`js/pitch-math.js`)

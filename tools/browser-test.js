@@ -521,6 +521,43 @@ try {
     await browser.close();
   }
 
+  // 3.6 Room modes: 5 × 4 × 2.5 m at 20 °C.
+  {
+    const { browser, page, errors } = await openPage([], []);
+    await page.evaluate(() => {
+      window.__played = [];
+      const original = AudioContext.prototype.createOscillator;
+      AudioContext.prototype.createOscillator = function () {
+        const osc = original.call(this);
+        const start = osc.start.bind(osc);
+        osc.start = (...a) => { window.__played.push(osc.frequency.value); start(...a); };
+        return osc;
+      };
+    });
+    await page.click('#tab-lab');
+    await page.click('#lab-open-room');
+    const first = await page.textContent('#room-table tbody tr:nth-child(1)');
+    const pairRows = await page.$$eval('#room-table tbody tr', (rows) => rows.filter((r) => r.textContent.includes('close pair')).map((r) => r.querySelector('th').textContent.split(' ')[0]));
+    report(first.includes('34.3 Hz') && first.includes('Length 1') && first.includes('2.50'), 'lab room: 1st length mode 34.3 Hz, silent at 2.50 m', first);
+    // Up to 300 Hz this room (5, 4, 2.5 m share simple ratios) has several coinciding pairs:
+    // 68.6 (L2 = H1), 137.3 (L4 = H2), 171.6 (L5 = W4), … each pair marks two rows.
+    report(pairRows.filter((f) => f === '68.6').length === 2 && pairRows.includes('171.6') && pairRows.length % 2 === 0,
+      'lab room: coinciding modes (e.g. 68.6 Hz = length 2 + height 1) marked as close pairs', JSON.stringify(pairRows));
+    await page.fill('#room-rt60', '0.5');
+    await page.dispatchEvent('#room-rt60', 'input');
+    report((await page.textContent('#room-working')).includes('= 200 Hz'), 'lab room: Schroeder frequency 200 Hz (T60 0.5 s, V 50 m³)');
+    await page.check('#room-show-all');
+    report((await page.textContent('#room-others')).includes('tangential'), 'lab room: tangential and oblique modes counted', await page.textContent('#room-others'));
+    await page.click('#room-table button[data-play="0"]');
+    const played = await page.evaluate(() => window.__played[0]);
+    report(Math.abs(played - 34.32) < 0.01, 'lab room: Play plays the 34.3 Hz mode', String(played));
+    await labScreenshot(page, 'lab-room');
+    await page.fill('#room-height', '-1');
+    await page.dispatchEvent('#room-height', 'input');
+    report(await page.isVisible('#room-error') && !errors.length, 'lab room: a negative height shows a message', errors.join(' '));
+    await browser.close();
+  }
+
   // 2. Permission denied. Headless Chromium has no permission prompt to refuse, so we
   //    make getUserMedia fail with the same error a real "Don't Allow" gives (NotAllowedError).
   {
