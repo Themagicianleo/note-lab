@@ -80,3 +80,26 @@ test('calculated reference: square wave has odd harmonics at 1/n', () => {
   close(h[2].relDb, -9.54, 0.01, '3rd harmonic');
   close(h[4].relDb, -13.98, 0.01, '5th harmonic');
 });
+
+// ---------- 3. Beats ----------
+
+test('beats: 440 and 443 Hz → 3 Hz, period 0.333 s, heard pitch 441.5 Hz', () => {
+  assert.equal(ac.beatFrequency(440, 443), 3);
+  assert.equal(ac.beatFrequency(443, 440), 3);
+  close(ac.beatPeriod(440, 443), 0.3333, 0.0001);
+  assert.equal(ac.averageFrequency(440, 443), 441.5);
+  assert.equal(ac.beatPeriod(440, 440), Infinity); // in tune: no beats
+});
+
+test('sum-to-product identity holds (checked at many times)', () => {
+  for (let t = 0; t < 1; t += 0.0137) {
+    const product = 2 * Math.cos(Math.PI * (440 - 443) * t) * Math.sin(Math.PI * (440 + 443) * t);
+    close(ac.twoToneSum(t, 440, 443), product, 1e-9, `t=${t}`);
+  }
+});
+
+test('envelope is loudest (2) every beat period and silent (0) halfway between', () => {
+  close(ac.beatEnvelope(0, 440, 443), 2, 1e-12);
+  close(ac.beatEnvelope(1 / 3, 440, 443), 2, 1e-9);   // one beat period later
+  close(ac.beatEnvelope(1 / 6, 440, 443), 0, 1e-9);   // half a period: the tones cancel
+});

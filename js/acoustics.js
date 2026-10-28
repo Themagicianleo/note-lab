@@ -120,3 +120,24 @@ export function referenceHarmonics(key, f0, count = 10) {
     return { n, expectedHz: n * f0, hz: n * f0, found: a > 0, relDb: a > 0 ? relativeDb(a, loudest) : null, centsOff: 0 };
   });
 }
+
+// ============================================================
+// 3. Beats
+// ============================================================
+// Two tones played together:
+//   sin(2π f₁ t) + sin(2π f₂ t) = 2 · cos(π (f₁ − f₂) t) · sin(π (f₁ + f₂) t)
+// (the trigonometric sum-to-product identity). So you hear a tone at the
+// average frequency (f₁ + f₂)/2 whose loudness swells and fades. The
+// loudness peaks whenever |cos(…)| = 1, which happens |f₁ − f₂| times a second:
+//   beat frequency  f_beat = |f₁ − f₂|      (Hz)
+//   beat period     T_beat = 1 / f_beat     (s)
+// Example: f₁ = 440 Hz, f₂ = 443 Hz → f_beat = 3 Hz, T_beat = 0.333 s, heard pitch 441.5 Hz.
+
+export const beatFrequency = (f1, f2) => Math.abs(f1 - f2);
+export const beatPeriod = (f1, f2) => (f1 === f2 ? Infinity : 1 / Math.abs(f1 - f2));
+export const averageFrequency = (f1, f2) => (f1 + f2) / 2;
+
+// The two tones added together (each with amplitude 1), at time t (s).
+export const twoToneSum = (t, f1, f2) => Math.sin(2 * Math.PI * f1 * t) + Math.sin(2 * Math.PI * f2 * t);
+// Its envelope (the swelling and fading outline): |2 · cos(π (f₁ − f₂) t)|
+export const beatEnvelope = (t, f1, f2) => Math.abs(2 * Math.cos(Math.PI * (f1 - f2) * t));
