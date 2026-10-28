@@ -499,6 +499,70 @@ f_beat = |f₁ − f₂|        T_beat = 1 / f_beat</pre>
           </div>
         </details>
       </div>
+
+      <!-- 5. Pipes and strings -->
+      <div id="lab-pipes" class="panel" hidden>
+        <div class="seg ear-seg" role="group" aria-label="What to calculate">
+          <button type="button" id="pipe-kind-open" aria-pressed="true">Open pipe</button>
+          <button type="button" id="pipe-kind-closed" aria-pressed="false">Closed pipe</button>
+          <button type="button" id="pipe-kind-string" aria-pressed="false">String</button>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            <span class="pill tag-model">Calculated</span>
+            <div id="pipe-inputs" class="form-grid">
+              <label class="field"><span class="field-title">Length L (m)</span><input id="pipe-length" class="input" type="number" inputmode="decimal" step="0.001" min="0" value="0.5"></label>
+              <label class="field"><span class="field-title">Air temperature (°C)</span><input id="pipe-temperature" class="input" type="number" inputmode="decimal" step="0.5" value="20"></label>
+              <label class="check"><input id="pipe-end-correction" type="checkbox"> Add end correction (needs the inner diameter)</label>
+              <label class="field"><span class="field-title">Inner diameter (mm)</span><input id="pipe-diameter" class="input" type="number" inputmode="decimal" step="0.1" min="0" placeholder="e.g. 20"></label>
+            </div>
+            <div id="string-inputs" class="form-grid" hidden>
+              <label class="field"><span class="field-title">Vibrating length L (m)</span><input id="string-length" class="input" type="number" inputmode="decimal" step="0.001" min="0" value="0.65"></label>
+              <label class="field"><span class="field-title">Tension T (N)</span><input id="string-tension" class="input" type="number" inputmode="decimal" step="0.1" min="0" value="70"></label>
+              <label class="field"><span class="field-title">Mass per length μ (kg/m)</span><input id="string-mu" class="input" type="number" inputmode="decimal" step="0.00001" min="0" value="0.0012"></label>
+              <p class="small muted">Don't know μ? String makers often publish it (sometimes as "unit weight"). Or work it out from the diameter and the material's density, which you look up:</p>
+              <label class="field"><span class="field-title">Diameter d (mm)</span><input id="string-diameter" class="input" type="number" inputmode="decimal" step="0.01" min="0" placeholder="e.g. 0.43"></label>
+              <label class="field"><span class="field-title">Material density ρ (kg/m³)</span><input id="string-density" class="input" type="number" inputmode="decimal" step="1" min="0" placeholder="from your source"></label>
+              <button id="string-mu-from-d" type="button" class="btn btn-small">Work out μ = ρ·π·(d/2)²</button>
+            </div>
+            <p id="pipe-error" class="banner banner-danger small" role="alert" hidden></p>
+            <p id="pipe-working" class="small lab-readout working"></p>
+            <div class="table-wrap"><table id="pipe-table" class="stats"></table></div>
+            <div class="btn-row"><button id="pipe-play-all" type="button" class="btn btn-small">Play all, low to high</button></div>
+            <canvas id="pipe-canvas" class="lab-canvas pipe-canvas" aria-label="Standing wave shape of the selected mode"></canvas>
+            <p id="pipe-shape-label" class="small muted"></p>
+          </div>
+        </div>
+        <details class="card" open>
+          <summary>What am I looking at?</summary>
+          <div class="card-body small">
+            <p>A pipe or a string only "likes" to vibrate at certain frequencies, its <strong>resonances</strong>. They're the frequencies where a wave fits neatly between the ends and reflects back on itself, making a <strong>standing wave</strong>. The drawing shows one: the two curves are the extremes it swings between.</p>
+            <p><strong>Open pipe</strong> (open at both ends, like a flute): the air moves freely at both ends, so the resonances are <em>all</em> whole-number multiples: 1×, 2×, 3×… <strong>Closed pipe</strong> (closed at one end, like a stopped organ pipe or roughly a clarinet): the air can't move at the closed end, so only <em>odd</em> multiples fit (1×, 3×, 5×…), and the lowest note is an octave below an open pipe of the same length. <strong>String:</strong> both ends are fixed, so again all multiples, and the speed of the wave depends on tension and weight, not on air temperature.</p>
+            <p><strong>Temperature matters for pipes:</strong> sound travels faster in warm air, so a pipe's notes go up when it warms up (about 3 cents per °C near room temperature). <strong>Try:</strong> a 0.5 m open pipe at 20 °C, then change to 30 °C.</p>
+            <p>All values are <strong>calculated</strong> from ideal models; press <em>Play</em> to hear each one (pure tones). Real instruments differ: their bore isn't a perfect cylinder, tone holes and the mouthpiece change things, and the end correction is only approximate. Use the "compare with reality" page to see how close a real tube or string gets.</p>
+          </div>
+        </details>
+        <details class="card formula-card">
+          <summary>Formulas: speed of sound, pipes and strings</summary>
+          <div class="card-body small">
+            <pre class="formula">c = 331.3 × √(1 + T/273.15)          speed of sound in dry air (m/s)
+open pipe:   f_n = n × c / (2 × L)          n = 1, 2, 3, …
+closed pipe: f_n = (2n − 1) × c / (4 × L)   n = 1, 2, 3, …
+end correction (optional): ΔL ≈ 0.6133 × r per open end
+string:      v = √(T / μ),   f_n = n × v / (2 × L)
+μ from diameter: μ = ρ × π × (d/2)²</pre>
+            <ul>
+              <li><strong>c</strong>: speed of sound (m/s); <strong>T</strong> in the first line: air temperature (°C)</li>
+              <li><strong>L</strong>: length (m); <strong>n</strong>: mode number; <strong>f_n</strong>: resonant frequency (Hz)</li>
+              <li><strong>r</strong>: inner radius of the pipe (m); <strong>ΔL</strong>: extra effective length (m)</li>
+              <li><strong>T</strong> in the string line: tension (N); <strong>μ</strong>: mass per length (kg/m); <strong>v</strong>: wave speed on the string (m/s)</li>
+              <li><strong>ρ</strong>: density of the string material (kg/m³), which you provide; <strong>d</strong>: diameter (m)</li>
+            </ul>
+            <p><strong>Worked examples:</strong> 20 °C → c = 331.3 × √(1 + 20/273.15) = 343.2 m/s. Open pipe, L = 0.5 m: f₁ = 343.2 / 1.0 = 343.2 Hz. Closed pipe, L = 0.5 m: f₁ = 343.2 / 2.0 = 171.6 Hz, then 514.8 Hz. String, L = 0.65 m, T = 70 N, μ = 0.0012 kg/m: v = √(70/0.0012) = 241.5 m/s, f₁ = 241.5 / 1.3 = 185.8 Hz.</p>
+            <p><strong>Sources:</strong> speed of sound in an ideal gas, c = √(γRT/M), with γ = 1.4, R = 8.314 J/(mol·K), M = 0.028964 kg/mol for dry air (any acoustics textbook, e.g. Kinsler et al., <em>Fundamentals of Acoustics</em>). Pipe resonances: standing waves in a tube with pressure-release (open) or rigid (closed) ends, same texts. End correction for an unflanged pipe: Levine &amp; Schwinger (1948), 0.6133 × r. String: Mersenne's laws / the wave equation for a stretched string (Halliday, Resnick &amp; Walker; Rossing, <em>The Science of Sound</em>).</p>
+          </div>
+        </details>
+      </div>
     </section>
 
     <!-- ================= SETTINGS ================= -->
