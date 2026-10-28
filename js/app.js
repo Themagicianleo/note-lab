@@ -15,7 +15,7 @@
 // saved on this device.
 // ------------------------------------------------------------
 
-import { startMicrophone, checkMicrophoneSupport } from './audio-input.js';
+import { startMicrophone, checkMicrophoneSupport, micProcessingText } from './audio-input.js';
 import { PitchTracker } from './pitch-tracker.js';
 import { SMOOTHING_LEVELS, DEFAULT_SMOOTHING_LEVEL } from './smoothing.js';
 import { frequencyToNote } from './pitch-math.js';
@@ -36,6 +36,8 @@ import { createSettingsView } from './settings-view.js';
 import { SETTINGS_KEY, DEFAULT_SETTINGS, validateSettings, voiceRange } from './settings.js';
 import { loadJSON, saveJSON, removeKey } from './storage.js';
 import { registerServiceWorker } from './register-sw.js';
+import { createLab } from './lab/lab.js';
+import { createWaveformTool } from './lab/waveform-view.js';
 
 // ---------- settings ----------
 
@@ -58,6 +60,10 @@ function changeSettings(changes) {
 
 // The detection settings for the current mode.
 function currentConfig() {
+  if (activeTab === 'lab') {
+    // Lab tools do their own analysis; they only tell us how many samples they need.
+    return { minHz: 50, maxHz: 1500, windowSize: lab.windowSize(), gateDb: settings.tunerGateDb, smoothingLevel: DEFAULT_SMOOTHING_LEVEL };
+  }
   if (activeTab === 'spectrum') {
     return { minHz: 20, maxHz: 20000, windowSize: SPECTRUM_WINDOW, gateDb: settings.tunerGateDb, smoothingLevel: DEFAULT_SMOOTHING_LEVEL };
   }
@@ -93,8 +99,10 @@ const listeningBar = byId('listening-bar');
 const message = byId('message');
 const tabList = byId('tabbar');
 const settingsPanel = byId('settings');
-const tabs = { tuner: byId('tab-tuner'), voice: byId('tab-voice'), spectrum: byId('tab-spectrum'), ear: byId('tab-ear') };
-const panels = { tuner: byId('tuner'), voice: byId('voice'), spectrum: byId('spectrum'), ear: byId('ear') };
+const tabs = { tuner: byId('tab-tuner'), voice: byId('tab-voice'), spectrum: byId('tab-spectrum'), ear: byId('tab-ear'), lab: byId('tab-lab') };
+const panels = { tuner: byId('tuner'), voice: byId('voice'), spectrum: byId('spectrum'), ear: byId('ear'), lab: byId('lab') };
+// Tabs that work without the microphone (they ask for it themselves when needed).
+const WORKS_WITHOUT_MIC = ['ear', 'lab'];
 
 const tunerView = createTunerView();
 const levelMeter = createLevelMeter();
@@ -145,6 +153,16 @@ function showExercise(name) {
   singBack.refresh();
 }
 for (const key of Object.keys(exercises)) byId(`ear-mode-${key}`).addEventListener('click', () => showExercise(key));
+
+// ---------- acoustics lab ----------
+const lab = createLab({
+  tools: [
+    createWaveformTool({ getA4: () => settings.a4 }),
+  ],
+  isListening: () => Boolean(mic),
+  startListening: () => startListening(),
+  onToolChange: () => showTab('lab'),
+});
 
 // ---------- settings page ----------
 
@@ -234,7 +252,7 @@ const PAGE_TITLES = {
   settings: ['Settings', 'Saved on this device only'],
 };
 function showTitle(key) {
-  const [title, subtitle] = PAGE_TITLES[key];
+  const [title, subtitle] = key === 'lab' ? lab.title() : PAGE_TITLES[key];
   byId('page-title').textContent = title;
   byId('page-subtitle').textContent = subtitle;
 }
@@ -246,14 +264,15 @@ function showTab(name) {
   activeTab = name;
   for (const key of Object.keys(tabs)) {
     tabs[key].setAttribute('aria-selected', String(key === name));
-    panels[key].hidden = settingsOpen || key !== name || (!mic && key !== 'ear');
+    panels[key].hidden = settingsOpen || key !== name || (!mic && !WORKS_WITHOUT_MIC.includes(key));
   }
   tabList.hidden = settingsOpen;
   settingsPanel.hidden = !settingsOpen;
-  startPanel.hidden = settingsOpen || Boolean(mic) || name === 'ear';
+  startPanel.hidden = settingsOpen || Boolean(mic) || WORKS_WITHOUT_MIC.includes(name);
   listeningBar.hidden = settingsOpen || !mic;
   showTitle(settingsOpen ? 'settings' : name);
   singBack.refresh();
+  lab.refresh();
   applyConfig();
 }
 // Tapping a tab starts at the top of that page, like iPhone apps.
@@ -294,6 +313,8 @@ async function startListening() {
     return;
   }
 
+  // What the browser says it did with our "turn off processing" requests.
+  byId('mic-processing').textContent = `Microphone processing, as reported by this browser: ${micProcessingText(mic.track)}.`;
   showTab(activeTab);
   window.scrollTo({ top: 0 }); // the start card is gone; show the new page from the top
   frameRequest = requestAnimationFrame(tick);
@@ -323,6 +344,13 @@ function tick(now) {
 
   // 1. Copy the latest samples from the microphone.
   mic.analyser.getFloatTimeDomainData(buffer);
+
+  // Lab tools analyse the samples themselves.
+  if (activeTab === 'lab') {
+    levelMeter.update(levelDb(buffer.subarray(buffer.length - 2048)));
+    lab.onSamples(buffer, mic.sampleRate, now);
+    return;
+  }
 
   // Spectrum mode: no pitch detection, just the FFT.
   if (activeTab === 'spectrum') {

@@ -139,3 +139,16 @@ details.card[open] > summary { padding-bottom: 0; }
 .guide .card h2 { font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
 .guide .card ol, .guide .card ul { padding-left: 22px; }
 .guide .card li + li { margin-top: 4px; }
+
+/* ---------- Acoustics Lab ---------- */
+.lab-grid { display: flex; flex-direction: column; gap: 10px; }
+.lab-tile { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 16px; border: 0; text-align: left; color: var(--fg); }
+.lab-tile-number { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--blue-soft); color: var(--blue); font-weight: 700; font-size: 15px; }
+.lab-tile-text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.lab-tile .pill { flex: none; }
+.lab-toolbar { display: flex; }
+.tag-measured { color: var(--blue); }
+.tag-model { color: var(--purple); }
+.lab-canvas { display: block; width: 100%; height: 240px; border-radius: 16px; background: var(--fill); touch-action: none; }
+.formula-card .formula { white-space: pre-wrap; }
+.lab-readout { font-variant-numeric: tabular-nums; }

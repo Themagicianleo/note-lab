@@ -288,6 +288,70 @@
       </div>
     </section>
 
+    <!-- ================= ACOUSTICS LAB ================= -->
+    <section id="lab" class="panel" role="tabpanel" aria-labelledby="tab-lab" hidden>
+      <!-- Menu of tools (tiles are added by js/lab/lab.js) -->
+      <div id="lab-home" class="panel">
+        <p class="banner banner-info small">Tools that show the physics of sound. Each one says what is <strong>measured</strong> by your microphone and what is <strong>calculated</strong> from a model. Microphone levels are relative (dBFS), never a true sound pressure level, because phone and laptop mics aren't calibrated.</p>
+        <div id="lab-grid" class="lab-grid"></div>
+      </div>
+
+      <div id="lab-toolbar" class="lab-toolbar" hidden>
+        <button id="lab-back" type="button" class="capsule">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+          Lab
+        </button>
+      </div>
+
+      <div id="lab-need-mic" class="card" hidden>
+        <div class="card-body">
+          <p>This tool listens to the microphone.</p>
+          <button id="lab-start-mic" type="button" class="btn btn-primary">Start microphone</button>
+        </div>
+      </div>
+
+      <!-- 1. Waveform -->
+      <div id="lab-waveform" class="panel" hidden>
+        <div class="card">
+          <div class="card-body">
+            <span class="pill tag-measured">Measured</span>
+            <canvas id="wave-canvas" class="lab-canvas" aria-label="Waveform: the microphone signal over time"></canvas>
+            <p id="wave-period" class="small"></p>
+            <p id="wave-level" class="small muted"></p>
+            <label class="field"><span class="label">Time zoom: <span id="wave-span-value"></span></span>
+              <input id="wave-span" type="range" min="0" max="6" step="1" value="2"></label>
+            <label class="field"><span class="label">Height zoom: <span id="wave-gain-value"></span></span>
+              <input id="wave-gain" type="range" min="0" max="4" step="1" value="0"></label>
+            <div class="btn-row">
+              <button id="wave-freeze" type="button" class="btn btn-small" aria-pressed="false">Freeze</button>
+              <label class="check"><input id="wave-trigger" type="checkbox" checked> Steady display (trigger on rising zero crossing)</label>
+            </div>
+          </div>
+        </div>
+        <details class="card" open>
+          <summary>What am I looking at?</summary>
+          <div class="card-body small">
+            <p>Sound is tiny, fast changes in air pressure. The microphone turns them into a voltage, and this line shows that signal <strong>over time</strong>: up = pressure a little above normal, down = a little below. Left to right is time; the labels show milliseconds (ms, thousandths of a second).</p>
+            <p><strong>Try:</strong> whistle or hum a steady note and you'll see a shape that repeats. One repeat is a <strong>period (T)</strong>. Higher notes have shorter periods, so more repeats fit on screen. Louder sounds make a taller wave. A pure tone looks like a smooth sine curve; a voice or instrument has a more complicated shape because it contains <strong>harmonics</strong> (see the Harmonics tool).</p>
+            <p><strong>Zoom:</strong> "time zoom" changes how many milliseconds fit across the screen. "Height zoom" only magnifies the picture, not the sound. <strong>Steady display</strong> starts each picture where the wave crosses the centre line going up, which is what real oscilloscopes call <em>triggering</em>.</p>
+            <p><strong>Measured, but relative:</strong> the height is a fraction of the largest signal the input can take ("full scale"), not a pressure in pascals, because phone and laptop mics aren't calibrated. A wave that flattens at the top and bottom is <em>clipping</em>: too loud for the input.</p>
+          </div>
+        </details>
+        <details class="card formula-card">
+          <summary>Formula: frequency from the period</summary>
+          <div class="card-body small">
+            <pre class="formula">f = 1 / T</pre>
+            <ul>
+              <li><strong>f</strong>: frequency, in hertz (Hz) = cycles per second</li>
+              <li><strong>T</strong>: period, the time for one cycle, in seconds (s)</li>
+            </ul>
+            <p><strong>Worked example:</strong> T = 2.2727 ms = 0.0022727 s, so f = 1 / 0.0022727 ≈ 440 Hz (A4).</p>
+            <p><strong>Source:</strong> the definition of frequency (any physics textbook, e.g. the waves chapter of Halliday, Resnick &amp; Walker, <em>Fundamentals of Physics</em>). The period shown is measured by the app's YIN pitch detector, and f is then calculated as 1/T.</p>
+          </div>
+        </details>
+      </div>
+    </section>
+
     <!-- ================= SETTINGS ================= -->
     <section id="settings" class="panel" aria-label="Settings" hidden>
       <fieldset class="card options">
@@ -370,6 +434,7 @@
           <button id="stop-button" type="button" class="btn btn-danger">Stop listening</button>
         </div>
         <p id="tech-info" class="small muted tech-info"></p>
+        <p id="mic-processing" class="small muted"></p>
       </div>
     </section>
 
@@ -415,6 +480,12 @@
         <path d="M9 17.5V6l10-2v11.5"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="15.5" r="2.5"/>
       </svg>
       <span>Train</span>
+    </button>
+    <button type="button" role="tab" id="tab-lab" aria-selected="false" aria-controls="lab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M9.5 3.5h5M10.5 3.5v5.2L5.2 18.2A1.6 1.6 0 0 0 6.6 20.5h10.8a1.6 1.6 0 0 0 1.4-2.3L13.5 8.7V3.5"/><path d="M7.6 14.5c1.5-1 3-1 4.4 0s2.9 1 4.4 0"/>
+      </svg>
+      <span>Lab</span>
     </button>
   </nav>
 </body>
