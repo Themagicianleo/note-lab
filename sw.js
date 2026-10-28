@@ -9,13 +9,14 @@
 // tests/service-worker.test.js checks that FILES lists every app file.
 // ------------------------------------------------------------
 
-const VERSION = 'note-lab-v1';
+const VERSION = 'note-lab-v2'; // v2: Liquid Glass design
 
 const FILES = [
   './',
   'index.html',
   'how-it-works.html',
   'manifest.json',
+  'css/glass.css',
   'css/style.css',
   'icons/icon.svg',
   'icons/icon-192.png',

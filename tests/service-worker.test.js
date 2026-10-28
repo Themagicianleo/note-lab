@@ -11,7 +11,8 @@ const listed = [...sw.match(/const FILES = \[([\s\S]*?)\];/)[1].matchAll(/'([^']
 
 test('every app file is in the offline list', () => {
   const appFiles = [
-    'index.html', 'how-it-works.html', 'manifest.json', 'css/style.css',
+    'index.html', 'how-it-works.html', 'manifest.json',
+    ...readdirSync(`${root}css`).filter((f) => f.endsWith('.css')).map((f) => `css/${f}`),
     ...readdirSync(`${root}js`).filter((f) => f.endsWith('.js')).map((f) => `js/${f}`),
     ...readdirSync(`${root}icons`).map((f) => `icons/${f}`),
   ];
