@@ -175,3 +175,42 @@ test('mode shapes: open ends are antinodes, closed end and string ends are nodes
   close(ac.modeShape('closed', 1, 0), 0, 1e-12); close(Math.abs(ac.modeShape('closed', 1, 1)), 1, 1e-12);
   close(ac.modeShape('string', 3, 0), 0, 1e-12); close(ac.modeShape('string', 3, 1), 0, 1e-12);
 });
+
+// ---------- 6. Room modes ----------
+// Room 5 m × 4 m × 2.5 m at 20 °C, c = 343.21 m/s.
+const ROOM = [5, 4, 2.5];
+const C20 = ac.speedOfSound(20);
+
+test('axial modes of a 5 × 4 × 2.5 m room', () => {
+  const m = ac.axialModes(C20, ROOM, 100);
+  const pick = (d, n) => m.find((x) => x.dimension === d && x.n === n).hz;
+  close(pick('length', 1), 34.32, 0.01);   // 343.21 / (2 × 5)
+  close(pick('length', 2), 68.64, 0.01);
+  close(pick('width', 1), 42.90, 0.01);    // 343.21 / (2 × 4)
+  close(pick('height', 1), 68.64, 0.01);   // 343.21 / (2 × 2.5)
+  assert.ok(m.every((x, i) => i === 0 || x.hz >= m[i - 1].hz), 'sorted low to high');
+  assert.ok(m.every((x) => x.hz <= 100), 'none above the limit');
+});
+
+test('Rayleigh: tangential (1,1,0) mode = 54.94 Hz; axial matches n·c/2L', () => {
+  // (343.21/2) × √((1/5)² + (1/4)²) = 171.6 × 0.32016 = 54.94
+  close(ac.roomMode(C20, ROOM, [1, 1, 0]), 54.94, 0.01);
+  close(ac.roomMode(C20, ROOM, [0, 0, 1]), C20 / (2 * 2.5), 1e-9);
+  const all = ac.allRoomModes(C20, ROOM, 60);
+  assert.deepEqual(all.map((x) => x.type), ['axial', 'axial', 'tangential']); // 34.3 (L1), 42.9 (W1), 54.9 (1,1,0)
+});
+
+test('pressure nulls of axial modes', () => {
+  assert.deepEqual(ac.axialNullPositions(1, 5), [2.5]);         // the middle of the room
+  assert.deepEqual(ac.axialNullPositions(2, 5), [1.25, 3.75]);  // a quarter of the way in from each wall
+});
+
+test('coincident modes: 2nd length mode and 1st height mode both 68.6 Hz', () => {
+  const pairs = ac.coincidentModes(ac.axialModes(C20, ROOM, 100));
+  assert.equal(pairs.length, 1);
+  assert.deepEqual(pairs[0].map((x) => `${x.dimension}${x.n}`).sort(), ['height1', 'length2']);
+});
+
+test('Schroeder frequency: T60 0.5 s, V 50 m³ → 200 Hz', () => {
+  close(ac.schroederFrequency(0.5, 50), 200, 1e-9);
+});

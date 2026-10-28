@@ -228,3 +228,83 @@ export function modeShape(kind, n, x) {
   if (kind === 'closed') return Math.sin(((2 * n - 1) * Math.PI * x) / 2);
   return Math.sin(n * Math.PI * x);
 }
+
+// ============================================================
+// 6. Room modes (rectangular room, rigid walls)
+// ============================================================
+// Rayleigh's formula for the resonances of a rectangular room with perfectly
+// rigid (fully reflecting) walls:
+//   f = (c / 2) · √( (n_x / L)² + (n_y / W)² + (n_z / H)² )
+//   L, W, H = room length, width, height (m); n_x, n_y, n_z = 0, 1, 2, … (not all 0)
+//   c = speed of sound (m/s)
+// Axial modes (only one n is non-zero: sound bouncing between one pair of
+// opposite walls) are usually the strongest:
+//   f = n · c / (2 · L)       (and the same with W or H)
+// Tangential modes have two non-zero n, oblique modes three.
+// Example: 5 m long room at 20 °C → 343.2 / 10 = 34.3 Hz, then 68.6, 102.96 Hz …
+//
+// Where an axial mode is quiet: its pressure follows cos(n·π·x/L) along that
+// dimension, loudest at the walls, with nulls (silent lines) at
+//   x = (2k − 1) · L / (2n),   k = 1 … n
+// Example: the 1st length mode of a 5 m room is silent at 2.5 m (the middle).
+//
+// Schroeder frequency: above roughly this frequency, modes overlap so densely
+// that the room behaves "statistically" (no single modes stand out):
+//   f_S ≈ 2000 · √(T60 / V)      T60 = reverberation time (s), V = volume (m³)
+// (Schroeder, 1962; see Kuttruff, "Room Acoustics".) Example: T60 = 0.5 s, V = 50 m³ → 200 Hz.
+
+const DIMENSIONS = ['length', 'width', 'height'];
+
+export function roomMode(c, [L, W, H], [nx, ny, nz]) {
+  return (c / 2) * Math.sqrt((nx / L) ** 2 + (ny / W) ** 2 + (nz / H) ** 2);
+}
+
+// All axial modes up to maxHz, lowest first: [{ dimension, n, hz }]
+export function axialModes(c, [L, W, H], maxHz) {
+  const modes = [];
+  [L, W, H].forEach((size, d) => {
+    for (let n = 1; (n * c) / (2 * size) <= maxHz; n++) modes.push({ dimension: DIMENSIONS[d], n, hz: (n * c) / (2 * size) });
+  });
+  return modes.sort((a, b) => a.hz - b.hz);
+}
+
+// All modes (axial, tangential, oblique) up to maxHz, lowest first:
+// [{ indices: [nx, ny, nz], type, hz }]
+export function allRoomModes(c, dims, maxHz) {
+  const [L, W, H] = dims;
+  const most = (size) => Math.floor((2 * size * maxHz) / c);
+  const modes = [];
+  for (let nx = 0; nx <= most(L); nx++) {
+    for (let ny = 0; ny <= most(W); ny++) {
+      for (let nz = 0; nz <= most(H); nz++) {
+        const nonZero = (nx > 0) + (ny > 0) + (nz > 0);
+        if (!nonZero) continue;
+        const hz = roomMode(c, dims, [nx, ny, nz]);
+        if (hz <= maxHz) modes.push({ indices: [nx, ny, nz], type: ['', 'axial', 'tangential', 'oblique'][nonZero], hz });
+      }
+    }
+  }
+  return modes.sort((a, b) => a.hz - b.hz);
+}
+
+// Positions (m from one wall) where an axial mode's pressure is zero.
+export function axialNullPositions(n, size) {
+  return Array.from({ length: n }, (_, i) => ((2 * (i + 1) - 1) * size) / (2 * n));
+}
+
+// Axial modes from DIFFERENT dimensions that land close together, which
+// tends to make that frequency extra strong. "Close" = within `tolerance` as a
+// fraction (0.03 = 3%, about half a semitone). This threshold is this app's
+// simple rule of thumb for spotting clusters, not a published standard.
+export function coincidentModes(modes, tolerance = 0.03) {
+  const pairs = [];
+  for (let i = 0; i < modes.length; i++) {
+    for (let j = i + 1; j < modes.length; j++) {
+      const a = modes[i], b = modes[j];
+      if (a.dimension !== b.dimension && Math.abs(a.hz - b.hz) / Math.min(a.hz, b.hz) <= tolerance) pairs.push([a, b]);
+    }
+  }
+  return pairs;
+}
+
+export const schroederFrequency = (rt60, volume) => 2000 * Math.sqrt(rt60 / volume);
