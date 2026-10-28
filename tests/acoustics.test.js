@@ -247,3 +247,34 @@ test('RT60 by band: bands with a missing coefficient are marked, not guessed', (
   close(r[0].sabine, 0.8051, 0.0001);
   assert.equal(r[1].missing, true);
 });
+
+// ---------- 8. Compare with reality ----------
+
+test('compare: predicted 34.3 Hz, measured 36.0 Hz → +1.7 Hz, +4.96 %, +83.7 cents', () => {
+  const r = ac.compareValues(34.3, 36.0, 'Hz');
+  close(r.difference, 1.7, 1e-9);
+  close(r.percent, 4.956, 0.001);
+  close(r.cents, 83.74, 0.01); // 1200 × log2(36.0/34.3) = 1200 × 0.069787
+});
+
+test('compare: seconds have no cents', () => {
+  const r = ac.compareValues(0.8, 0.6, 's');
+  close(r.percent, -25, 1e-9);
+  assert.equal(r.cents, null);
+});
+
+test('summary: average size of the differences per unit', () => {
+  const s = ac.summariseComparisons([
+    { predicted: 100, measured: 110, unit: 'Hz' },  // +10 %
+    { predicted: 100, measured: 95, unit: 'Hz' },   // −5 %
+    { predicted: 0.5, measured: 0.6, unit: 's' },   // +20 %
+  ]);
+  assert.equal(s.Hz.count, 2);
+  close(s.Hz.meanAbsPercent, 7.5, 1e-9);
+  close(s.s.meanAbsPercent, 20, 1e-9);
+  assert.equal(s.s.meanAbsCents, null);
+});
+
+test('CSV: quotes and commas are escaped', () => {
+  assert.equal(ac.toCsv([['a', 'b, c'], ['say "hi"', 3]]), '"a","b, c"\r\n"say ""hi""","3"\r\n');
+});

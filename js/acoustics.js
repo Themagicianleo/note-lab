@@ -363,3 +363,44 @@ export function rt60ByBand(volume, surfaces, c) {
     return { band, A, meanAlpha, sabine: sabineRT60(volume, A, c), eyring: eyringRT60(volume, S, meanAlpha, c), missing: false };
   });
 }
+
+// ============================================================
+// 8. Comparing a model with a measurement
+// ============================================================
+//   difference          d = measured − predicted                 (same unit)
+//   percentage error    e = 100 × (measured − predicted) / predicted   (%)
+//   for frequencies, also the musical distance in cents:
+//                       cents = 1200 × log2(measured / predicted)
+// Example: predicted 34.3 Hz, measured 36.0 Hz → d = +1.7 Hz, e = +4.96 %,
+// cents = 1200 × log2(36.0 / 34.3) = +83.7 cents (a bit less than a semitone).
+
+export function compareValues(predicted, measured, unit) {
+  const difference = measured - predicted;
+  const percent = (100 * difference) / predicted;
+  const cents = unit === 'Hz' && predicted > 0 && measured > 0 ? 1200 * Math.log2(measured / predicted) : null;
+  return { difference, percent, cents };
+}
+
+// Average size of the differences, per unit (Hz, s, …), ignoring the sign:
+// how close the model is on average. Returns { [unit]: { count, meanAbsPercent, meanAbsCents } }.
+export function summariseComparisons(entries) {
+  const byUnit = {};
+  for (const e of entries) {
+    const r = compareValues(e.predicted, e.measured, e.unit);
+    const u = (byUnit[e.unit] ||= { count: 0, sumPercent: 0, sumCents: 0, centsCount: 0 });
+    u.count++;
+    u.sumPercent += Math.abs(r.percent);
+    if (r.cents !== null) { u.sumCents += Math.abs(r.cents); u.centsCount++; }
+  }
+  return Object.fromEntries(Object.entries(byUnit).map(([unit, u]) => [unit, {
+    count: u.count,
+    meanAbsPercent: u.sumPercent / u.count,
+    meanAbsCents: u.centsCount ? u.sumCents / u.centsCount : null,
+  }]));
+}
+
+// Rows → CSV text (quotes around every field, doubled quotes inside), for a spreadsheet.
+export function toCsv(rows) {
+  const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  return rows.map((row) => row.map(cell).join(',')).join('\r\n') + '\r\n';
+}
