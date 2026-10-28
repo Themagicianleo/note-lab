@@ -21,6 +21,9 @@ export function createLab({ tools, isListening, startListening, onToolChange }) 
     startMic: byId('lab-start-mic'),
   };
   const byIdTool = Object.fromEntries(tools.map((t) => [t.id, t]));
+  // A tool that changes how many samples it needs (e.g. the spectrogram's
+  // window size) calls onWindowChange, so the microphone gets reconfigured.
+  for (const t of tools) if ('onWindowChange' in t) t.onWindowChange = onToolChange;
   let current = null;
 
   // The menu: one tile per tool, saying whether it measures or calculates.

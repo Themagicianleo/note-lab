@@ -454,6 +454,51 @@ f_beat = |f₁ − f₂|        T_beat = 1 / f_beat</pre>
           </div>
         </details>
       </div>
+
+      <!-- 4. Spectrogram -->
+      <div id="lab-spectrogram" class="panel" hidden>
+        <div class="card">
+          <div class="card-body">
+            <span class="pill tag-measured">Measured</span>
+            <canvas id="sgram-canvas" class="lab-canvas sgram-canvas" aria-label="Spectrogram: frequency against time, loudness as colour"></canvas>
+            <canvas id="sgram-legend" class="sgram-legend" aria-label="Colour scale from quiet to loud"></canvas>
+            <p id="sgram-resolution" class="small lab-readout"></p>
+            <label class="field"><span class="field-title">Window size: <span id="sgram-window-value"></span></span>
+              <input id="sgram-window" type="range" min="0" max="4" step="1" value="2"></label>
+            <div class="slider-ends small muted" aria-hidden="true"><span>Short: sharp in time</span><span>Long: sharp in frequency</span></div>
+            <div class="btn-row">
+              <label class="field inline"><span class="field-title">Scale</span>
+                <select id="sgram-scale" class="input"><option value="log" selected>Log (like music)</option><option value="linear">Linear (like the FFT)</option></select></label>
+              <label class="field inline"><span class="field-title">Up to</span>
+                <select id="sgram-max" class="input"><option value="2000">2 kHz</option><option value="5000" selected>5 kHz</option><option value="10000">10 kHz</option><option value="20000">20 kHz</option></select></label>
+            </div>
+            <div class="btn-row"><button id="sgram-freeze" type="button" class="btn btn-small" aria-pressed="false">Freeze</button></div>
+          </div>
+        </div>
+        <details class="card" open>
+          <summary>What am I looking at?</summary>
+          <div class="card-body small">
+            <p>A <strong>spectrogram</strong> is a picture of sound over time. <strong>Across</strong> is time (newest on the right), <strong>up</strong> is frequency (low at the bottom), and <strong>colour</strong> is loudness: dark = quiet, bright yellow = loud.</p>
+            <p><strong>Try:</strong> sing a slow scale and watch a staircase of lines. The bottom line is your fundamental, and the lines above it are its harmonics, at 2×, 3×… Whistle a slide and you'll draw a curve. Say "sss" and you'll see a bright smear high up, with no lines: noise has no harmonics. Clap: a thin vertical stripe, because a short click contains many frequencies at once.</p>
+            <p><strong>The trade-off (move the window slider):</strong> each column is an FFT of the last <em>N</em> samples. A <strong>long window</strong> (8192) separates frequencies finely (Δf ≈ 6 Hz) but blurs time: a clap becomes a wide smear. A <strong>short window</strong> (512) shows timing sharply (≈ 11 ms) but frequencies become thick blurry bands (Δf ≈ 94 Hz). You can't have both at once: Δt × Δf = 1 always.</p>
+            <p><strong>Measured, but relative:</strong> colours show dBFS (relative to the input's maximum), not true sound pressure. Phone mics pick up very low and very high frequencies less well, so those regions may look darker than the sound really is.</p>
+          </div>
+        </details>
+        <details class="card formula-card">
+          <summary>Formulas: time vs frequency resolution</summary>
+          <div class="card-body small">
+            <pre class="formula">Δt = N / fs        Δf = fs / N        Δt × Δf = 1</pre>
+            <ul>
+              <li><strong>N</strong>: window size, in samples (no unit)</li>
+              <li><strong>fs</strong>: sample rate, in samples per second (Hz), e.g. 48 000</li>
+              <li><strong>Δt</strong>: how long each column's window lasts, in s; <strong>Δf</strong>: spacing between the FFT's frequency bins, in Hz</li>
+            </ul>
+            <p><strong>Worked example:</strong> N = 2048, fs = 48 000 Hz → Δt = 2048 / 48 000 = 0.0427 s (42.7 ms), Δf = 48 000 / 2048 = 23.4 Hz, and 0.0427 × 23.4 = 1.</p>
+            <p><strong>Good to know:</strong> with the Hann window this app uses, two tones need to be about 2 bins apart (≈ 2·Δf) to show as separate lines. New columns arrive about every 17 ms even when the window is longer, so neighbouring columns share most of their sound (they overlap); that's why long windows look smeared sideways.</p>
+            <p><strong>Sources:</strong> the discrete Fourier transform (bin spacing fs/N); the short-time Fourier transform and its time–frequency trade-off (Gabor, 1946), e.g. in Smith, <em>Spectral Audio Signal Processing</em>, or Oppenheim &amp; Schafer, <em>Discrete-Time Signal Processing</em>.</p>
+          </div>
+        </details>
+      </div>
     </section>
 
     <!-- ================= SETTINGS ================= -->

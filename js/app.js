@@ -40,6 +40,7 @@ import { createLab } from './lab/lab.js';
 import { createWaveformTool } from './lab/waveform-view.js';
 import { createHarmonicsTool } from './lab/harmonics-view.js';
 import { createBeatsTool } from './lab/beats-view.js';
+import { createSpectrogramTool } from './lab/spectrogram-view.js';
 
 // ---------- settings ----------
 
@@ -162,6 +163,7 @@ const lab = createLab({
     createWaveformTool({ getA4: () => settings.a4 }),
     createHarmonicsTool({ player, getA4: () => settings.a4 }),
     createBeatsTool({ player, getA4: () => settings.a4 }),
+    createSpectrogramTool(),
   ],
   isListening: () => Boolean(mic),
   startListening: () => startListening(),
