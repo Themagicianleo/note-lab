@@ -162,3 +162,69 @@ export function stftResolution(windowSize, sampleRate) {
   const binHz = sampleRate / windowSize;
   return { windowSeconds, binHz, product: windowSeconds * binHz };
 }
+
+// ============================================================
+// 5. Pipes and strings
+// ============================================================
+// Speed of sound in dry air (ideal gas):
+//   c = √(γ R T_K / M) = 331.3 · √(1 + T / 273.15)       (m/s)
+//   T = air temperature in °C, T_K = T + 273.15 (kelvin), γ = 1.4 (air),
+//   R = 8.314 J/(mol·K), M = 0.028964 kg/mol (dry air) → 331.3 m/s at 0 °C.
+// Example: T = 20 °C → c = 331.3 · √(1 + 20/273.15) = 343.2 m/s.
+// (Humidity makes sound slightly faster, by well under 1% in normal rooms;
+// this formula ignores it.)
+export const SPEED_OF_SOUND_0C = 331.3;
+export const speedOfSound = (temperatureC) => SPEED_OF_SOUND_0C * Math.sqrt(1 + temperatureC / 273.15);
+
+// End correction: the air "sticks out" a little past an open end, so the pipe
+// behaves as if longer. For an unflanged open end (a plain tube end):
+//   ΔL ≈ 0.6133 · r        r = inner radius (m)
+// (Levine & Schwinger, 1948.) Approximate; it also changes slightly with
+// frequency. Example: r = 10 mm → ΔL = 6.1 mm.
+export const END_CORRECTION_FACTOR = 0.6133;
+export const endCorrection = (radius) => END_CORRECTION_FACTOR * radius;
+
+// Pipe open at BOTH ends (flute, open organ pipe): all harmonics.
+//   f_n = n · c / (2 · L_eff),   n = 1, 2, 3, …,   L_eff = L + 2ΔL (two open ends)
+// Example: L = 0.5 m, 20 °C → f₁ = 343.2 / (2 · 0.5) = 343.2 Hz, f₂ = 686.4 Hz.
+export function openPipeModes(length, c, count = 6, deltaL = 0) {
+  const effective = length + 2 * deltaL;
+  return Array.from({ length: count }, (_, i) => ({ n: i + 1, harmonic: i + 1, hz: ((i + 1) * c) / (2 * effective) }));
+}
+
+// Pipe closed at ONE end (clarinet-like, stopped organ pipe): odd harmonics only.
+//   f_n = (2n − 1) · c / (4 · L_eff),   L_eff = L + ΔL (one open end)
+// Example: L = 0.5 m, 20 °C → f₁ = 343.2 / (4 · 0.5) = 171.6 Hz, next 514.8 Hz (3rd harmonic).
+export function closedPipeModes(length, c, count = 6, deltaL = 0) {
+  const effective = length + deltaL;
+  return Array.from({ length: count }, (_, i) => ({ n: i + 1, harmonic: 2 * i + 1, hz: ((2 * i + 1) * c) / (4 * effective) }));
+}
+
+// Stretched string fixed at both ends (Mersenne's laws / wave equation):
+//   wave speed  v = √(T / μ)               (m/s)
+//   f_n = n · v / (2 · L)                  (Hz)
+//   T = tension (N), μ = mass per length (kg/m), L = vibrating length (m)
+// Example: L = 0.65 m, T = 70 N, μ = 0.0012 kg/m → v = √(70/0.0012) = 241.5 m/s, f₁ = 241.5 / 1.3 = 185.8 Hz.
+export const stringWaveSpeed = (tension, massPerLength) => Math.sqrt(tension / massPerLength);
+export function stringModes(length, tension, massPerLength, count = 6) {
+  const v = stringWaveSpeed(tension, massPerLength);
+  return Array.from({ length: count }, (_, i) => ({ n: i + 1, harmonic: i + 1, hz: ((i + 1) * v) / (2 * length) }));
+}
+
+// Mass per length of a solid round string from its diameter and the material
+// density (which YOU provide, e.g. from the maker's data):
+//   μ = ρ · π · (d / 2)²       ρ = density (kg/m³), d = diameter (m)
+// Example: d = 0.43 mm, ρ = 7850 kg/m³ → μ = 7850 · π · (0.000215)² = 0.00114 kg/m.
+// (Wound strings are heavier than this for their diameter.)
+export const massPerLengthFromDiameter = (diameter, density) => density * Math.PI * (diameter / 2) ** 2;
+
+// The standing-wave shape (displacement amplitude, −1…1) at position x
+// (0 = left end, 1 = right end), for drawing:
+//   open pipe:   cos(n π x)             antinodes at both open ends
+//   closed pipe: sin((2n−1) π x / 2)    node at the closed end (x = 0)
+//   string:      sin(n π x)             nodes at both fixed ends
+export function modeShape(kind, n, x) {
+  if (kind === 'open') return Math.cos(n * Math.PI * x);
+  if (kind === 'closed') return Math.sin(((2 * n - 1) * Math.PI * x) / 2);
+  return Math.sin(n * Math.PI * x);
+}

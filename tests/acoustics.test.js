@@ -132,3 +132,46 @@ test('colour map: quiet is dark, loud is bright, brightness always rises', () =>
     previous = now;
   }
 });
+
+// ---------- 5. Pipes and strings ----------
+
+test('speed of sound: 331.3 m/s at 0 °C, 343.2 m/s at 20 °C', () => {
+  close(ac.speedOfSound(0), 331.3, 1e-9);
+  close(ac.speedOfSound(20), 343.21, 0.01); // 331.3 × √(1 + 20/273.15) = 331.3 × 1.035945
+  // The constant follows from √(γRT/M) at 0 °C with γ = 1.4, R = 8.314, M = 0.028964:
+  close(Math.sqrt((1.4 * 8.314 * 273.15) / 0.028964), 331.3, 0.05, 'ideal-gas check');
+});
+
+test('open pipe, 0.5 m, 20 °C: 343.2, 686.4, 1029.6 Hz', () => {
+  const m = ac.openPipeModes(0.5, ac.speedOfSound(20), 3);
+  close(m[0].hz, 343.21, 0.01); close(m[1].hz, 686.42, 0.02); close(m[2].hz, 1029.6, 0.05);
+  assert.deepEqual(m.map((x) => x.harmonic), [1, 2, 3]);
+});
+
+test('closed pipe, 0.5 m, 20 °C: odd harmonics 171.6, 514.8, 858.0 Hz', () => {
+  const m = ac.closedPipeModes(0.5, ac.speedOfSound(20), 3);
+  close(m[0].hz, 171.60, 0.01); close(m[1].hz, 514.81, 0.02); close(m[2].hz, 858.0, 0.05);
+  assert.deepEqual(m.map((x) => x.harmonic), [1, 3, 5]);
+});
+
+test('end correction: r = 10 mm → ΔL = 6.13 mm; open 0.5 m pipe drops to 335.0 Hz', () => {
+  close(ac.endCorrection(0.01) * 1000, 6.133, 0.001, 'mm');
+  // L_eff = 0.5 + 2 × 0.006133 = 0.512266 m → f₁ = 343.21 / 1.02453 = 335.0 Hz
+  close(ac.openPipeModes(0.5, ac.speedOfSound(20), 1, ac.endCorrection(0.01))[0].hz, 335.0, 0.1);
+});
+
+test('string: L 0.65 m, T 70 N, μ 0.0012 kg/m → v 241.5 m/s, f₁ 185.8 Hz', () => {
+  close(ac.stringWaveSpeed(70, 0.0012), 241.52, 0.01);
+  const m = ac.stringModes(0.65, 70, 0.0012, 2);
+  close(m[0].hz, 185.79, 0.01); close(m[1].hz, 371.58, 0.02);
+});
+
+test('string mass per length from diameter: 0.43 mm at 7850 kg/m³ → 0.00114 kg/m', () => {
+  close(ac.massPerLengthFromDiameter(0.00043, 7850), 0.0011400, 0.0000005);
+});
+
+test('mode shapes: open ends are antinodes, closed end and string ends are nodes', () => {
+  close(Math.abs(ac.modeShape('open', 1, 0)), 1, 1e-12); close(Math.abs(ac.modeShape('open', 1, 1)), 1, 1e-12);
+  close(ac.modeShape('closed', 1, 0), 0, 1e-12); close(Math.abs(ac.modeShape('closed', 1, 1)), 1, 1e-12);
+  close(ac.modeShape('string', 3, 0), 0, 1e-12); close(ac.modeShape('string', 3, 1), 0, 1e-12);
+});
