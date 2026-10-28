@@ -36,6 +36,7 @@ const FILES = [
   'js/lab/harmonics-view.js',
   'js/lab/lab.js',
   'js/lab/pipe-view.js',
+  'js/lab/room-view.js',
   'js/lab/spectrogram-view.js',
   'js/lab/waveform-view.js',
   'js/level-meter.js',

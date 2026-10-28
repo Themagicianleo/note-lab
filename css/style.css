@@ -172,3 +172,13 @@ details.card[open] > summary { padding-bottom: 0; }
 .pipe-canvas { height: 150px; }
 .stats tr.selected th, .stats tr.selected td { color: var(--blue); }
 .row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.form-grid.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.form-grid.three .field-title { font-size: 13px; }
+.room-canvas { height: 170px; }
+.key-length { color: var(--blue); } .key-width { color: var(--orange); } .key-height { color: var(--green); } .key-pair { color: var(--red); }
+.key-pair::before { border-radius: 50%; }
+.tag-warn { color: var(--red); font-size: 11px; padding: 2px 6px; }
+.room-table tr.dim-length th:first-child { box-shadow: inset 3px 0 0 var(--blue); padding-left: 8px; }
+.room-table tr.dim-width th:first-child { box-shadow: inset 3px 0 0 var(--orange); padding-left: 8px; }
+.room-table tr.dim-height th:first-child { box-shadow: inset 3px 0 0 var(--green); padding-left: 8px; }
+@media (max-width: 420px) { .form-grid.three { grid-template-columns: 1fr 1fr; } }

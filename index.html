@@ -563,6 +563,69 @@ string:      v = √(T / μ),   f_n = n × v / (2 × L)
           </div>
         </details>
       </div>
+
+      <!-- 6. Room modes -->
+      <div id="lab-room" class="panel" hidden>
+        <p class="banner banner-warn small"><strong>Model assumptions:</strong> a rectangular (shoebox) room with perfectly rigid, fully reflecting walls, empty, with uniform air temperature. Real rooms differ; see "What am I looking at?".</p>
+        <div class="card">
+          <div class="card-body">
+            <span class="pill tag-model">Calculated</span>
+            <div class="form-grid three">
+              <label class="field"><span class="field-title">Length L (m)</span><input id="room-length" class="input" type="number" inputmode="decimal" step="0.01" min="0" value="5"></label>
+              <label class="field"><span class="field-title">Width W (m)</span><input id="room-width" class="input" type="number" inputmode="decimal" step="0.01" min="0" value="4"></label>
+              <label class="field"><span class="field-title">Height H (m)</span><input id="room-height" class="input" type="number" inputmode="decimal" step="0.01" min="0" value="2.5"></label>
+            </div>
+            <div class="form-grid three">
+              <label class="field"><span class="field-title">Air temperature (°C)</span><input id="room-temperature" class="input" type="number" inputmode="decimal" step="0.5" value="20"></label>
+              <label class="field"><span class="field-title">Show up to</span>
+                <select id="room-max" class="input"><option value="150">150 Hz</option><option value="300" selected>300 Hz</option><option value="500">500 Hz</option></select></label>
+              <label class="field"><span class="field-title">RT60 (s), optional</span><input id="room-rt60" class="input" type="number" inputmode="decimal" step="0.05" min="0" placeholder="from the RT60 tool"></label>
+            </div>
+            <label class="check"><input id="room-show-all" type="checkbox"> Also show tangential and oblique modes</label>
+            <p id="room-error" class="banner banner-danger small" role="alert" hidden></p>
+            <p id="room-working" class="small lab-readout working"></p>
+            <canvas id="room-canvas" class="lab-canvas room-canvas" aria-label="Chart of room mode frequencies"></canvas>
+            <p class="small muted"><span class="key key-length">Length</span> <span class="key key-width">Width</span> <span class="key key-height">Height</span> <span class="key key-pair">Close pair</span> Taller lines = lower mode number (usually stronger).</p>
+            <ul id="room-notes" class="small"></ul>
+            <div class="table-wrap"><table id="room-table" class="stats room-table"></table></div>
+            <p id="room-others" class="small muted"></p>
+          </div>
+        </div>
+        <details class="card" open>
+          <summary>What am I looking at? (and what it means for mixing and EQ)</summary>
+          <div class="card-body small">
+            <p>Low sounds have long wavelengths, metres long. When a wavelength fits neatly between two opposite walls, the sound bounces back and forth and builds up into a <strong>standing wave</strong>: a <strong>room mode</strong>. At that frequency the room "booms". The simplest and usually strongest are the <strong>axial modes</strong>, between one pair of walls (front–back, side–side, floor–ceiling): the coloured lines.</p>
+            <p><strong>It depends on where you stand.</strong> A mode is loudest at the walls (and most of all in corners) and almost silent at its <em>nulls</em>; the table says where they are. The 1st length mode, for example, is silent exactly in the middle of the room. So a bass note can sound huge in one seat and nearly vanish a metre away.</p>
+            <p><strong>For mixing and EQ</strong> (general studio-acoustics guidance, not rules):</p>
+            <ul>
+              <li>If one bass note booms, or another seems to vanish, in your room, check whether it's near a mode before you EQ the <em>mix</em>. You'd be fixing your room, not the song, and it'll sound wrong elsewhere.</li>
+              <li>Avoid sitting or putting speakers exactly at the room's halfway points or at a null of a strong mode. Moving even 10–20% of the room length off the middle can change the bass a lot. Try it with the <em>Play</em> buttons: walk around while a mode plays.</li>
+              <li>EQ cuts can reduce a boom at your listening spot. EQ boosts can't fill a null, though: at a null the sound is cancelling itself, so boosting mostly makes it louder everywhere else.</li>
+              <li><strong>Close pairs</strong> (marked) pile up into an extra-strong boom. Rooms with very similar dimensions (like a cube) have more of them, and bass traps or other room treatment help most there.</li>
+              <li>Check your low end on headphones or in another room. Headphones don't have room modes.</li>
+            </ul>
+            <p>Above the <strong>Schroeder frequency</strong> (enter an RT60 to see it), modes overlap so much that single ones stop standing out; that's where reverberation time becomes the better description (see the RT60 tool).</p>
+            <p><strong>Model vs reality:</strong> real walls aren't perfectly rigid. Plasterboard flexes and absorbs bass, windows and doors leak, furniture scatters sound, and many rooms aren't rectangles. Expect real modes to be shifted somewhat and less sharp. Measure one (play the tone, walk around, listen for the loudest and quietest spots) and record it on the compare page. Phone speakers can't play much below ~100 Hz; use proper speakers or a subwoofer for low modes.</p>
+          </div>
+        </details>
+        <details class="card formula-card">
+          <summary>Formulas: room modes and the Schroeder frequency</summary>
+          <div class="card-body small">
+            <pre class="formula">f = (c / 2) × √( (n_x/L)² + (n_y/W)² + (n_z/H)² )
+axial:   f = n × c / (2 × L)      (same with W or H)
+silent at: x = (2k − 1) × L / (2n),  k = 1 … n
+Schroeder: f_S ≈ 2000 × √(T60 / V)</pre>
+            <ul>
+              <li><strong>f</strong>: mode frequency (Hz); <strong>c</strong>: speed of sound (m/s), from the air temperature (see the Pipes tool)</li>
+              <li><strong>L, W, H</strong>: room length, width, height (m); <strong>n_x, n_y, n_z</strong>: mode numbers 0, 1, 2, … (one non-zero = axial, two = tangential, three = oblique)</li>
+              <li><strong>x</strong>: distance from a wall (m) along that dimension; <strong>k</strong>: which null</li>
+              <li><strong>T60</strong>: reverberation time (s); <strong>V</strong>: room volume (m³); <strong>f_S</strong> (Hz)</li>
+            </ul>
+            <p><strong>Worked example:</strong> room 5 × 4 × 2.5 m at 20 °C (c = 343.2 m/s). Length: 343.2 / (2 × 5) = 34.3 Hz, then 68.6, 103.0 Hz. Width: 343.2 / 8 = 42.9 Hz. Height: 343.2 / 5 = 68.6 Hz, the same as the 2nd length mode, so it's a close pair. Tangential (1,1,0): 171.6 × √(0.2² + 0.25²) = 54.9 Hz. The 1st length mode is silent at 2.5 m (the middle). With T60 = 0.5 s and V = 50 m³: f_S ≈ 2000 × √(0.01) = 200 Hz.</p>
+            <p><strong>Sources:</strong> Rayleigh's formula for a rectangular enclosure with rigid walls (Lord Rayleigh, <em>The Theory of Sound</em>; derived in Kuttruff, <em>Room Acoustics</em>, and Everest &amp; Pohlmann, <em>Master Handbook of Acoustics</em>). Schroeder frequency: Schroeder (1962) and Schroeder &amp; Kuttruff; the "2000" form is from Kuttruff, <em>Room Acoustics</em>. The 3% "close pair" rule is this app's own simple rule of thumb, not a standard.</p>
+          </div>
+        </details>
+      </div>
     </section>
 
     <!-- ================= SETTINGS ================= -->
