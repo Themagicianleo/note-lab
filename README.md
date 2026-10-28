@@ -260,6 +260,36 @@ then hear comes from the brain ("binaural beats").
   frequencies poorly, so use f₁ above ~200 Hz on a phone, or headphones. One
   tone per ear needs headphones and a browser that supports stereo panning.
 
+### 4. Spectrogram
+
+Frequency (up) against time (across), with loudness as colour (dark = quiet,
+bright = loud; −100 to −10 dBFS, relative). **Window size** goes from 512 to
+8192 samples; the page shows the resulting Δt and Δf live. There's a **log or
+linear** axis, a choice of top frequency (2–20 kHz), and **Freeze**. The colour
+scale is an "inferno"-style map whose brightness always rises with level.
+
+- *Formulas:* Δt = N/fs, Δf = fs/N, so Δt × Δf = 1 (DFT bin spacing; the
+  short-time Fourier transform's time–frequency trade-off, Gabor 1946).
+  Example: N = 2048, fs = 48 kHz → Δt = 42.7 ms, Δf = 23.4 Hz.
+- *Measured:* the picture (dBFS, relative). *Calculated:* Δt and Δf.
+- *How to test:* `npm test` checks the worked example, the 4× trade-off, and
+  that the colour map always gets brighter. The browser test plays a 440 Hz tone
+  and checks that the brightest pixel row in the newest column is at 440 Hz on
+  the log axis (within half a bin), and that changing the window to 8192
+  changes Δt and Δf and the microphone's window. To try it yourself: sing a
+  slow scale (a staircase with harmonics above it), say "sss" (a high smear, no
+  lines), or clap (a thin vertical stripe). Move the window slider while
+  singing: long windows give thin lines but smeared timing; short windows give
+  sharp timing but thick, blurry lines.
+- *Assumptions and limits:* a new column arrives about every 17 ms whatever
+  the window size, so long windows overlap heavily (smearing sideways). With
+  a Hann window, two tones need about 2·Δf to show as separate lines. Where a
+  pixel row is narrower than a bin, the colour is read between bins; where
+  several bins share a row (high frequencies, log axis), the loudest is shown.
+  Peaks are placed to within about half a bin. Levels above −10 dBFS all show
+  the brightest colour. The time label is estimated from the measured column
+  rate. Mic frequency response darkens very low and very high regions.
+
 ## How the detection works
 
 ### From frequency to note (`js/pitch-math.js`)

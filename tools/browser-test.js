@@ -425,6 +425,58 @@ try {
     await browser.close();
   }
 
+  // 3.4 Spectrogram: a 440 Hz tone must be brightest at the 440 Hz row; window size changes the mic setup.
+  {
+    const { browser, page, errors } = await fakeMic('sine-A4.wav');
+    await page.click('#tab-lab');
+    await page.click('#lab-open-spectrogram');
+    await page.click('#lab-start-mic');
+    await page.waitForTimeout(1500);
+    const found = await page.evaluate(() => {
+      const canvas = document.getElementById('sgram-canvas');
+      const ratio = canvas.width / canvas.clientWidth;
+      const plotH = canvas.clientHeight - 16;
+      const ctx = canvas.getContext('2d');
+      const x = Math.round((canvas.clientWidth - 3) * ratio);
+      // Brightness of each row in the newest column; then the centre of the brightest band.
+      const rows = [];
+      for (let y = 0; y < plotH * ratio; y++) {
+        const [r, g, b] = ctx.getImageData(x, y, 1, 1).data;
+        rows.push(0.2126 * r + 0.7152 * g + 0.0722 * b);
+      }
+      const best = Math.max(...rows);
+      const band = rows.map((v, y) => (v >= best - 1 ? y : null)).filter((y) => y !== null);
+      const bestY = (band[0] + band[band.length - 1]) / 2 / ratio;
+      const yOf = (hz) => plotH * (1 - Math.log(hz / 50) / Math.log(5000 / 50)); // log scale 50 Hz – 5 kHz
+      const binHz = 44100 / 2048;
+      // The method can't place a peak better than about half a frequency bin.
+      return { bestY, expected: yOf(440), allowed: Math.abs(yOf(440) - yOf(440 + binHz / 2)) + 1 };
+    });
+    report(Math.abs(found.bestY - found.expected) <= found.allowed, 'lab spectrogram: 440 Hz tone is brightest at the 440 Hz row (within half a bin)',
+      `brightest at y=${found.bestY.toFixed(1)}, 440 Hz row y=${found.expected.toFixed(1)}, allowed ±${found.allowed.toFixed(1)}`);
+    const res = await page.textContent('#sgram-resolution');
+    await page.fill('#sgram-window', '4');
+    await page.dispatchEvent('#sgram-window', 'input');
+    await page.waitForTimeout(600);
+    const res2 = await page.textContent('#sgram-resolution');
+    const info = await page.textContent('#tech-info');
+    report(res.includes('Δf = 44100/2048 = 21.5 Hz') && res2.includes('Δt = 8192/44100 = 185.8 ms') && info.includes('window 8192') && !errors.length,
+      'lab spectrogram: window size changes Δt, Δf and the mic window', `${res2.slice(0, 90)}… · ${info}${errors.length ? ` errors: ${errors}` : ''}`);
+    await page.fill('#sgram-window', '2');
+    await page.dispatchEvent('#sgram-window', 'input');
+    await browser.close();
+  }
+  {
+    const { browser, page } = await fakeMic('voice-scale-C4-G4.wav');
+    await page.click('#tab-lab');
+    await page.click('#lab-open-spectrogram');
+    await page.click('#lab-start-mic');
+    await page.waitForTimeout(4500);
+    await page.click('#sgram-freeze');
+    await labScreenshot(page, 'lab-spectrogram');
+    await browser.close();
+  }
+
   // 2. Permission denied. Headless Chromium has no permission prompt to refuse, so we
   //    make getUserMedia fail with the same error a real "Don't Allow" gives (NotAllowedError).
   {
