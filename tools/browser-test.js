@@ -393,6 +393,38 @@ try {
     await browser.close();
   }
 
+  // 3.3 Beats: f1 = 440, Δ = +3 → plays 440 and 443 Hz, beat frequency 3 Hz.
+  {
+    const { browser, page, errors } = await openPage([], []);
+    // Record each oscillator's frequency when it starts, and count stops.
+    await page.evaluate(() => {
+      window.__osc = { started: [], stopped: 0 };
+      const original = AudioContext.prototype.createOscillator;
+      AudioContext.prototype.createOscillator = function () {
+        const osc = original.call(this);
+        const start = osc.start.bind(osc);
+        const stop = osc.stop.bind(osc);
+        osc.start = (...a) => { window.__osc.started.push(osc.frequency.value); start(...a); };
+        osc.stop = (...a) => { window.__osc.stopped++; stop(...a); };
+        return osc;
+      };
+    });
+    await page.click('#tab-lab');
+    await page.click('#lab-open-beats');
+    const result = await page.textContent('#beats-result');
+    report(result.includes('= 3.0 Hz') && result.includes('0.333 s') && result.includes('441.50 Hz'), 'lab beats: calculated beat frequency', `"${result}"`);
+    await page.click('#beats-play');
+    await page.waitForTimeout(300);
+    const started = await page.evaluate(() => window.__osc.started);
+    report(started.length === 2 && started[0] === 440 && started[1] === 443, 'lab beats: plays 440 and 443 Hz', JSON.stringify(started));
+    await labScreenshot(page, 'lab-beats');
+    await page.click('#tab-tuner'); // leaving the Lab must stop the tones
+    await page.waitForTimeout(400);
+    const stopped = await page.evaluate(() => window.__osc.stopped);
+    report(stopped === 2 && !errors.length, 'lab beats: leaving the Lab tab stops both tones', `${stopped} stopped${errors.length ? ` errors: ${errors}` : ''}`);
+    await browser.close();
+  }
+
   // 2. Permission denied. Headless Chromium has no permission prompt to refuse, so we
   //    make getUserMedia fail with the same error a real "Don't Allow" gives (NotAllowedError).
   {

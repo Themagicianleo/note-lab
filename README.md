@@ -233,6 +233,33 @@ speaker and mic and see how they change a "perfect" tone.
   0.17 s window then holds two different sounds). Mic and speaker frequency
   response colour the bars, especially below ~100 Hz and above ~10 kHz.
 
+### 3. Beats demo
+
+Plays two pure tones: f₁ (110–880 Hz) and f₂ = f₁ + Δ (Δ from −20 to +20 Hz).
+It shows the **beat frequency** |f₁ − f₂|, the beat period, the heard pitch, and
+a **calculated** graph of the two tones added together with their envelope; a
+line sweeps through it in real time while playing. Optional: **one tone per
+ear** (headphones), so the tones never add up in the air. Any pulsing you
+then hear comes from the brain ("binaural beats").
+
+- *Formulas:* sin(2πf₁t) + sin(2πf₂t) = 2·cos(π(f₁−f₂)t)·sin(π(f₁+f₂)t)
+  (sum-to-product identity) → f_beat = |f₁ − f₂|, T_beat = 1/f_beat, heard
+  pitch ≈ (f₁+f₂)/2. Example: 440 and 443 Hz → 3 Hz, one beat every 0.333 s,
+  heard at 441.5 Hz.
+- *Calculated:* everything shown. The sound is generated, not measured.
+- *How to test:* `npm test` checks the identity at many times, and that the
+  envelope is 2 every beat period and 0 halfway between. In the browser test,
+  Δ = +3 shows `f_beat = 3.0 Hz`, the page really starts oscillators at 440 and
+  443 Hz, and leaving the Lab tab stops both. To try it yourself: play it and
+  slide Δ slowly to 0; the beats should slow down and stop. Count the pulses
+  for 10 s at Δ = 1 Hz: you should count about 10.
+- *Assumptions and limits:* pure sine tones of equal loudness (unequal
+  loudness gives shallower beats). The "roughness above roughly 15–20 Hz" note
+  describes hearing research (Plomp & Levelt, 1965) and varies between people
+  and frequencies; it's guidance, not a formula. Phone speakers play low
+  frequencies poorly, so use f₁ above ~200 Hz on a phone, or headphones. One
+  tone per ear needs headphones and a browser that supports stereo panning.
+
 ## How the detection works
 
 ### From frequency to note (`js/pitch-math.js`)
