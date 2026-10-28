@@ -160,3 +160,6 @@ details.card[open] > summary { padding-bottom: 0; }
 .key-a { color: var(--blue); }
 .key-b { color: var(--orange); }
 .stats caption { text-align: left; padding-bottom: 6px; color: var(--muted); }
+/* Field titles in the Lab keep their capitals as written: units like Hz and
+   ms, and symbols like f₁, must not be changed to "HZ" or "F₁". */
+.field-title { font-size: 15px; font-weight: 600; color: var(--fg); }

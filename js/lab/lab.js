@@ -77,6 +77,10 @@ export function createLab({ tools, isListening, startListening, onToolChange }) 
     close,
     refresh,
     get current() { return current; },
+    // Leaving the Lab tab (another tab or Settings): let the open tool stop
+    // any sound. Coming back: let it redraw.
+    suspend() { if (current) current.hide?.(); },
+    resume() { if (current) current.show?.(); },
     // How many samples the microphone should give us for the open tool.
     windowSize: () => (current && current.windowSize) || 2048,
     onSamples(buffer, sampleRate, now) {

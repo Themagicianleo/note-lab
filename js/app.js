@@ -39,6 +39,7 @@ import { registerServiceWorker } from './register-sw.js';
 import { createLab } from './lab/lab.js';
 import { createWaveformTool } from './lab/waveform-view.js';
 import { createHarmonicsTool } from './lab/harmonics-view.js';
+import { createBeatsTool } from './lab/beats-view.js';
 
 // ---------- settings ----------
 
@@ -160,6 +161,7 @@ const lab = createLab({
   tools: [
     createWaveformTool({ getA4: () => settings.a4 }),
     createHarmonicsTool({ player, getA4: () => settings.a4 }),
+    createBeatsTool({ player, getA4: () => settings.a4 }),
   ],
   isListening: () => Boolean(mic),
   startListening: () => startListening(),
@@ -275,6 +277,7 @@ function showTab(name) {
   showTitle(settingsOpen ? 'settings' : name);
   singBack.refresh();
   lab.refresh();
+  if (name === 'lab' && !settingsOpen) lab.resume(); else lab.suspend(); // e.g. stop the beats tones
   applyConfig();
 }
 // Tapping a tab starts at the top of that page, like iPhone apps.

@@ -30,6 +30,7 @@ const FILES = [
   'js/ear-training.js',
   'js/fft.js',
   'js/interval-trainer-view.js',
+  'js/lab/beats-view.js',
   'js/lab/canvas.js',
   'js/lab/harmonics-view.js',
   'js/lab/lab.js',
