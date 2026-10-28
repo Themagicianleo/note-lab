@@ -28,6 +28,25 @@ are saved, in your own browser.
 
 *Screenshots from the automated Chromium test, with generated test sounds as the "microphone".*
 
+## Look
+
+Note Lab uses the same **Liquid Glass** theme as the other web apps:
+`css/glass.css` is copied unchanged from msfs-buddy's `src/shared/glass.css`
+(originally from Light Scout), and only Note Lab's own pieces live in
+`css/style.css`.
+
+- **Frosted glass cards** float over a soft, slowly drifting coloured light.
+  Buttons, the segmented control and the top-bar capsules are clearer glass
+  that springs when pressed. The tuner's reading sits on a lit blue pane.
+- **The four modes are in a floating glass tab bar** at the bottom (thumb
+  reach on a phone). Settings and *How it works* are capsules in the top bar,
+  and each page has a large title, like iOS apps.
+- Apple's system colours and font (SF Pro on Apple devices). It follows
+  **light or dark mode**, and honours **Reduce Transparency** (solid surfaces
+  instead of glass) and **Reduce Motion** (no drift or spring).
+- Inspired by Apple's current design language; the tab icons and app icon are
+  this project's own drawings.
+
 ## Getting it running
 
 - **On your computer:** `npm start`, then open <http://localhost:8000>.
@@ -118,8 +137,8 @@ Scores are saved on the device; reset them on the Settings page.
 
 ### Settings and the "How it works" page
 
-**⚙ Settings** (top of the page) holds everything adjustable, saved on the
-device:
+**Settings** (the sliders button, top right) holds everything adjustable,
+saved on the device:
 - **Reference pitch (A4)**, 400–480 Hz: quick choices 415 / 432 / 440 / 442,
   a preview of what that does to other notes, and *Play A4*. Every note name,
   cents value and training tone follows it.
@@ -502,7 +521,8 @@ node tools/make-icons.js            # optional; re-render the icons (needs Playw
 ```
 index.html, how-it-works.html   the app and the beginner's guide
 manifest.json, sw.js, icons/     install + offline
-css/style.css                    all styles (light and dark)
+css/glass.css                    shared Liquid Glass design (copied unchanged from msfs-buddy)
+css/style.css                    Note Lab's own styles on top of it
 js/pitch-math.js                 ★ frequency ↔ note maths (start here)
 js/yin.js, js/smoothing.js, js/level.js, js/pitch-tracker.js   pitch detection pipeline
 js/fft.js, js/spectrum.js        spectrum maths
