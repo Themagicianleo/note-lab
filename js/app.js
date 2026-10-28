@@ -38,6 +38,7 @@ import { loadJSON, saveJSON, removeKey } from './storage.js';
 import { registerServiceWorker } from './register-sw.js';
 import { createLab } from './lab/lab.js';
 import { createWaveformTool } from './lab/waveform-view.js';
+import { createHarmonicsTool } from './lab/harmonics-view.js';
 
 // ---------- settings ----------
 
@@ -158,6 +159,7 @@ for (const key of Object.keys(exercises)) byId(`ear-mode-${key}`).addEventListen
 const lab = createLab({
   tools: [
     createWaveformTool({ getA4: () => settings.a4 }),
+    createHarmonicsTool({ player, getA4: () => settings.a4 }),
   ],
   isListening: () => Boolean(mic),
   startListening: () => startListening(),

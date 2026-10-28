@@ -350,6 +350,65 @@
           </div>
         </details>
       </div>
+
+      <!-- 2. Harmonics -->
+      <div id="lab-harmonics" class="panel" hidden>
+        <div class="card">
+          <div class="card-body">
+            <span class="pill tag-measured">Measured</span>
+            <p id="harm-f0" class="lab-readout"></p>
+            <canvas id="harm-canvas" class="lab-canvas" aria-label="Bar chart of harmonic levels"></canvas>
+            <p class="small muted">Bars: dB relative to the loudest harmonic (0 dB). <span class="key key-live">Live</span> <span class="key key-a">A</span> <span class="key key-b">B</span></p>
+            <div class="table-wrap"><table id="harm-table" class="stats"></table></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Compare two sounds</h2></div>
+          <div class="card-body">
+            <div class="capture-row">
+              <input id="harm-label-a" class="input" type="text" placeholder="Label for A, e.g. My voice 'ah'" aria-label="Label for sound A">
+              <button id="harm-capture-a" type="button" class="btn btn-small">Capture A</button>
+            </div>
+            <div class="capture-row">
+              <input id="harm-label-b" class="input" type="text" placeholder="Label for B, e.g. Flute" aria-label="Label for sound B">
+              <button id="harm-capture-b" type="button" class="btn btn-small">Capture B</button>
+            </div>
+            <label class="field"><span class="label">Or make B a calculated tone <span class="pill tag-model">Calculated</span></span>
+              <select id="harm-ref" class="input"></select></label>
+            <div class="btn-row">
+              <button id="harm-use-ref" type="button" class="btn btn-small">Use as B</button>
+              <button id="harm-play-ref" type="button" class="btn btn-small">Play it</button>
+              <button id="harm-clear" type="button" class="btn btn-small btn-danger">Clear A and B</button>
+            </div>
+            <p id="harm-message" class="small" aria-live="polite"></p>
+            <div class="table-wrap"><table id="harm-compare" class="stats"></table></div>
+          </div>
+        </div>
+        <details class="card" open>
+          <summary>What am I looking at?</summary>
+          <div class="card-body small">
+            <p>A musical note isn't one frequency. It's a <strong>fundamental</strong> (f₀, the pitch you hear) plus <strong>harmonics</strong> at 2×, 3×, 4×… that frequency. Bar 1 is the fundamental, bar 2 the 2nd harmonic, and so on. Taller = louder.</p>
+            <p>The <strong>pattern</strong> of bars is what makes a flute, a violin and your voice sound different on the same note (their <em>timbre</em>). Try singing "ee" and then "oo" on one note: the pitch stays, but the bar pattern changes, because your mouth shape boosts different harmonics.</p>
+            <p><strong>Compare:</strong> capture your voice as A, then capture another sound as B, or pick a <strong>calculated</strong> tone for B. The calculated tones come from maths (their Fourier series), not from the microphone. <em>Play it</em> and capture it with the mic as A to see how your speaker and microphone change a "perfect" tone; that's measured vs model.</p>
+            <p><strong>Cents off</strong> shows how far each harmonic is from exactly n × f₀. Most sounds are close to 0; stiff strings like a piano's have higher harmonics a little sharp.</p>
+            <p><strong>Relative, not absolute:</strong> levels are compared with the loudest harmonic of the same sound, so a quiet and a loud recording of the same sound give the same bars. Phone and laptop mics pick up low and very high frequencies less well, which changes the bars a little.</p>
+          </div>
+        </details>
+        <details class="card formula-card">
+          <summary>Formulas: harmonic series and relative level</summary>
+          <div class="card-body small">
+            <pre class="formula">f_n = n × f₀        (n = 1, 2, 3, …)
+L = 20 × log10(a / a_ref)   dB</pre>
+            <ul>
+              <li><strong>f_n</strong>: frequency of harmonic n, in Hz; <strong>f₀</strong>: fundamental frequency, in Hz; <strong>n</strong>: harmonic number (no unit)</li>
+              <li><strong>L</strong>: level difference in decibels (dB); <strong>a</strong>, <strong>a_ref</strong>: two amplitudes in the same unit (here: of a harmonic, and of the loudest harmonic)</li>
+            </ul>
+            <p><strong>Worked example:</strong> f₀ = 220 Hz gives harmonics at 440, 660, 880 Hz. If the 2nd harmonic has half the amplitude of the loudest, L = 20 × log10(0.5) = −6.02 dB.</p>
+            <p><strong>Calculated tones (Fourier series):</strong> square wave: odd harmonics only, amplitude 1/n (3rd: −9.54 dB, 5th: −13.98 dB). Sawtooth: all harmonics, amplitude 1/n (2nd: −6.02 dB).</p>
+            <p><strong>Sources:</strong> Fourier's theorem (any periodic signal is a sum of sines at whole-number multiples of its fundamental), and the standard Fourier series of square and sawtooth waves, e.g. in any signals or acoustics textbook such as Kinsler et al., <em>Fundamentals of Acoustics</em>. Decibels for amplitudes use 20 × log10.</p>
+          </div>
+        </details>
+      </div>
     </section>
 
     <!-- ================= SETTINGS ================= -->

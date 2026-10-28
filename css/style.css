@@ -152,3 +152,11 @@ details.card[open] > summary { padding-bottom: 0; }
 .lab-canvas { display: block; width: 100%; height: 240px; border-radius: 16px; background: var(--fill); touch-action: none; }
 .formula-card .formula { white-space: pre-wrap; }
 .lab-readout { font-variant-numeric: tabular-nums; }
+.capture-row { display: flex; gap: 8px; align-items: center; }
+.capture-row .input { flex: 1; min-width: 0; }
+.key { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; }
+.key::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: currentColor; }
+.key-live { color: var(--muted); }
+.key-a { color: var(--blue); }
+.key-b { color: var(--orange); }
+.stats caption { text-align: left; padding-bottom: 6px; color: var(--muted); }
