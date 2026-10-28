@@ -62,6 +62,14 @@ const fakeMic = (file) => openPage([
   '--autoplay-policy=no-user-gesture-required',
 ], ['microphone']);
 
+// Screenshot of a Lab tool page from the top (the page header is sticky, so
+// element screenshots further down would have it drawn over them).
+async function labScreenshot(page, name) {
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: `${ROOT}docs/screenshots/${name}.png` });
+}
+
 // Read an element 8 times over ~1.6 s; return the most common text and all readings.
 async function mostCommonText(page, selector) {
   const seen = {};
@@ -325,6 +333,38 @@ try {
     await page.goto(`${URL_}how-it-works.html`);
     const offlineGuide = (await page.textContent('h1')) === 'How it works';
     report(offlineOk && offlineGuide && !errors.length, 'works offline after the first visit (app and guide page)', errors.join(' '));
+    await browser.close();
+  }
+
+  // 3. Acoustics Lab ------------------------------------------------------
+
+  // 3.1 Waveform: a 440 Hz sine should show T = 2.273 ms → 440 Hz.
+  {
+    const { browser, page, errors } = await fakeMic('sine-A4.wav');
+    await page.click('#tab-lab');
+    report(await page.isVisible('#lab-grid') && !(await page.isVisible('#start-panel')), 'lab: menu opens without the microphone');
+    await page.click('#lab-open-waveform');
+    report(await page.isVisible('#lab-need-mic'), 'lab waveform: asks for the microphone first');
+    await page.click('#lab-start-mic');
+    await page.waitForTimeout(1200);
+    const { text: period } = await mostCommonText(page, '#wave-period');
+    const processing = await page.textContent('#mic-processing');
+    const info = await page.textContent('#tech-info');
+    report(period.startsWith('Period T = 2.27') && period.includes('440.') && info.includes('16384') && !errors.length,
+      'lab waveform: measured period of a 440 Hz tone', `"${period}" · ${info}${errors.length ? ` errors: ${errors}` : ''}`);
+    console.log(`      Chromium (desktop, fake mic) reports: ${processing}`);
+    await page.fill('#wave-span', '0');
+    await page.dispatchEvent('#wave-span', 'input');
+    report((await page.textContent('#wave-span-value')) === '2 ms across', 'lab waveform: time zoom');
+    await page.click('#wave-freeze');
+    report((await page.getAttribute('#wave-freeze', 'aria-pressed')) === 'true', 'lab waveform: freeze');
+    await page.click('#wave-freeze');
+    await page.fill('#wave-span', '2');
+    await page.dispatchEvent('#wave-span', 'input');
+    await page.waitForTimeout(300);
+    await labScreenshot(page, 'lab-waveform');
+    await page.click('#lab-back');
+    report(await page.isVisible('#lab-grid'), 'lab: back to the menu');
     await browser.close();
   }
 

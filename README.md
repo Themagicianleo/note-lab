@@ -150,6 +150,57 @@ saved on the device:
 notes, octaves, cents, the formula with a worked example, harmonics, YIN, dBFS,
 limits and privacy. It also works offline.
 
+## Acoustics Lab
+
+The **Lab** tab has tools that teach the physics of sound. Each tool says
+what is **Measured** (by the microphone) and what is **Calculated** (from a
+model), and each has a *What am I looking at?* explanation and a *Formula*
+card: the formula, every symbol with its unit, a worked example and where the
+formula comes from. The maths lives in `js/acoustics.js`, tested in
+`tests/acoustics.test.js` with worked examples you can check by hand.
+
+**Microphone levels are relative.** Phone and laptop microphones aren't
+calibrated, so every dB value is **dBFS** (relative to the input's maximum),
+never a true sound pressure level.
+
+**Microphone processing.** The app asks the browser to turn off echo
+cancellation, noise suppression and automatic gain control. While listening,
+the bottom card shows what the browser **reports** it did
+(`MediaStreamTrack.getSettings()`):
+
+| Browser | Echo cancellation | Noise suppression | Auto gain | How we know |
+|---|---|---|---|---|
+| Desktop Chromium (fake mic in the automated test) | off | off | off | `tools/browser-test.js` |
+| iPhone Safari | *not yet checked* | | | Read the line under "Stop listening" and report back |
+
+A browser's report can't see processing done by the phone's hardware or
+operating system, so treat "off" as "the browser says it isn't adding any".
+
+### 1. Waveform (oscilloscope)
+
+Shows the microphone signal against time. **Time zoom** goes from 2 to 200 ms
+across the screen, and **height zoom** from ×1 to ×20 (it magnifies the
+picture, not the sound). **Steady display** starts each picture at a rising
+zero crossing (oscilloscope "triggering"), so repeating waves stand still.
+**Freeze** pauses it. When there's a clear pitch, one period **T** is marked
+and **f = 1/T** is shown.
+
+- *Formula:* f = 1/T (definition of frequency). Example: T = 2.2727 ms → f ≈ 440 Hz.
+- *Measured:* the wave, peak and RMS level (dBFS, relative), and the period
+  (via the YIN detector).
+- *How to test:* `npm test` (zero-crossing and period maths). Then Lab →
+  Waveform → Start microphone and whistle a steady note: the shape should
+  stand still and T should match the note (440 Hz ↔ 2.27 ms). The automated
+  browser test plays a 440 Hz tone and checks it reads `T = 2.273 ms → 440.0 Hz`.
+- *Assumptions and limits:* the height is a fraction of full scale, not
+  pressure in pascals. The display uses ~0.34 s of sound (16384 samples) and
+  shows the newest part. The trigger needs a wave that dips below −1% of full
+  scale, so very quiet sounds free-run (they don't stand still). The period
+  marker only appears when the pitch detector finds a clear pitch. The
+  microphone and the phone's own filters can change the wave's shape (for
+  example, they cut very low frequencies), so the shape is "as the mic sees
+  it", not the exact air pressure.
+
 ## How the detection works
 
 ### From frequency to note (`js/pitch-math.js`)
