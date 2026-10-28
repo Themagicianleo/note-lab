@@ -141,3 +141,24 @@ export const averageFrequency = (f1, f2) => (f1 + f2) / 2;
 export const twoToneSum = (t, f1, f2) => Math.sin(2 * Math.PI * f1 * t) + Math.sin(2 * Math.PI * f2 * t);
 // Its envelope (the swelling and fading outline): |2 · cos(π (f₁ − f₂) t)|
 export const beatEnvelope = (t, f1, f2) => Math.abs(2 * Math.cos(Math.PI * (f1 - f2) * t));
+
+// ============================================================
+// 4. Spectrogram: the time–frequency trade-off
+// ============================================================
+// A spectrogram runs an FFT on short pieces ("windows") of N samples.
+//   window duration   Δt = N / fs          (s)   how much time each column covers
+//   frequency step    Δf = fs / N          (Hz)  the spacing of the FFT's frequency bins
+//   so                Δt × Δf = 1          (always, whatever N you choose)
+//   fs = sample rate (samples per second), N = window size (samples)
+// A longer window sees frequency more finely but blurs time; a shorter one
+// the opposite. This is the discrete-time form of the "uncertainty"
+// (Gabor) limit of time-frequency analysis.
+// Example: N = 2048, fs = 48 000 Hz → Δt = 2048/48000 = 42.7 ms, Δf = 48000/2048 = 23.4 Hz.
+// (With a Hann window, two tones need to be about 2 bins apart to show as
+// two separate peaks, so the practical frequency resolution is ~2·Δf.)
+
+export function stftResolution(windowSize, sampleRate) {
+  const windowSeconds = windowSize / sampleRate;
+  const binHz = sampleRate / windowSize;
+  return { windowSeconds, binHz, product: windowSeconds * binHz };
+}

@@ -5,6 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as ac from '../js/acoustics.js';
 import { computeSpectrum } from '../js/spectrum.js';
+import { dbToColour } from '../js/lab/colour-map.js';
 
 const close = (actual, expected, tolerance, label = '') =>
   assert.ok(Math.abs(actual - expected) <= tolerance, `${label} expected ${expected} ± ${tolerance}, got ${actual}`);
@@ -102,4 +103,32 @@ test('envelope is loudest (2) every beat period and silent (0) halfway between',
   close(ac.beatEnvelope(0, 440, 443), 2, 1e-12);
   close(ac.beatEnvelope(1 / 3, 440, 443), 2, 1e-9);   // one beat period later
   close(ac.beatEnvelope(1 / 6, 440, 443), 0, 1e-9);   // half a period: the tones cancel
+});
+
+// ---------- 4. Spectrogram ----------
+
+test('STFT resolution: N = 2048 at 48 kHz → 42.7 ms and 23.4 Hz; product = 1', () => {
+  const r = ac.stftResolution(2048, 48000);
+  close(r.windowSeconds * 1000, 42.667, 0.001, 'ms');
+  close(r.binHz, 23.4375, 1e-9, 'Hz');
+  close(r.product, 1, 1e-12, 'Δt × Δf');
+});
+
+test('STFT trade-off: 4× the window → 4× longer, 4× finer', () => {
+  const a = ac.stftResolution(1024, 48000);
+  const b = ac.stftResolution(4096, 48000);
+  close(b.windowSeconds / a.windowSeconds, 4, 1e-12);
+  close(a.binHz / b.binHz, 4, 1e-12);
+});
+
+test('colour map: quiet is dark, loud is bright, brightness always rises', () => {
+  assert.deepEqual(dbToColour(-200, -100, -20), [0, 0, 4]);
+  assert.deepEqual(dbToColour(0, -100, -20), [252, 255, 164]);
+  const brightness = ([r, g, b]) => 0.2126 * r + 0.7152 * g + 0.0722 * b; // relative luminance weights
+  let previous = -1;
+  for (let db = -100; db <= -20; db += 1) {
+    const now = brightness(dbToColour(db, -100, -20));
+    assert.ok(now >= previous, `brightness fell at ${db} dB`);
+    previous = now;
+  }
 });
