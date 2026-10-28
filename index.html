@@ -682,6 +682,77 @@ Eyring:  T60 = (24 × ln 10 / c) × V / ( −S × ln(1 − ᾱ) ),   ᾱ = A / S
           </div>
         </details>
       </div>
+
+      <!-- 8. Compare with reality -->
+      <div id="lab-reality" class="panel" hidden>
+        <p id="reality-prefilled" class="banner banner-info small" hidden></p>
+        <div class="card">
+          <div class="card-head"><h2>Add a comparison</h2></div>
+          <div class="card-body">
+            <label class="field"><span class="field-title">What did you compare?</span><input id="reality-quantity" class="input" type="text" placeholder="e.g. Room mode: length 1, or Kitchen-roll tube f₁"></label>
+            <div class="form-grid three">
+              <label class="field"><span class="field-title">Predicted <span class="pill tag-model">Calculated</span></span><input id="reality-predicted" class="input" type="number" inputmode="decimal" step="any" min="0"></label>
+              <label class="field"><span class="field-title">Measured / heard</span><input id="reality-measured" class="input" type="number" inputmode="decimal" step="any" min="0"></label>
+              <label class="field"><span class="field-title">Unit</span><select id="reality-unit" class="input"><option value="Hz">Hz</option><option value="s">s</option><option value="m">m</option><option value="dB">dB (relative)</option></select></label>
+            </div>
+            <div class="btn-row">
+              <button id="reality-start-mic" type="button" class="btn btn-small">Start microphone</button>
+              <button id="reality-use-mic" type="button" class="btn btn-small" disabled>Use the pitch the mic hears now</button>
+            </div>
+            <p id="reality-mic-reading" class="small muted"></p>
+            <label class="field"><span class="field-title">How did you measure it?</span>
+              <select id="reality-method" class="input">
+                <option>By ear (listening)</option>
+                <option>Measured with Note Lab (microphone pitch)</option>
+                <option>Measured with Note Lab (spectrum or spectrogram)</option>
+                <option>Measured with another app or meter</option>
+                <option>Other</option>
+              </select></label>
+            <label class="field"><span class="field-title">Notes (optional)</span><input id="reality-notes" class="input" type="text" placeholder="e.g. listened in the corner; 3 tries; door open"></label>
+            <p id="reality-error" class="banner banner-danger small" role="alert" hidden></p>
+            <button id="reality-add" type="button" class="btn btn-primary">Add to my log</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>My log</h2></div>
+          <div class="card-body">
+            <p id="reality-summary" class="small lab-readout"></p>
+            <div class="table-wrap"><table id="reality-table" class="stats reality-table"></table></div>
+            <div class="btn-row">
+              <button id="reality-export" type="button" class="btn btn-small">Download as CSV</button>
+              <button id="reality-clear" type="button" class="btn btn-small btn-danger">Delete all</button>
+            </div>
+            <p class="small muted">Saved on this device only. The CSV file is made in your browser and saved to your device.</p>
+          </div>
+        </div>
+        <details class="card" open>
+          <summary>What am I looking at?</summary>
+          <div class="card-body small">
+            <p>Every calculator in the Lab is a <strong>model</strong>: a simplified picture of reality (perfect cylinders, rigid walls, evenly spread absorption…). The best way to learn what a model is good for is to <strong>test it</strong>: predict, measure, and compare. Use the <em>Compare</em> buttons in Pipes and strings, Room modes and RT60 to start an entry with the prediction filled in.</p>
+            <p><strong>Ways to measure:</strong></p>
+            <ul>
+              <li><strong>Pipe or string:</strong> blow across the tube or pluck the string with the microphone on, then tap <em>Use the pitch the mic hears now</em>. It waits for a steady reading.</li>
+              <li><strong>Room mode:</strong> play the predicted mode from Room modes through proper speakers, then slowly sweep nearby frequencies (or use a tone app) and note where it's loudest in a corner or quietest at a predicted null. By ear, expect your answer to be a few Hz out.</li>
+              <li><strong>RT60:</strong> use a dedicated measurement app or meter, or record a loud clap and look at how long the decay takes in the spectrogram. Note the method in the notes.</li>
+            </ul>
+            <p><strong>Reading the result:</strong> the difference is shown in units, in percent, and for frequencies in <strong>cents</strong> (100 cents = one semitone). A few percent is very good for these simple models; larger, consistent differences tell you something the model leaves out, like flexible walls, an end correction, or a non-rectangular room. Your measurement has its own uncertainty too, especially by ear, so repeat it and note how.</p>
+          </div>
+        </details>
+        <details class="card formula-card">
+          <summary>Formulas: comparing predicted and measured</summary>
+          <div class="card-body small">
+            <pre class="formula">difference  d = measured − predicted
+percentage  e = 100 × (measured − predicted) / predicted   %
+cents       = 1200 × log2(measured / predicted)            (frequencies only)</pre>
+            <ul>
+              <li><strong>measured</strong>, <strong>predicted</strong>: values in the same unit (Hz, s, …)</li>
+              <li><strong>d</strong>: in that unit; <strong>e</strong>: in percent; <strong>cents</strong>: 1/100 of a semitone</li>
+            </ul>
+            <p><strong>Worked example:</strong> predicted 34.3 Hz, measured 36.0 Hz → d = +1.7 Hz, e = 100 × 1.7 / 34.3 = +4.96 %, cents = 1200 × log2(36.0 / 34.3) = +83.7 cents (a bit under a semitone sharp). The summary shows the average size of e (ignoring the sign) for each unit.</p>
+            <p><strong>Sources:</strong> standard definitions of absolute and relative (percentage) error; cents as defined by A. J. Ellis (1885) and used throughout Note Lab (see "How it works").</p>
+          </div>
+        </details>
+      </div>
     </section>
 
     <!-- ================= SETTINGS ================= -->

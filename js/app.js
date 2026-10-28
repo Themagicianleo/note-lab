@@ -44,6 +44,7 @@ import { createSpectrogramTool } from './lab/spectrogram-view.js';
 import { createPipeTool } from './lab/pipe-view.js';
 import { createRoomTool } from './lab/room-view.js';
 import { createRt60Tool } from './lab/rt60-view.js';
+import { createRealityTool } from './lab/reality-view.js';
 
 // ---------- settings ----------
 
@@ -161,19 +162,24 @@ function showExercise(name) {
 for (const key of Object.keys(exercises)) byId(`ear-mode-${key}`).addEventListener('click', () => showExercise(key));
 
 // ---------- acoustics lab ----------
-const roomTool = createRoomTool({ player, getA4: () => settings.a4 });
+// "Compare" buttons in the calculators open the compare page with the prediction filled in.
+const realityTool = createRealityTool({ isListening: () => Boolean(mic), startListening: () => startListening() });
+const compare = (entry) => { realityTool.prefill(entry); lab.open('reality'); };
+const roomTool = createRoomTool({ player, getA4: () => settings.a4, onCompare: compare });
 const lab = createLab({
   tools: [
     createWaveformTool({ getA4: () => settings.a4 }),
     createHarmonicsTool({ player, getA4: () => settings.a4 }),
     createBeatsTool({ player, getA4: () => settings.a4 }),
     createSpectrogramTool(),
-    createPipeTool({ player, getA4: () => settings.a4 }),
+    createPipeTool({ player, getA4: () => settings.a4, onCompare: compare }),
     roomTool,
     createRt60Tool({
       getRoom: () => roomTool.currentRoom(),
       onUseInRoom: (seconds) => { roomTool.setRT60(seconds); lab.open('room'); },
+      onCompare: compare,
     }),
+    realityTool,
   ],
   isListening: () => Boolean(mic),
   startListening: () => startListening(),

@@ -197,3 +197,5 @@ details.card[open] > summary { padding-bottom: 0; }
 .key-sabine { color: var(--purple); } .key-eyring { color: var(--orange); }
 .key-eyring::before { border-radius: 50%; }
 @media (min-width: 520px) { .alpha-grid { grid-template-columns: repeat(6, 1fr); } }
+.reality-table th[scope="row"] { font-weight: 600; }
+.reality-table td { white-space: nowrap; }
