@@ -111,3 +111,30 @@ export async function startMicrophone({ fftSize = 2048, onEnded } = {}) {
 
   return { context, analyser, sampleRate: context.sampleRate, track, stop };
 }
+
+// What the browser says it actually did with our "please turn off" requests.
+// `settings` is track.getSettings(). Each feature is reported as:
+//   'off'          – the browser confirms it's off (what we asked for)
+//   'on'           – the browser kept it on anyway
+//   'not reported' – the browser doesn't say (common on older Safari)
+// Caution: this is the browser's own report. A phone can still process the
+// sound in its hardware or operating system without the browser knowing.
+export const PROCESSING_FEATURES = [
+  { key: 'echoCancellation', label: 'Echo cancellation' },
+  { key: 'noiseSuppression', label: 'Noise suppression' },
+  { key: 'autoGainControl', label: 'Automatic gain control' },
+];
+
+export function describeMicProcessing(settings = {}) {
+  return PROCESSING_FEATURES.map(({ key, label }) => {
+    const value = settings[key];
+    const state = value === false ? 'off' : value === true ? 'on' : 'not reported';
+    return { key, label, state };
+  });
+}
+
+// One line for the page, e.g. "Echo cancellation: off · Noise suppression: on · …"
+export function micProcessingText(track) {
+  const settings = track && track.getSettings ? track.getSettings() : {};
+  return describeMicProcessing(settings).map((f) => `${f.label}: ${f.state}`).join(' · ');
+}
