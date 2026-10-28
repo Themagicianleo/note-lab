@@ -152,5 +152,13 @@ export function createRoomTool({ player, getA4, onCompare, onRoomChange }) {
     needsMic: false,
     show() { calculate(); },
     hide() {},
+    // For the RT60 tool: the room entered here (or null if the entries aren't valid) …
+    currentRoom() {
+      const [L, W, H] = dims();
+      if (!(L > 0 && W > 0 && H > 0)) return null;
+      return { L, W, H, volume: L * W * H, temperature: num(el.temperature) };
+    },
+    // … and a way to send its result back here, for the Schroeder frequency.
+    setRT60(seconds) { el.rt60.value = seconds.toFixed(2); calculate(); },
   };
 }

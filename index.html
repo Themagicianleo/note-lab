@@ -626,6 +626,62 @@ Schroeder: f_S ≈ 2000 × √(T60 / V)</pre>
           </div>
         </details>
       </div>
+
+      <!-- 7. RT60 -->
+      <div id="lab-rt60" class="panel" hidden>
+        <p class="banner banner-warn small"><strong>You provide the absorption coefficients, with their sources.</strong> The app doesn't include any: published values vary a lot with the exact material, how it's mounted and how it was measured. Look them up per octave band (125 Hz–4 kHz) in a data sheet or a reference book, and note where each one came from.</p>
+        <div class="card">
+          <div class="card-body">
+            <span class="pill tag-model">Calculated from your data</span>
+            <div class="form-grid three">
+              <label class="field"><span class="field-title">Volume V (m³)</span><input id="rt-volume" class="input" type="number" inputmode="decimal" step="0.1" min="0" placeholder="e.g. 50"></label>
+              <label class="field"><span class="field-title">Air temperature (°C)</span><input id="rt-temperature" class="input" type="number" inputmode="decimal" step="0.5" value="20"></label>
+            </div>
+            <div class="btn-row"><button id="rt-from-room" type="button" class="btn btn-small">Copy the room from Room modes</button></div>
+            <p class="small muted">Copying the room fills in the volume and adds floor, ceiling and wall areas with <em>empty</em> coefficients for you to fill in. Add more surfaces (a rug, a sofa, a window) and subtract their area from the surface they cover.</p>
+            <div id="rt-surfaces" class="surfaces"></div>
+            <div class="btn-row"><button id="rt-add" type="button" class="btn btn-small">Add a surface</button></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Estimated reverberation time</h2></div>
+          <div class="card-body">
+            <p id="rt-error" class="banner banner-danger small" role="alert" hidden></p>
+            <ul id="rt-warnings" class="small warnings"></ul>
+            <p id="rt-working" class="small lab-readout"></p>
+            <div class="table-wrap"><table id="rt-table" class="stats"></table></div>
+            <canvas id="rt-canvas" class="lab-canvas rt-canvas" aria-label="RT60 per octave band"></canvas>
+            <p class="small muted"><span class="key key-sabine">Sabine</span> <span class="key key-eyring">Eyring</span></p>
+            <div class="btn-row"><button id="rt-use-in-room" type="button" class="btn btn-small" disabled>Use the 500 Hz value in Room modes</button></div>
+          </div>
+        </div>
+        <details class="card" open>
+          <summary>What am I looking at?</summary>
+          <div class="card-body small">
+            <p>When a sound stops, it doesn't vanish at once: it keeps bouncing off the walls, losing a little energy each time something absorbs it. <strong>RT60</strong> is how long it takes to fade by 60 dB (to one millionth of its energy), roughly until a loud clap becomes inaudible. A bathroom might be well over a second; a furnished living room is often around half a second; a studio vocal booth is much less.</p>
+            <p>Every surface absorbs some fraction of the sound that hits it: its <strong>absorption coefficient α</strong>, from 0 (reflects everything, like glazed tiles) to 1 (absorbs everything, like an open window). It changes with frequency: soft materials absorb highs much more than lows. That's why the result is given per <strong>octave band</strong>. Add up area × α for all surfaces to get the room's total absorption A. Bigger rooms reverberate longer; more absorption makes it shorter.</p>
+            <p><strong>Sabine vs Eyring:</strong> Sabine's formula is the classic one and works best when the room is fairly "live" (average α below about 0.2–0.3). For rooms with a lot of absorption it overestimates, and Eyring's formula (shown alongside) is usually closer. They agree when absorption is low.</p>
+            <p><strong>Its limits:</strong> both assume the sound is spread evenly in all directions (a "diffuse field") and the absorption is spread fairly evenly. They're less reliable when most of the absorption is on one surface (e.g. a heavily treated ceiling over a bare floor), in rooms with odd shapes or coupled spaces, and in small rooms at low frequencies, below the Schroeder frequency, where single room modes dominate (see Room modes). They also ignore absorption by the air itself, which matters at 2–4 kHz in large halls. Treat the result as an estimate to compare with a measurement, not a measurement.</p>
+          </div>
+        </details>
+        <details class="card formula-card">
+          <summary>Formulas: Sabine and Eyring</summary>
+          <div class="card-body small">
+            <pre class="formula">A = Σ Sᵢ × αᵢ
+Sabine:  T60 = (24 × ln 10 / c) × V / A  ≈ 0.161 × V / A
+Eyring:  T60 = (24 × ln 10 / c) × V / ( −S × ln(1 − ᾱ) ),   ᾱ = A / S</pre>
+            <ul>
+              <li><strong>T60</strong>: reverberation time, in seconds (s)</li>
+              <li><strong>V</strong>: room volume, in m³</li>
+              <li><strong>Sᵢ</strong>: area of surface i, in m²; <strong>αᵢ</strong>: its absorption coefficient in that frequency band (0–1, no unit)</li>
+              <li><strong>A</strong>: total absorption, in m² ("metric sabins"); <strong>S</strong>: total surface area, in m²; <strong>ᾱ</strong>: average absorption coefficient</li>
+              <li><strong>c</strong>: speed of sound, in m/s (from the temperature); 24 × ln(10) / 343.2 = 0.1610 s/m</li>
+            </ul>
+            <p><strong>Worked example:</strong> V = 100 m³, with 50 m² at α = 0.10 and 80 m² at α = 0.1875: A = 5 + 15 = 20 m². Sabine: T60 = 0.161 × 100 / 20 = 0.805 s. Eyring: S = 130 m², ᾱ = 20/130 = 0.154, −ln(1 − 0.154) = 0.167, so T60 = 0.161 × 100 / (130 × 0.167) = 0.741 s.</p>
+            <p><strong>Sources:</strong> W. C. Sabine, <em>Collected Papers on Acoustics</em> (1922; work from ~1900); C. F. Eyring, "Reverberation time in 'dead' rooms", J. Acoust. Soc. Am. 1 (1930). Both are derived in Kuttruff, <em>Room Acoustics</em>, and Everest &amp; Pohlmann, <em>Master Handbook of Acoustics</em>. Absorption coefficients are usually measured to ISO 354 (reverberation room method).</p>
+          </div>
+        </details>
+      </div>
     </section>
 
     <!-- ================= SETTINGS ================= -->

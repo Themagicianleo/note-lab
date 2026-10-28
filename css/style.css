@@ -182,3 +182,18 @@ details.card[open] > summary { padding-bottom: 0; }
 .room-table tr.dim-width th:first-child { box-shadow: inset 3px 0 0 var(--orange); padding-left: 8px; }
 .room-table tr.dim-height th:first-child { box-shadow: inset 3px 0 0 var(--green); padding-left: 8px; }
 @media (max-width: 420px) { .form-grid.three { grid-template-columns: 1fr 1fr; } }
+.surfaces { display: flex; flex-direction: column; gap: 10px; }
+.surface { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 16px; background: var(--fill); }
+.surface-top { display: flex; gap: 8px; align-items: center; }
+.surface-top .input:first-child { flex: 1; min-width: 0; }
+.surface-top .area { width: 6.5em; flex: none; }
+.alpha-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 8px; }
+.alpha-grid label { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--muted); }
+.alpha-grid .input { min-height: 34px; padding: 6px 8px; font-size: 15px; }
+.surface .input { background: var(--surface); }
+.warnings { margin: 0; padding-left: 20px; color: var(--orange); }
+.warnings:empty { display: none; }
+.rt-canvas { height: 180px; }
+.key-sabine { color: var(--purple); } .key-eyring { color: var(--orange); }
+.key-eyring::before { border-radius: 50%; }
+@media (min-width: 520px) { .alpha-grid { grid-template-columns: repeat(6, 1fr); } }
