@@ -130,7 +130,8 @@ frequency      = 440 × 2^((m − 69) ÷ 12)</pre>
         perfectly. That shift is one vibration, and frequency = samples per second ÷ samples per vibration.
       </p>
       <ul>
-        <li><strong>Volume threshold:</strong> very quiet sound is ignored, so background hiss doesn't make random notes.</li>
+        <li><strong>Band filter:</strong> hiss above the notes you sing and rumble below them are removed first, so a quiet voice stands out from the microphone's own noise.</li>
+        <li><strong>Volume threshold:</strong> very quiet sound is ignored, so background hiss doesn't make random notes. With the default <em>High</em> sensitivity it sets itself just above your room's background noise.</li>
         <li><strong>Clarity check:</strong> if the sound doesn't repeat clearly enough (breath, consonants, noise), it says "no clear pitch" instead of guessing.</li>
         <li><strong>Range:</strong> in Voice mode it only looks between the lowest and highest pitch of your chosen voice range, which rules out impossible answers such as an octave too low.</li>
         <li><strong>Smoothing:</strong> it shows the middle value (median) of the last few readings so the display doesn't flicker. More smoothing = steadier but slower.</li>

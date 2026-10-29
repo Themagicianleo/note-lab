@@ -736,6 +736,32 @@ try {
     await browser.close();
   }
 
+  // 5. Sensitivity: a sung A3 at −60 dBFS over built-in-mic-like noise
+  //    (tools/sensitivity-check.js --wav). High (default) should show A3;
+  //    Standard (the old behaviour) should say it's too quiet.
+  {
+    const { browser, page, errors } = await fakeMic(`${ROOT}test-audio/sensitivity/quiet-voice-A3.wav`);
+    await page.click('#tab-voice');
+    await page.click('#start-button');
+    await page.waitForTimeout(3500); // past the 2 s of noise at the start (the threshold learns the room), into the singing; the file loops every 8 s
+    const high = await mostCommonText(page, '#voice-note');
+    const info = await page.textContent('#tech-info');
+    report(high.text === 'A3' && info.includes('sensitivity high') && info.includes('band filter 50–3200 Hz'),
+      'sensitivity High: a −60 dBFS sung A3 is detected', `${JSON.stringify(high.seen)} · ${info}`);
+    await page.click('#open-settings');
+    await page.check('input[name="sensitivity"][value="standard"]');
+    await page.click('#close-settings');
+    const standard = await mostCommonText(page, '#voice-details');
+    report(standard.text.includes('too quiet'), 'sensitivity Standard: the same sound is "too quiet" (as before)', JSON.stringify(standard.seen));
+    await page.click('#open-settings');
+    await page.check('input[name="sensitivity"][value="maximum"]');
+    await page.click('#close-settings');
+    const maximum = await mostCommonText(page, '#voice-note');
+    report((await page.textContent('#tech-info')).includes('sensitivity maximum') && maximum.text === 'A3' && !errors.length,
+      'sensitivity Maximum: A3 detected too', `${JSON.stringify(maximum.seen)} ${errors.join(' | ')}`);
+    await browser.close();
+  }
+
   // 2. Permission denied. Headless Chromium has no permission prompt to refuse, so we
   //    make getUserMedia fail with the same error a real "Don't Allow" gives (NotAllowedError).
   {

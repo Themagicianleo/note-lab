@@ -719,12 +719,85 @@ What this shows:
   not wrong notes. In one case (G2 with the Mid preset), 9% of readings were
   wrong. **Pick a range that covers all your notes.**
 
+### Sensitivity: built-in microphones (`js/filters.js`, `js/noise-floor.js`)
+
+Built-in laptop and phone mics, with the browser's automatic gain control
+turned off (which Note Lab asks for), give a quiet signal. The old fixed −55 dBFS
+voice threshold then blocked normal singing a metre or two away. **Making the
+sound louder in software would not help:** it raises the mic's hiss just as
+much, and YIN only cares about the shape of the wave, not its size. So
+sensitivity comes from three changes, chosen in **Settings → Sensitivity**:
+
+1. **Band filter** (all settings). Before pitch detection, a high-pass filter
+   at half the lowest searched pitch and a low-pass at 4× the highest remove
+   rumble and hiss outside the band where the pitch is (e.g. 50–3200 Hz for
+   the Mid voice range). These are second-order Butterworth filters,
+   using R. Bristow-Johnson's *Audio EQ Cookbook* formulas, which are also what
+   the browser's `BiquadFilterNode` uses:
+   w₀ = 2π·f₀/fs, α = sin w₀ / (2Q), Q = 1/√2; low-pass b = ((1−cos w₀)/2,
+   1−cos w₀, (1−cos w₀)/2), high-pass b = ((1+cos w₀)/2, −(1+cos w₀),
+   (1+cos w₀)/2), a = (1+α, −2cos w₀, 1−α). *Worked example:* a 1 kHz
+   low-pass at 48 kHz passes 1 kHz at −3.01 dB and 4 kHz at about −24 dB
+   (12 dB per octave), as `tests/sensitivity.test.js` checks. White hiss
+   drops by about 8–9 dB for the Mid range, because only about 1/8 of its
+   power is in 50–3200 Hz. The factors ½ and 4 are this app's choice.
+   Spectrum and the Lab still use the unfiltered sound.
+2. **Automatic volume threshold** (High and Maximum). The app keeps the
+   average level of 250 ms blocks of sound **that had no clear pitch**. The
+   quietest block in the last 15 s is the room's noise floor, and the
+   threshold is 6 dB above it, kept between −95 and −40 dBFS. This is a
+   much simplified "minimum statistics" noise estimate, the idea from
+   R. Martin (IEEE Trans. Speech and Audio Processing, 2001). The 250 ms, 15 s
+   and 6 dB are this app's choices. Only unpitched sound counts, so a long held note never
+   raises the threshold above itself. A first version counted everything, and
+   then a steady tone showed only 12% of the time; the test set caught it. The
+   thin line on the level meter moves with it.
+3. **YIN fallback** (Maximum only). When no dip goes below YIN's 0.10
+   threshold, the YIN paper says to take the deepest dip instead. Note Lab
+   does that if the dip is below 0.20. To avoid octave-low answers it then
+   prefers a dip at ½, ⅓ or ¼ of that lag if it's within 0.05 as deep.
+
+Measured on generated singing over built-in-mic-like noise
+(`node tools/sensitivity-check.js`, full tables in
+[docs/evaluation/sensitivity-check.md](docs/evaluation/sensitivity-check.md)).
+The table shows the share of singing moments with a note shown, and the share
+with a wrong note:
+
+| Voice level while singing | −55 dBFS | −60 | −65 | −70 |
+|---|---|---|---|---|
+| Before (fixed −55, no filter), louder mic noise | 27% / 1% | 0% | 0% | 0% |
+| **High**, louder mic noise (hiss −75, rumble −68 dBFS) | 98% / 0% | 79% / 3% | 1% | 0% |
+| **Maximum**, louder mic noise | 99% / 0% | 96% / 1% | 30% / 3% | 0% |
+| Before, quieter mic noise | 21% / 0% | 0% | 0% | 0% |
+| **High**, quieter mic noise (hiss −85, rumble −78 dBFS) | 100% / 0% | 100% / 0% | 97% / 0% | 73% / 3% |
+| **Maximum**, quieter mic noise | 100% / 0% | 100% / 0% | 99% / 0% | 96% / 0% |
+
+So High hears singing about 5–15 dB quieter than before. In open space, sound
+gets about 6 dB quieter each time the distance doubles (the inverse-square
+law), so that's roughly 2–5 times farther away. A real room reflects sound,
+so the gain at a distance is usually smaller. Noise alone (quiet room, a room 20 dB noisier,
+50 Hz mains hum) showed a note 0% of the time with every setting. On the main
+test set (`npm run evaluate -- --preset=mid --sensitivity=high`), High also
+finds the **breathy A3** 100% of the time (before: 0%), with no new errors.
+
+**Why Maximum isn't the default:** with music it guesses.
+`node tools/polyphonic-check.js`: melody + soft chords showed a **wrong** note
+92% of the time with Maximum, but 0% with High (it says "no clear pitch", as
+before). With a band, Maximum showed a wrong note 50% of the time, High 17%
+(before: 18%). A looser plain YIN threshold (0.15) was also tried and
+rejected: 14–19% wrong notes even on loud, clean singing (octave errors).
+
+The noise levels in these tests are guesses meant to resemble built-in mics,
+**not measured from a real device**; how much better it is on your laptop or
+iPhone has to be tried (see the iPhone checklist).
+
 ### Volume threshold and "no clear pitch"
 
 Two separate checks stop random numbers:
 
-1. **Volume threshold** (voice default −55 dBFS, slider −80 to −20). Anything
-   quieter isn't analysed at all. Use it against background noise: watch the
+1. **Volume threshold**: automatic with High/Maximum sensitivity (above), or
+   fixed with Standard (voice default −55 dBFS, slider −80 to −20). Anything
+   quieter isn't analysed at all. For the fixed one, watch the
    level meter while you're silent and set the threshold above that level.
 2. **Clarity check** (inside YIN). Loud sounds that don't repeat regularly,
    like breath, whispers, "s"/"sh"/"f" consonants and hiss, fail it.
@@ -960,6 +1033,15 @@ generated signals, it still needs checking on real recordings.
 - **Offline** works only after one online visit, and only in a browser that
   supports service workers (current Safari, Chrome, Firefox, Edge).
 - **Accuracy numbers** are from generated signals only, so far.
+- **Sensitivity** (see "Sensitivity: built-in microphones"): measured on
+  generated sound with guessed mic-noise levels, not on real devices. Very
+  quiet singing (below about −65 dBFS with typical mic hiss) still isn't
+  detected; the only real fix is getting closer or using a better mic. The
+  automatic threshold needs a short pause (a breath) at least every 15 s to
+  learn the room, and a steady pitched background sound in the voice range (a
+  fan tone, a fridge hum harmonic) can still show as a note. **Maximum**
+  shows wrong notes with music; use High for anything but one voice.
+  The Lab's Key finder (singer mode) still uses its own fixed threshold.
 - **Pitch monitor statistics** inherit every detection error above. The ±10 and
   ±25 cent bands are this app's choice, not a standard.
 - **Voice type** is a range comparison against typical ranges (from Wikipedia,
@@ -1016,6 +1098,10 @@ Things to check on iPhone (please report back):
     how long does a 1-minute memo take?
 19. Drone with and without headphones: without them, does the line follow the
     drone instead of you?
+20. **Sensitivity:** sing at your usual distance from the built-in mic with
+    High (default), then Standard, then Maximum (Settings → Sensitivity). Which
+    ones show your notes? While you're silent, where does the thin threshold
+    line on the level meter sit (it should be just above the moving bar)?
 
 ## Running the tests
 
@@ -1032,6 +1118,8 @@ npm run evaluate -- --preset=low    # try other settings (also --window, --thres
 npm run tradeoff                    # smoothness vs responsiveness for each smoothing level
 npm run spectrum-check              # spectrum peaks and levels on generated files
 npm run key-check                   # key finder on generated tunes in all 24 keys (~6 min)
+npm run sensitivity-check           # quiet singing over built-in-mic-like noise, per sensitivity setting (~3 min)
+npm run evaluate -- --sensitivity=high   # the test set with the app's default sensitivity
 node tools/polyphonic-check.js      # why songs show "no clear pitch" in the tuner
 node tools/browser-test.js          # optional; needs Playwright + Chromium installed
 node tools/make-icons.js            # optional; re-render the icons (needs Playwright)
@@ -1046,6 +1134,7 @@ css/glass.css                    shared Liquid Glass design (copied unchanged fr
 css/style.css                    Note Lab's own styles on top of it
 js/pitch-math.js                 ★ frequency ↔ note maths (start here)
 js/yin.js, js/smoothing.js, js/level.js, js/pitch-tracker.js   pitch detection pipeline
+js/filters.js, js/noise-floor.js band filter and automatic volume threshold (sensitivity)
 js/fft.js, js/spectrum.js        spectrum maths
 js/voice-ranges.js, js/range-finder.js, js/ear-training.js, js/settings.js   other logic
 js/scales.js, js/pitch-stats.js, js/pitch-history.js, js/monitor-window.js, js/voice-types.js,
@@ -1119,5 +1208,13 @@ phase by phase at the owner's direction:
   check's screenshots caught two display problems, which were fixed: in full
   screen the page header covered the graph, and a file's line started at the
   right edge.
+- For "greatly increase the sensitivity", the AI measured before changing
+  anything. It first tried a looser YIN threshold (rejected: 19% wrong notes
+  on clean singing), then a fallback at 0.35 as the default. The music test
+  showed that version guessing wrong notes with chords 91% of the time, which
+  breaks the "no clear pitch instead of guessing" rule. So the default became
+  the band filter plus the automatic threshold, and the fallback became the
+  opt-in "Maximum" with a warning. The automatic threshold's first version
+  failed on a steady test tone (12%), which the existing test set caught.
 - The AI can't hear and has no iPhone, so iPhone behaviour and real-world
   accuracy have to be checked by a person.

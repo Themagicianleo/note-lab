@@ -17,10 +17,11 @@
 // ------------------------------------------------------------
 
 import { startMicrophone, checkMicrophoneSupport, micProcessingText } from './audio-input.js';
-import { PitchTracker } from './pitch-tracker.js';
+import { PitchTracker, SENSITIVITY } from './pitch-tracker.js';
 import { SMOOTHING_LEVELS, DEFAULT_SMOOTHING_LEVEL } from './smoothing.js';
 import { frequencyToNote } from './pitch-math.js';
 import { levelDb } from './level.js';
+import { pitchBand } from './filters.js';
 import { computeSpectrum } from './spectrum.js';
 import { VOICE_PRESETS, describeRange } from './voice-ranges.js';
 import { RangeFinder, RangeTest } from './range-finder.js';
@@ -76,12 +77,13 @@ function currentConfig() {
   if (activeTab === 'spectrum') {
     return { minHz: 20, maxHz: 20000, windowSize: SPECTRUM_WINDOW, gateDb: settings.tunerGateDb, smoothingLevel: DEFAULT_SMOOTHING_LEVEL };
   }
+  const sensitivity = SENSITIVITY[settings.sensitivity]; // automatic threshold, YIN fallback (or not)
   if (activeTab === 'tuner') {
-    return { ...TUNER_RANGES[settings.tunerRange], gateDb: settings.tunerGateDb, smoothingLevel: DEFAULT_SMOOTHING_LEVEL };
+    return { ...TUNER_RANGES[settings.tunerRange], gateDb: settings.tunerGateDb, smoothingLevel: DEFAULT_SMOOTHING_LEVEL, ...sensitivity };
   }
   // Voice, and sing-back (which searches the range of its target notes).
   const range = activeTab === 'ear' ? VOICE_PRESETS[singBack.rangeKey()] : voiceRange(settings);
-  return { minHz: range.minHz, maxHz: range.maxHz, windowSize: 2048, gateDb: settings.voiceGateDb, smoothingLevel: settings.smoothingLevel };
+  return { minHz: range.minHz, maxHz: range.maxHz, windowSize: 2048, gateDb: settings.voiceGateDb, smoothingLevel: settings.smoothingLevel, ...sensitivity };
 }
 
 // Readings per second: screens refresh 60–120 times a second; we cap it at
@@ -143,7 +145,8 @@ const monitor = createMonitor({
   player,
   getA4: () => settings.a4,
   getMic: () => mic,
-  getAnalysisConfig: () => ({ ...voiceRange(settings), windowSize: 2048, gateDb: settings.voiceGateDb, smoothingLevel: settings.smoothingLevel }),
+  getAnalysisConfig: () => ({ ...voiceRange(settings), windowSize: 2048, gateDb: settings.voiceGateDb, smoothingLevel: settings.smoothingLevel,
+    filter: true, ...SENSITIVITY[settings.sensitivity] }),
   onReviewNote: (note) => voiceView.showReviewNote(note),
 });
 const trainerOptions = { player, getA4: () => settings.a4, isListening: () => Boolean(mic) };
@@ -208,6 +211,7 @@ const settingsView = createSettingsView({
   },
   onPlayA4: () => player.playFrequency(settings.a4, { duration: 1.5 }),
   onTunerGateChange: (db) => changeSettings({ tunerGateDb: db }),
+  onSensitivityChange: (sensitivity) => changeSettings({ sensitivity }),
   onResetScores() {
     removeKey(SCORES_KEY);
     for (const key of Object.keys(scores)) delete scores[key];
@@ -291,15 +295,19 @@ function applyConfig() {
   tracker.configure(config);
   if (mic) {
     mic.analyser.fftSize = config.windowSize; // how many samples each reading uses
+    mic.pitchAnalyser.fftSize = config.windowSize;
+    mic.setBand(config.minHz, config.maxHz);   // the band filter before pitch detection
     buffer = new Float32Array(config.windowSize);
     const windowText = `Sample rate ${mic.sampleRate} Hz · window ${config.windowSize} samples ` +
       `(${((1000 * config.windowSize) / mic.sampleRate).toFixed(0)} ms)`;
     byId('tech-info').textContent = activeTab === 'spectrum'
       ? `${windowText} · each frequency bin is ${(mic.sampleRate / config.windowSize).toFixed(1)} Hz wide`
-      : `${windowText} · range ${config.minHz}–${config.maxHz} Hz · A4 = ${settings.a4} Hz`;
+      : activeTab === 'lab' ? windowText
+      : `${windowText} · range ${config.minHz}–${config.maxHz} Hz · A4 = ${settings.a4} Hz · sensitivity ${settings.sensitivity}` +
+        ` · band filter ${pitchBand(config.minHz, config.maxHz).highpassHz}–${pitchBand(config.minHz, config.maxHz).lowpassHz} Hz`;
   }
   spectrumView.reset();
-  levelMeter.setGate(config.gateDb);
+  if (!config.autoGate) levelMeter.setGate(config.gateDb); // the automatic one is set with every reading
 
   // Describe the voice settings (on the Settings page and the Voice tab).
   const v = voiceRange(settings);
@@ -416,8 +424,10 @@ function tick(now) {
   const elapsed = now - lastReading;
   lastReading = now;
 
-  // 1. Copy the latest samples from the microphone.
-  mic.analyser.getFloatTimeDomainData(buffer);
+  // 1. Copy the latest samples from the microphone: raw for the Lab and
+  //    Spectrum, band-filtered for pitch detection.
+  const pitchMode = activeTab !== 'lab' && activeTab !== 'spectrum';
+  (pitchMode ? mic.pitchAnalyser : mic.analyser).getFloatTimeDomainData(buffer);
 
   // Lab tools analyse the samples themselves.
   if (activeTab === 'lab') {
@@ -434,11 +444,12 @@ function tick(now) {
   }
 
   // 2. Run the pitch pipeline.
-  const result = tracker.process(buffer, mic.sampleRate);
+  const result = tracker.process(buffer, mic.sampleRate, now);
   const note = result.smoothed ? frequencyToNote(result.smoothed, settings.a4) : null;
 
   // 3. Show it.
   levelMeter.update(result.levelDb);
+  if (tracker.options.autoGate) levelMeter.setGate(Math.round(result.gateDb));
   if (activeTab === 'tuner') {
     tunerView.update({ note, reason: result.reason });
   } else if (activeTab === 'ear') {

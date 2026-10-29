@@ -8,7 +8,7 @@
 import { DEFAULT_A4 } from './pitch-math.js';
 import { VOICE_PRESETS, validateCustomRange } from './voice-ranges.js';
 import { SMOOTHING_LEVELS, DEFAULT_SMOOTHING_LEVEL } from './smoothing.js';
-import { DEFAULT_GATE_DB } from './pitch-tracker.js';
+import { DEFAULT_GATE_DB, SENSITIVITY } from './pitch-tracker.js';
 
 export const SETTINGS_KEY = 'note-lab-settings-v1';
 
@@ -27,6 +27,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   voiceMaxHz: 400,
   voiceGateDb: -55,             // also used by sing-back
   smoothingLevel: DEFAULT_SMOOTHING_LEVEL,
+  sensitivity: 'high',          // 'standard' | 'high' | 'maximum' (see js/pitch-tracker.js)
 });
 
 const inRange = (value, min, max) => Number.isFinite(value) && value >= min && value <= max;
@@ -42,6 +43,7 @@ export function validateSettings(input) {
   if (inRange(input.tunerGateDb, GATE_LIMITS.min, GATE_LIMITS.max)) s.tunerGateDb = input.tunerGateDb;
   if (inRange(input.voiceGateDb, GATE_LIMITS.min, GATE_LIMITS.max)) s.voiceGateDb = input.voiceGateDb;
   if (Number.isInteger(input.smoothingLevel) && SMOOTHING_LEVELS[input.smoothingLevel]) s.smoothingLevel = input.smoothingLevel;
+  if (Object.hasOwn(SENSITIVITY, input.sensitivity ?? '')) s.sensitivity = input.sensitivity;
 
   if (input.voicePreset === 'custom') {
     const check = validateCustomRange(input.voiceMinHz, input.voiceMaxHz);

@@ -9,7 +9,7 @@
 // tests/service-worker.test.js checks that FILES lists every app file.
 // ------------------------------------------------------------
 
-const VERSION = 'note-lab-v4'; // v4: pitch monitor on the Voice tab
+const VERSION = 'note-lab-v5'; // v5: higher sensitivity (band filter, automatic threshold)
 
 const FILES = [
   './',
@@ -29,6 +29,7 @@ const FILES = [
   'js/autocorrelation.js',
   'js/ear-training.js',
   'js/file-analysis.js',
+  'js/filters.js',
   'js/fft.js',
   'js/interval-trainer-view.js',
   'js/key-finder.js',
@@ -50,6 +51,7 @@ const FILES = [
   'js/monitor-graph.js',
   'js/monitor-view.js',
   'js/monitor-window.js',
+  'js/noise-floor.js',
   'js/note-trainer-view.js',
   'js/pitch-history.js',
   'js/pitch-math.js',

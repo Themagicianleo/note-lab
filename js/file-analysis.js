@@ -11,6 +11,7 @@
 // ------------------------------------------------------------
 
 import { PitchTracker } from './pitch-tracker.js';
+import { bandFilter } from './filters.js';
 
 export const FILE_HOP_SEC = 1 / 60;       // same reading rate as the live monitor
 export const MAX_FILE_SECONDS = 600;      // 10 minutes
@@ -23,21 +24,24 @@ export function mixToMono(channels) {
   return out;
 }
 
-// samples: Float32Array (mono). trackerOptions: { minHz, maxHz, gateDb, smoothingLevel, windowSize }.
+// samples: Float32Array (mono). trackerOptions: { minHz, maxHz, gateDb, smoothingLevel, windowSize,
+// filter (true: remove hiss and rumble first, like live), and the sensitivity options }.
 // Returns readings [{ t (ms from the start), hz (smoothed or null), raw }].
 // onProgress(0..1) is called between chunks; shouldStop() can cancel (returns null).
 export async function analyseSamples(samples, sampleRate, trackerOptions, { hopSec = FILE_HOP_SEC, onProgress = () => {}, shouldStop = () => false } = {}) {
-  const { windowSize = 2048, ...options } = trackerOptions;
+  const { windowSize = 2048, filter = false, ...options } = trackerOptions;
   const tracker = new PitchTracker(options);
+  if (filter) samples = bandFilter(samples, sampleRate, tracker.options.minHz, tracker.options.maxHz);
   const hop = hopSec * sampleRate;
   const readings = [];
   const total = Math.max(0, Math.floor((samples.length - windowSize) / hop) + 1);
   const CHUNK = 240; // readings per chunk (4 s of sound)
   for (let k = 0; k < total; k++) {
     const start = Math.round(k * hop);
-    const result = tracker.process(samples.subarray(start, start + windowSize), sampleRate);
     // Time of the reading = the END of its window (as live: the newest samples).
-    readings.push({ t: (1000 * (start + windowSize)) / sampleRate, hz: result.smoothed, raw: result.frequency });
+    const t = (1000 * (start + windowSize)) / sampleRate;
+    const result = tracker.process(samples.subarray(start, start + windowSize), sampleRate, t);
+    readings.push({ t, hz: result.smoothed, raw: result.frequency });
     if (k % CHUNK === CHUNK - 1) {
       onProgress(k / total);
       await new Promise((resolve) => setTimeout(resolve, 0));

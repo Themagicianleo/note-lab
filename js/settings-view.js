@@ -10,7 +10,7 @@ import { noteToFrequency } from './pitch-math.js';
 
 const byId = (id) => document.getElementById(id);
 
-export function createSettingsView({ onA4Change, onPlayA4, onTunerGateChange, onResetScores, onResetSettings }) {
+export function createSettingsView({ onA4Change, onPlayA4, onTunerGateChange, onSensitivityChange, onResetScores, onResetSettings }) {
   const el = {
     a4: byId('a4-input'),
     suggestions: byId('a4-suggestions'),
@@ -19,6 +19,7 @@ export function createSettingsView({ onA4Change, onPlayA4, onTunerGateChange, on
     play: byId('a4-play'),
     gate: byId('tuner-gate-slider'),
     gateValue: byId('tuner-gate-value'),
+    sensitivity: document.querySelectorAll('input[name="sensitivity"]'),
     resetScores: byId('reset-scores'),
     resetSettings: byId('reset-settings'),
     dataMessage: byId('data-message'),
@@ -55,6 +56,7 @@ export function createSettingsView({ onA4Change, onPlayA4, onTunerGateChange, on
     el.gateValue.textContent = `${el.gate.value} dBFS`;
     onTunerGateChange(Number(el.gate.value));
   });
+  el.sensitivity.forEach((radio) => radio.addEventListener('change', () => onSensitivityChange(radio.value)));
   el.resetScores.addEventListener('click', () => {
     onResetScores();
     el.dataMessage.textContent = 'Training scores reset.';
@@ -65,7 +67,8 @@ export function createSettingsView({ onA4Change, onPlayA4, onTunerGateChange, on
   });
 
   return {
-    setControls({ a4, tunerGateDb }) {
+    setControls({ a4, tunerGateDb, sensitivity }) {
+      el.sensitivity.forEach((radio) => { radio.checked = radio.value === sensitivity; });
       el.a4.value = a4;
       el.error.hidden = true;
       showPreview(a4);

@@ -950,9 +950,22 @@ best key = the highest r</pre>
       </fieldset>
 
       <fieldset class="card options">
+        <legend>Sensitivity (tuner, voice, sing-back, files)</legend>
+        <label class="choice"><input type="radio" name="sensitivity" value="high" checked> <span><strong>High</strong> (recommended, for built-in mics)
+          <span class="small muted">The volume threshold sets itself just above your room's background noise. Only clear sounds count, so music with chords still shows "no clear pitch".</span></span></label>
+        <label class="choice"><input type="radio" name="sensitivity" value="maximum"> <span><strong>Maximum</strong> (one voice, quiet room)
+          <span class="small muted">Also accepts less clear sounds, so even quieter singing shows up. <strong>With music, chords or a band it shows wrong notes</strong> most of the time instead of "no clear pitch".</span></span></label>
+        <label class="choice"><input type="radio" name="sensitivity" value="standard"> <span><strong>Standard</strong>
+          <span class="small muted">The strict behaviour from before: only clear sounds, with the fixed thresholds below.</span></span></label>
+        <p class="small muted">All three remove hiss and rumble outside the pitch range before detecting (a band filter). Measured on generated singing with built-in-mic-like
+          noise, the old setting found almost nothing below −55 dBFS; High found 79–100% of the notes at −60 dBFS and Maximum 96–100% (1% wrong or less). Details and limits in the README, "Sensitivity".
+          Making the sound louder in software wouldn't help: it raises the noise just as much.</p>
+      </fieldset>
+
+      <fieldset class="card options">
         <legend>Tuner volume threshold: <span id="tuner-gate-value">−60 dBFS</span></legend>
         <input id="tuner-gate-slider" type="range" min="-80" max="-20" step="1" value="-60" aria-describedby="tuner-gate-help">
-        <p id="tuner-gate-help" class="small muted">This is the tuner's sensitivity. Left (lower number) = more sensitive, picks up quiet notes but also background noise. Right = only louder sounds count. Watch the input level while you're silent and set this above it.</p>
+        <p id="tuner-gate-help" class="small muted"><strong>Used with Standard sensitivity only</strong> (High and Maximum set the threshold automatically). This is the tuner's sensitivity. Left (lower number) = more sensitive, picks up quiet notes but also background noise. Right = only louder sounds count. Watch the input level while you're silent and set this above it.</p>
       </fieldset>
 
       <fieldset class="card options">
@@ -974,7 +987,7 @@ best key = the highest r</pre>
       <fieldset class="card options">
         <legend>Voice &amp; sing-back volume threshold: <span id="gate-value">−55 dBFS</span></legend>
         <input id="gate-slider" type="range" min="-80" max="-20" step="1" value="-55" aria-describedby="gate-help">
-        <p id="gate-help" class="small muted">Sounds quieter than this are ignored, so breathing and background noise don't produce random notes. In a noisy room, move it right (to a higher number), above the level the meter shows when you're silent.</p>
+        <p id="gate-help" class="small muted"><strong>Used with Standard sensitivity only.</strong> Sounds quieter than this are ignored, so breathing and background noise don't produce random notes. In a noisy room, move it right (to a higher number), above the level the meter shows when you're silent.</p>
       </fieldset>
 
       <fieldset class="card options">
@@ -1011,7 +1024,8 @@ best key = the highest r</pre>
         <p class="small muted">
           <strong>dBFS</strong> = decibels below the loudest sound the microphone input can take (0 dBFS).
           It shows how loud the sound is to this microphone. It is <em>not</em> a calibrated sound level meter.
-          The thin line marks the volume threshold: anything quieter is ignored.
+          The thin line marks the volume threshold: anything quieter is ignored. With High or Maximum sensitivity it moves by itself to just above the background noise.
+          In pitch modes the level is measured after the band filter (hiss and rumble removed), so it reads lower than in Spectrum or the Lab.
         </p>
         <div class="btn-row">
           <button id="stop-button" type="button" class="btn btn-danger">Stop listening</button>

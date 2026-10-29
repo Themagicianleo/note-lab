@@ -9,10 +9,16 @@
 // When you press Stop, the microphone is released.
 //
 // Audio path:
-//   microphone → MediaStreamSource → AnalyserNode → silent GainNode → speakers
+//   microphone → MediaStreamSource ─┬→ AnalyserNode (raw: spectrum, Lab) ─────────────┬→ silent GainNode → speakers
+//                                   └→ high-pass → low-pass → AnalyserNode (pitch) ───┘
+// The high-pass and low-pass filters keep only the band the pitch is searched
+// in (js/filters.js explains why and how), so a quiet voice stands out more
+// from the microphone's hiss. Spectrum and Lab tools read the raw sound.
 // The silent gain (volume 0) is there because some browsers only process
 // audio nodes that are connected to the output. Volume 0 means you hear nothing.
 // ------------------------------------------------------------
+
+import { BUTTERWORTH_Q, pitchBand } from './filters.js';
 
 // An error with a friendly message we can show on the page.
 export class MicrophoneError extends Error {
@@ -102,6 +108,28 @@ export async function startMicrophone({ fftSize = 2048, onEnded } = {}) {
   analyser.connect(silent);
   silent.connect(context.destination);
 
+  // The pitch path, through the band filter.
+  const highpass = context.createBiquadFilter();
+  const lowpass = context.createBiquadFilter();
+  highpass.type = 'highpass';
+  lowpass.type = 'lowpass';
+  // Web Audio takes Q in dB for these filter types: 20·log10(1/√2) = −3.01 dB = Butterworth.
+  highpass.Q.value = 20 * Math.log10(BUTTERWORTH_Q);
+  lowpass.Q.value = 20 * Math.log10(BUTTERWORTH_Q);
+  const pitchAnalyser = context.createAnalyser();
+  pitchAnalyser.fftSize = fftSize;
+  source.connect(highpass);
+  highpass.connect(lowpass);
+  lowpass.connect(pitchAnalyser);
+  pitchAnalyser.connect(silent);
+  // Set the band for a search range (minHz–maxHz).
+  function setBand(minHz, maxHz) {
+    const band = pitchBand(minHz, maxHz);
+    highpass.frequency.value = band.highpassHz;
+    lowpass.frequency.value = Math.min(band.lowpassHz, context.sampleRate / 2 - 100);
+  }
+  setBand(50, 1500);
+
   const track = stream.getAudioTracks()[0];
   if (track && onEnded) track.addEventListener('ended', onEnded);
 
@@ -113,7 +141,7 @@ export async function startMicrophone({ fftSize = 2048, onEnded } = {}) {
 
   // `stream` is also returned for the pitch monitor's optional recorder
   // (js/recorder.js), which keeps a recording in memory only when you tap Record.
-  return { context, analyser, sampleRate: context.sampleRate, track, stream, stop };
+  return { context, analyser, pitchAnalyser, setBand, sampleRate: context.sampleRate, track, stream, stop };
 }
 
 // What the browser says it actually did with our "please turn off" requests.
