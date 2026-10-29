@@ -70,3 +70,38 @@ export function describeSpan(semitones) {
   if (rest || !octaves) parts.push(`${rest} semitone${rest === 1 ? '' : 's'}`);
   return parts.join(' + ');
 }
+
+// A guided two-step range test (Voice tab → "Range test"):
+//   step 'low'  – slide down to your lowest comfortable note: we keep the LOWEST held note
+//   step 'high' – slide up to your highest: we keep the HIGHEST held note
+//   step 'done' – result: { lowest, highest, semitones }
+// Each step uses its own RangeFinder, so warming up in the middle of your
+// range during step 1 doesn't affect step 2 and the other way round.
+export class RangeTest {
+  constructor({ a4 = DEFAULT_A4 } = {}) {
+    this.a4 = a4;
+    this.step = 'idle';
+  }
+
+  start() {
+    this.step = 'low';
+    this.low = new RangeFinder({ a4: this.a4 });
+    this.high = new RangeFinder({ a4: this.a4 });
+  }
+
+  // Go to the next step. Returns the new step.
+  next() {
+    this.step = this.step === 'low' ? 'high' : 'done';
+    return this.step;
+  }
+
+  push(frequency, timeMs) {
+    if (this.step === 'low') return this.low.push(frequency, timeMs);
+    if (this.step === 'high') return this.high.push(frequency, timeMs);
+    return false;
+  }
+
+  get lowest() { return this.low ? this.low.lowest : null; }
+  get highest() { return this.high ? this.high.highest : null; }
+  get semitones() { return this.lowest === null || this.highest === null ? null : this.highest - this.lowest; }
+}

@@ -42,7 +42,7 @@
 
     <p class="banner privacy">
       <strong>Your sound stays on this device.</strong>
-      All audio is processed here in your browser. Nothing is recorded, stored or sent anywhere.
+      All audio is processed here in your browser and never sent anywhere. Nothing is recorded, unless you tap Record on the Voice tab: that stays in this page's memory only and is gone when you close the page.
     </p>
 
     <!-- Shown before listening starts -->
@@ -92,29 +92,149 @@
       </fieldset>
     </section>
 
-    <!-- ================= VOICE ================= -->
+    <!-- ================= VOICE: the pitch monitor ================= -->
     <section id="voice" class="panel" role="tabpanel" aria-labelledby="tab-voice" hidden>
-      <div class="card">
+      <div id="monitor-card" class="card monitor-card">
         <div class="card-body">
           <div class="voice-now">
             <span id="voice-note" class="voice-note">–</span>
             <span id="voice-details" class="voice-details">No clear pitch</span>
           </div>
-          <p id="voice-clarity" class="small muted voice-clarity">Clarity –</p>
-          <canvas id="pitch-graph" class="pitch-graph" aria-label="Graph of your pitch over the last 8 seconds"></canvas>
-          <p class="small muted">Line = your pitch (smoothed). Dots = raw readings. Gaps = no clear pitch.</p>
+          <p class="small muted voice-clarity"><span id="voice-clarity">Clarity –</span> · <span id="monitor-status">Live</span></p>
+          <canvas id="monitor-graph" class="monitor-graph" aria-label="Pitch monitor: your pitch over time on a piano keyboard. Drag to scroll, pinch to zoom, tap a key to hear it."></canvas>
+          <div class="monitor-toolbar">
+            <button id="monitor-pause" type="button" class="btn btn-small" aria-pressed="false">Pause</button>
+            <span class="monitor-zoom" role="group" aria-label="Zoom notes">
+              <button id="monitor-notes-out" type="button" class="btn btn-small" aria-label="Show more notes">Notes −</button>
+              <button id="monitor-notes-in" type="button" class="btn btn-small" aria-label="Show fewer notes, bigger">Notes +</button>
+            </span>
+            <span class="monitor-zoom" role="group" aria-label="Zoom time">
+              <button id="monitor-time-out" type="button" class="btn btn-small" aria-label="Show more seconds">Time −</button>
+              <button id="monitor-time-in" type="button" class="btn btn-small" aria-label="Show fewer seconds, bigger">Time +</button>
+            </span>
+            <button id="monitor-full" type="button" class="btn btn-small" aria-pressed="false">Full screen</button>
+            <button id="monitor-clear" type="button" class="btn btn-small">Clear</button>
+          </div>
+          <p class="small muted monitor-help">Line = your pitch (coloured by note). Gaps = no clear pitch. <strong>Drag</strong> to scroll back or up/down,
+            <strong>pinch</strong> (or the buttons) to zoom, <strong>tap a piano key</strong> to hear that note, <strong>double-tap</strong> the graph to go back to live.
+            The last 5 minutes of the line (numbers only, not sound) are kept while the page is open.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Key and scale lines</h2></div>
+        <div class="card-body">
+          <div class="monitor-options">
+            <label class="field"><span class="field-title">Key</span>
+              <select id="monitor-tonic" class="input">
+                <option value="">None</option>
+                <option value="0">C</option><option value="1">C♯ / D♭</option><option value="2">D</option><option value="3">E♭ / D♯</option>
+                <option value="4">E</option><option value="5">F</option><option value="6">F♯ / G♭</option><option value="7">G</option>
+                <option value="8">A♭ / G♯</option><option value="9">A</option><option value="10">B♭ / A♯</option><option value="11">B</option>
+              </select></label>
+            <label class="field"><span class="field-title">Scale</span><select id="monitor-scale" class="input"></select></label>
+          </div>
+          <div class="btn-row">
+            <button id="monitor-find-key" type="button" class="btn btn-small">Find the key of what I've sung</button>
+            <button id="voice-open-key" type="button" class="btn btn-small">Open the Key finder (songs too)</button>
+          </div>
+          <p id="monitor-key-result" class="small muted"></p>
+          <p class="small muted">Shaded rows are the notes of the scale; the key's home note (tonic) is orange. Scale steps are the standard textbook ones (major = 0 2 4 5 7 9 11 semitones from the tonic).</p>
+          <label class="check"><input id="monitor-colour" type="checkbox" checked> Colour the line by note (C red, then round the colour wheel)</label>
+          <label class="check"><input id="monitor-raw" type="checkbox"> Show raw readings (dots, before smoothing)</label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Reference notes</h2></div>
+        <div class="card-body">
+          <p class="small muted">Tap a key on the graph's keyboard to hear that note (a generated tone). A drone holds one note so you can sing against it.</p>
+          <div class="monitor-options">
+            <label class="field"><span class="field-title">Drone note</span>
+              <select id="drone-note" class="input">
+                <option value="key">The key's tonic</option>
+                <option value="0">C</option><option value="1">C♯</option><option value="2">D</option><option value="3">E♭</option><option value="4">E</option><option value="5">F</option>
+                <option value="6">F♯</option><option value="7">G</option><option value="8">A♭</option><option value="9">A</option><option value="10">B♭</option><option value="11">B</option>
+              </select></label>
+            <label class="field"><span class="field-title">Octave</span>
+              <select id="drone-octave" class="input"><option value="2">2 (low)</option><option value="3" selected>3</option><option value="4">4 (middle C)</option><option value="5">5</option></select></label>
+          </div>
+          <button id="drone-toggle" type="button" class="btn" aria-pressed="false">Start drone</button>
+          <p id="drone-info" class="small muted"></p>
+          <p class="small"><strong>Use headphones</strong> for the drone: through a speaker, the microphone hears the drone too and the pitch line may follow it instead of you.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Pitch statistics</h2></div>
+        <div class="card-body">
+          <div class="seg ear-seg" role="group" aria-label="Which part of the line">
+            <button id="stats-visible" type="button" aria-pressed="true">On screen</button>
+            <button id="stats-all" type="button" aria-pressed="false">Everything kept</button>
+          </div>
+          <dl class="range-results stats-results">
+            <div><dt>Within ±10 cents</dt><dd id="stat-10">–</dd></div>
+            <div><dt>Within ±25 cents</dt><dd id="stat-25">–</dd></div>
+            <div><dt>Average offset (+ sharp, − flat)</dt><dd id="stat-mean">–</dd></div>
+            <div><dt>Average distance</dt><dd id="stat-abs">–</dd></div>
+            <div><dt>Lowest – highest</dt><dd id="stat-range">–</dd></div>
+            <div><dt>Most sung</dt><dd id="stat-most">–</dd></div>
+          </dl>
+          <p id="stat-time" class="small muted"></p>
+          <p class="small muted"><strong>How it's worked out:</strong> for each reading, n = 69 + 12·log₂(f / A4) is its note number and
+            cents = 100 · (n − nearest note). With a key chosen, "nearest note" means the nearest note <em>of the scale</em>, so a wrong note counts as far off.
+            Each reading counts for the time until the next one. The ±10 and ±25 cent bands are this app's own choice for a quick summary, not a standard.
+            These come from the pitch line, so they are only as good as the detection (see Limitations in the README).</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Record and play back</h2></div>
+        <div class="card-body">
+          <p class="small"><strong>Private:</strong> a recording is kept in this page's memory only, never saved to your device and never uploaded.
+            It disappears when you tap Delete, record again, stop the microphone, or close the page. Nothing records until you tap Record.</p>
+          <div class="btn-row">
+            <button id="rec-start" type="button" class="btn btn-primary">Record</button>
+            <button id="rec-stop" type="button" class="btn" disabled>Stop recording</button>
+            <button id="rec-play" type="button" class="btn" disabled>Play</button>
+            <button id="rec-delete" type="button" class="btn" disabled>Delete</button>
+          </div>
+          <p id="rec-status" class="small muted">Up to 5 minutes. While playing back, the graph shows the pitch line of the recording with a red playhead.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Analyse an audio file</h2></div>
+        <div class="card-body">
+          <p class="small muted">Choose a recording on this device (for example a voice memo). It's read and analysed here, in this page, with the same pitch detection and voice settings as live, and never uploaded.
+            Only single voices or instruments work well: with chords or a band, the line will have gaps or wrong notes (see Limitations).</p>
+          <label class="btn file-btn">Choose audio file<input id="file-input" type="file" accept="audio/*,.m4a,.mp3,.wav,.aac,.caf"></label>
+          <div class="level-bar file-progress" hidden><div id="file-progress" class="level-fill"></div></div>
+          <p id="file-status" class="small muted" aria-live="polite"></p>
+          <div class="btn-row">
+            <button id="file-play" type="button" class="btn" hidden>Play</button>
+            <button id="file-close" type="button" class="btn" hidden>Back to live</button>
+          </div>
         </div>
       </div>
 
       <div class="card range-finder">
-        <div class="card-head"><h2>Range finder</h2><button id="range-reset" type="button" class="btn btn-small">Reset</button></div>
+        <div class="card-head"><h2>Range finder and voice type</h2><button id="range-reset" type="button" class="btn btn-small">Reset</button></div>
         <div class="card-body">
-          <p class="small muted">Sing your lowest comfortable note and hold it for about half a second, then your highest. Only notes held steady count.</p>
+          <p class="small muted">Any note you hold steady for about 0.3 s counts. For a guided test, tap <em>Range test</em>: slide down to your lowest comfortable note, then up to your highest.</p>
           <dl class="range-results">
             <div><dt>Lowest</dt><dd id="range-low">–</dd></div>
             <div><dt>Highest</dt><dd id="range-high">–</dd></div>
             <div><dt>Range</dt><dd id="range-span">–</dd></div>
           </dl>
+          <div class="btn-row">
+            <button id="range-test" type="button" class="btn btn-small">Range test</button>
+            <button id="range-next" type="button" class="btn btn-small btn-primary" hidden>Next</button>
+          </div>
+          <p id="range-step" class="singback-target" hidden></p>
+          <p id="voice-type" class="small"></p>
+          <p class="small muted">Voice types (typical ranges, from the Wikipedia voice-type articles): bass E2–E4, baritone A2–A4, tenor C3–C5, contralto F3–F5, mezzo-soprano A3–A5, soprano C4–C6.
+            Teachers judge voice type by comfort, tone and where the voice changes register, not range alone, so treat this as a rough guide.</p>
         </div>
       </div>
 
@@ -122,7 +242,6 @@
         <div class="card-body">
           <p id="voice-settings-summary" class="small muted"></p>
           <button id="voice-open-settings" type="button" class="btn btn-small">Change voice settings</button>
-          <button id="voice-open-key" type="button" class="btn btn-small">Find the key of what you're singing</button>
         </div>
       </div>
     </section>

@@ -659,6 +659,83 @@ try {
     await browser.close();
   }
 
+  // 4. Pitch monitor (Voice tab): live line, statistics, key from the line,
+  //    record / play back (memory only), drone, full screen, file analysis.
+  {
+    const { browser, page, errors } = await fakeMic(`${KEY_AUDIO}singer-G-major.wav`);
+    await page.click('#tab-voice');
+    report(await page.isVisible('#start-button') && await page.isVisible('#monitor-graph'), 'monitor: start card and graph shown before the mic starts');
+    await page.click('#start-button');
+    await page.click('#rec-start');
+    await page.waitForTimeout(12000);
+    await page.click('#rec-stop');
+    await page.waitForFunction(() => document.getElementById('rec-status').textContent.startsWith('Recorded'), null, { timeout: 5000 }).catch(() => {});
+    report((await page.textContent('#rec-status')).includes('in memory only') && !(await page.isDisabled('#rec-play')), 'monitor: record 12 s (memory only)', await page.textContent('#rec-status'));
+
+    await page.click('#stats-all');
+    await page.waitForTimeout(400);
+    const range = await page.textContent('#stat-range');
+    const within25 = await page.textContent('#stat-25');
+    // The tune (Twinkle Twinkle in G) goes from G3 to E4; the test file is perfectly in tune, with ±25 cent vibrato.
+    report(range === 'G3 – E4' && parseInt(within25, 10) >= 90, 'monitor: statistics of a G3–E4 tune', `${range}, within ±25 cents: ${within25}`);
+
+    await page.click('#monitor-find-key');
+    const keyText = await page.textContent('#monitor-key-result');
+    report(keyText.includes('G major') && (await page.inputValue('#monitor-tonic')) === '7' && (await page.inputValue('#monitor-scale')) === 'major',
+      'monitor: find the key of the sung line (G major) and set the scale lines', keyText);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: `${ROOT}docs/screenshots/monitor.png` });
+
+    await page.click('#rec-play');
+    await page.waitForTimeout(2000);
+    const status = await page.textContent('#monitor-status');
+    report(status.startsWith('Recording · playing'), 'monitor: play back the recording with its pitch line', status);
+    await page.click('#monitor-pause'); // "Back to live"
+    report((await page.textContent('#monitor-status')) === 'Live', 'monitor: back to live');
+
+    await page.click('#monitor-pause');
+    report((await page.textContent('#monitor-status')).startsWith('Paused'), 'monitor: pause');
+    await page.click('#monitor-full');
+    await page.waitForTimeout(400);
+    report(!(await page.isVisible('#tabbar')), 'monitor: full screen hides the tab bar');
+    await page.screenshot({ path: `${ROOT}docs/screenshots/monitor-full.png` });
+    await page.click('#monitor-full');
+
+    await page.selectOption('#drone-octave', '3');
+    await page.click('#drone-toggle');
+    report((await page.textContent('#drone-info')) === 'Playing: G3 = 196.0 Hz', 'monitor: drone on the key\'s tonic (G3)', await page.textContent('#drone-info'));
+    await page.click('#drone-toggle');
+
+    // Stopping the microphone forgets the recording (the privacy promise).
+    await page.click('#stop-button');
+    report(await page.isDisabled('#rec-play'), 'monitor: stopping the microphone deletes the recording');
+    report(!errors.length, 'monitor: no page errors', errors.join(' | '));
+    await browser.close();
+  }
+  {
+    // File analysis, without the microphone: a glide C3 → C4, and a band (D minor) which is mostly "no clear pitch".
+    const { browser, page, errors } = await openPage([], []);
+    await page.click('#tab-voice');
+    for (const [file, check, label] of [
+      [`${SIGNALS}voice-glide-C3-C4.wav`, (t) => /clear pitch (9\d|100)%/.test(t), 'a sung glide: clear pitch ≥ 90% of the time'],
+      [`${KEY_AUDIO}song-D-minor.wav`, (t) => t.includes('Mostly no clear pitch'), 'a band with chords: warns "mostly no clear pitch"'],
+    ]) {
+      const name = file.split('/').pop();
+      await page.setInputFiles('#file-input', file);
+      await page.waitForFunction((n) => document.getElementById('file-status').textContent.startsWith(`${n}:`), name, { timeout: 60000 }).catch(() => {});
+      const text = await page.textContent('#file-status');
+      report(check(text) && await page.isVisible('#file-close'), `monitor file analysis: ${label}`, text);
+      if (name.startsWith('voice-glide')) {
+        await page.waitForTimeout(800);
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await page.screenshot({ path: `${ROOT}docs/screenshots/monitor-file.png` });
+      }
+    }
+    await page.click('#file-close');
+    report((await page.textContent('#monitor-status')) === 'Live' && !errors.length, 'monitor: close the file, back to live', errors.join(' | '));
+    await browser.close();
+  }
+
   // 2. Permission denied. Headless Chromium has no permission prompt to refuse, so we
   //    make getUserMedia fail with the same error a real "Don't Allow" gives (NotAllowedError).
   {

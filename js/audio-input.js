@@ -4,7 +4,9 @@
 //
 // Privacy: the sound goes from the microphone into an AnalyserNode, which
 // lets us READ the latest 2048 samples many times a second. Nothing is
-// recorded, saved or sent. When you press Stop, the microphone is released.
+// saved or sent. Nothing is recorded either, unless you tap Record on the
+// Voice tab: that recording stays in this page's memory only (js/recorder.js).
+// When you press Stop, the microphone is released.
 //
 // Audio path:
 //   microphone → MediaStreamSource → AnalyserNode → silent GainNode → speakers
@@ -109,7 +111,9 @@ export async function startMicrophone({ fftSize = 2048, onEnded } = {}) {
     context.close();
   }
 
-  return { context, analyser, sampleRate: context.sampleRate, track, stop };
+  // `stream` is also returned for the pitch monitor's optional recorder
+  // (js/recorder.js), which keeps a recording in memory only when you tap Record.
+  return { context, analyser, sampleRate: context.sampleRate, track, stream, stop };
 }
 
 // What the browser says it actually did with our "please turn off" requests.

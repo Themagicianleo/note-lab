@@ -91,3 +91,22 @@ test('generated slide C3→C4: only the held ends count, not the notes slid thro
   assert.equal(finder.highest, 60); // C4
   assert.deepEqual([...recorded].sort(), [48, 60], `notes counted as held: ${[...recorded]}`);
 });
+
+import { RangeTest } from '../js/range-finder.js';
+
+test('range test: lowest from step 1, highest from step 2', () => {
+  const r = new RangeTest();
+  const clock = { now: 0 };
+  r.start();
+  hold(r, 220, 400, clock);      // A3 in step 1 (warming up)
+  hold(r, 110, 400, clock);      // A2: lowest
+  assert.equal(r.next(), 'high');
+  hold(r, 440, 400, clock);      // A4: highest
+  hold(r, 98, 400, clock);       // G2 sung in step 2 doesn't change the lowest
+  assert.equal(r.next(), 'done');
+  assert.equal(r.lowest, 45);
+  assert.equal(r.highest, 69);
+  assert.equal(r.semitones, 24);
+  hold(r, 1000, 400, clock);     // after 'done', nothing changes
+  assert.equal(r.highest, 69);
+});

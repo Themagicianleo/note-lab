@@ -79,9 +79,36 @@ export function createTonePlayer(existingContext = null) {
     return t0 + duration + RELEASE;
   }
 
+  // A drone: one note that keeps sounding until stop() is called (or its
+  // frequency is changed with setFrequency). Quieter than a played note, so
+  // it's a background reference to sing against.
+  function startDrone(frequency) {
+    const ctx = ensureContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.setPeriodicWave(wave);
+    osc.frequency.value = frequency;
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(VOLUME * 0.5, ctx.currentTime + 0.2); // fade in
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    return {
+      setFrequency(hz) { osc.frequency.setTargetAtTime(hz, ctx.currentTime, 0.02); },
+      stop() {
+        const t = ctx.currentTime;
+        gain.gain.cancelScheduledValues(t);
+        gain.gain.setValueAtTime(gain.gain.value, t);
+        gain.gain.linearRampToValueAtTime(0, t + RELEASE); // fade out, no click
+        osc.stop(t + RELEASE + 0.02);
+      },
+    };
+  }
+
   return {
     ensureContext,
     playFrequency,
+    startDrone,
     // Play a note number (e.g. 69 = A4) at the given reference pitch.
     playNote(noteNumber, options = {}, a4 = DEFAULT_A4) {
       return playFrequency(noteNumberToFrequency(noteNumber, a4), options);

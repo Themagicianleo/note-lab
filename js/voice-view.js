@@ -9,6 +9,7 @@ import { formatNote, noteNumberToName, noteNumberToFrequency } from './pitch-mat
 import { validateCustomRange } from './voice-ranges.js';
 import { SMOOTHING_LEVELS } from './smoothing.js';
 import { describeSpan } from './range-finder.js';
+import { rankVoiceTypes, MIN_TEST_SEMITONES } from './voice-types.js';
 
 const byId = (id) => document.getElementById(id);
 
@@ -26,6 +27,7 @@ export function createVoiceView({ onRangeChange, onGateChange, onSmoothingChange
     low: byId('range-low'),
     high: byId('range-high'),
     span: byId('range-span'),
+    voiceType: byId('voice-type'),
     reset: byId('range-reset'),
     presets: document.querySelectorAll('input[name="voice-preset"]'),
     customMin: byId('custom-min'),
@@ -94,6 +96,24 @@ export function createVoiceView({ onRangeChange, onGateChange, onSmoothingChange
       el.low.textContent = finder.lowest === null ? '–' : noteLabel(finder.lowest, a4);
       el.high.textContent = finder.highest === null ? '–' : noteLabel(finder.highest, a4);
       el.span.textContent = finder.semitones === null ? '–' : describeSpan(finder.semitones);
+      // A rough voice-type guess (js/voice-types.js), only for a wide enough range.
+      const ranked = rankVoiceTypes(finder.lowest, finder.highest);
+      if (finder.lowest === null) el.voiceType.textContent = '';
+      else if (!ranked) el.voiceType.textContent = `Voice type: sing at least ${MIN_TEST_SEMITONES} semitones apart (low to high) for a guess.`;
+      else {
+        const [best, next] = ranked;
+        const fits = best.shared >= finder.semitones ? 'your whole range is inside it'
+          : best.shared >= best.high - best.low ? 'its whole typical range is inside yours'
+          : `${best.shared} of your ${finder.semitones} semitones overlap it`;
+        el.voiceType.textContent = `Closest typical range: ${best.label} (${fits})` + (next && next.shared === best.shared ? `, ${next.label} fits equally well.` : `; next: ${next.label}.`) + ' A rough guide, not a diagnosis.';
+      }
+    },
+
+    // While playing back a recording or file: the note at the playhead.
+    showReviewNote(note) {
+      el.note.textContent = note ? `${note.name}${note.octave}` : '–';
+      el.details.textContent = note ? formatNote(note).split(' · ').slice(1).join(' · ') : 'No clear pitch here';
+      el.clarity.textContent = 'Clarity –';
     },
 
     setRangeDescription(text) {

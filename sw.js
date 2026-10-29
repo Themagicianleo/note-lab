@@ -9,7 +9,7 @@
 // tests/service-worker.test.js checks that FILES lists every app file.
 // ------------------------------------------------------------
 
-const VERSION = 'note-lab-v3'; // v3: Acoustics Lab and Key finder
+const VERSION = 'note-lab-v4'; // v4: pitch monitor on the Voice tab
 
 const FILES = [
   './',
@@ -28,6 +28,7 @@ const FILES = [
   'js/audio-input.js',
   'js/autocorrelation.js',
   'js/ear-training.js',
+  'js/file-analysis.js',
   'js/fft.js',
   'js/interval-trainer-view.js',
   'js/key-finder.js',
@@ -46,12 +47,18 @@ const FILES = [
   'js/lab/waveform-view.js',
   'js/level-meter.js',
   'js/level.js',
+  'js/monitor-graph.js',
+  'js/monitor-view.js',
+  'js/monitor-window.js',
   'js/note-trainer-view.js',
-  'js/pitch-graph.js',
+  'js/pitch-history.js',
   'js/pitch-math.js',
+  'js/pitch-stats.js',
   'js/pitch-tracker.js',
   'js/range-finder.js',
+  'js/recorder.js',
   'js/register-sw.js',
+  'js/scales.js',
   'js/settings-view.js',
   'js/settings.js',
   'js/singback-view.js',
@@ -63,6 +70,7 @@ const FILES = [
   'js/trainer-ui.js',
   'js/tuner-view.js',
   'js/voice-ranges.js',
+  'js/voice-types.js',
   'js/voice-view.js',
   'js/yin.js',
 ];

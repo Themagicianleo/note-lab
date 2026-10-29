@@ -71,8 +71,25 @@ input[type="range"] { width: 100%; }
 .voice-note { font-family: var(--font-display); font-size: 48px; font-weight: 700; line-height: 1.05; letter-spacing: -.02em; min-width: 2.4em; }
 .voice-details { font-size: 17px; }
 .voice-clarity { margin-top: -8px !important; }
-.pitch-graph, .spectrum-chart { display: block; width: 100%; border-radius: 16px; touch-action: none; }
-.pitch-graph { height: 260px; }
+.monitor-graph, .spectrum-chart { display: block; width: 100%; border-radius: 16px; touch-action: none; }
+/* The pitch monitor: tall, and touch gestures go to the graph (not page scrolling). */
+.monitor-graph { height: min(62vh, 560px); min-height: 300px; -webkit-user-select: none; user-select: none; }
+.monitor-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.monitor-zoom { display: inline-flex; gap: 4px; }
+.monitor-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stats-results { grid-template-columns: repeat(2, 1fr); }
+@media (min-width: 560px) { .stats-results { grid-template-columns: repeat(3, 1fr); } }
+.file-btn { position: relative; overflow: hidden; align-self: flex-start; }
+.file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.file-progress { width: 100%; }
+/* Full screen: the monitor card covers the whole window (also on iPhone,
+   where web pages can't use the real full-screen mode). */
+.monitor-card.monitor-full { position: fixed; inset: 0; z-index: 1200; margin: 0; border-radius: 0; overflow: auto; background: var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none; animation: none; transform: none;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+.monitor-full .monitor-graph { height: calc(100dvh - 170px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); min-height: 200px; }
+.monitor-full .monitor-help { display: none; }
+html.monitor-open { overflow: hidden; }
+html.monitor-open .tabbar, html.monitor-open .appbar { display: none; }
 .range-results { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0; }
 .range-results div { background: var(--fill); border-radius: 14px; padding: 10px 12px; }
 .range-results dt { font-size: 12px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; color: var(--muted); }

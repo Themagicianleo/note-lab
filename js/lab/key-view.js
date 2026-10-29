@@ -7,17 +7,13 @@
 // ------------------------------------------------------------
 
 import { KeyListener } from '../key-listener.js';
-import { relativeKey, keyName, PITCH_CLASS_NAMES } from '../key-finder.js';
+import { relativeKey, keyName, PITCH_CLASS_NAMES, SURE_GAP, PROBABLY_GAP } from '../key-finder.js';
 import { prepareCanvas, themeColours } from './canvas.js';
 
 const byId = (id) => document.getElementById(id);
 const UPDATE_MS = 500;      // recalculate the key twice a second
 const MIN_SECONDS = 8;      // before this, "keep going"
-// How sure: the gap between the best and the second-best key's r.
-// These cut-offs are this app's own rule of thumb, chosen from tools/key-check.js
-// (a 7-note phrase gave a gap of 0.01; full tunes 0.11–0.30). Not a standard.
-const SURE_GAP = 0.10;
-const PROBABLY_GAP = 0.05;
+// How sure: SURE_GAP and PROBABLY_GAP, see js/key-finder.js.
 
 export function createKeyTool({ getA4 }) {
   const el = {

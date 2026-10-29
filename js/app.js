@@ -6,8 +6,9 @@
 //
 // Four modes (tabs), each with its own settings:
 //   Tuner    – instruments; a standard or a low range
-//   Voice    – a voice range preset, volume threshold and smoothing,
-//              pitch graph and range finder
+//   Voice    – the pitch monitor (js/monitor-view.js): a scrolling pitch graph
+//              on a piano keyboard, scale lines, drone, statistics, record and
+//              play back, file analysis; plus the range finder and range test
 //   Spectrum – no pitch detection; an FFT shows how loud each frequency is
 //   Train    – ear training. Notes and intervals only PLAY sounds (no mic);
 //              sing-back plays a note, then listens with the voice settings
@@ -22,11 +23,11 @@ import { frequencyToNote } from './pitch-math.js';
 import { levelDb } from './level.js';
 import { computeSpectrum } from './spectrum.js';
 import { VOICE_PRESETS, describeRange } from './voice-ranges.js';
-import { RangeFinder } from './range-finder.js';
+import { RangeFinder, RangeTest } from './range-finder.js';
 import { createTunerView } from './tuner-view.js';
 import { createVoiceView } from './voice-view.js';
 import { createLevelMeter } from './level-meter.js';
-import { createPitchGraph } from './pitch-graph.js';
+import { createMonitor } from './monitor-view.js';
 import { createSpectrumView } from './spectrum-view.js';
 import { createTonePlayer } from './tone-player.js';
 import { createNoteTrainer } from './note-trainer-view.js';
@@ -110,12 +111,12 @@ const settingsPanel = byId('settings');
 const tabs = { tuner: byId('tab-tuner'), voice: byId('tab-voice'), spectrum: byId('tab-spectrum'), ear: byId('tab-ear'), lab: byId('tab-lab') };
 const panels = { tuner: byId('tuner'), voice: byId('voice'), spectrum: byId('spectrum'), ear: byId('ear'), lab: byId('lab') };
 // Tabs that work without the microphone (they ask for it themselves when needed).
-const WORKS_WITHOUT_MIC = ['ear', 'lab'];
+const WORKS_WITHOUT_MIC = ['ear', 'lab', 'voice']; // voice: file analysis works without it
 
 const tunerView = createTunerView();
 const levelMeter = createLevelMeter();
-const graph = createPitchGraph(byId('pitch-graph'));
 const rangeFinder = new RangeFinder({ a4: settings.a4 });
+let rangeTest = null; // the guided range test, while it runs
 const spectrumView = createSpectrumView({
   canvas: byId('spectrum-chart'),
   peaksList: byId('spectrum-peaks'),
@@ -129,7 +130,7 @@ const voiceView = createVoiceView({
   },
   onGateChange: (db) => changeSettings({ voiceGateDb: db }),
   onSmoothingChange: (level) => changeSettings({ smoothingLevel: level }),
-  onResetRange() { rangeFinder.reset(); voiceView.showRange(rangeFinder, settings.a4); },
+  onResetRange() { rangeFinder.reset(); endRangeTest(); voiceView.showRange(rangeFinder, settings.a4); },
 });
 
 // ---------- ear training ----------
@@ -138,6 +139,13 @@ const SCORES_KEY = 'note-lab-scores-v1';
 const scores = loadJSON(SCORES_KEY, {});
 const saveScores = (part, value) => { scores[part] = value; saveJSON(SCORES_KEY, scores); };
 const player = createTonePlayer();
+const monitor = createMonitor({
+  player,
+  getA4: () => settings.a4,
+  getMic: () => mic,
+  getAnalysisConfig: () => ({ ...voiceRange(settings), windowSize: 2048, gateDb: settings.voiceGateDb, smoothingLevel: settings.smoothingLevel }),
+  onReviewNote: (note) => voiceView.showReviewNote(note),
+});
 const trainerOptions = { player, getA4: () => settings.a4, isListening: () => Boolean(mic) };
 const noteTrainer = createNoteTrainer({ ...trainerOptions, savedScores: scores.notes, onScoresChanged: (v) => saveScores('notes', v) });
 const intervalTrainer = createIntervalTrainer({ ...trainerOptions, savedScores: scores.intervals, onScoresChanged: (v) => saveScores('intervals', v) });
@@ -196,6 +204,7 @@ const settingsView = createSettingsView({
     rangeFinder.a4 = settings.a4;
     rangeFinder.reset(); // old notes were named with the old reference
     voiceView.showRange(rangeFinder, settings.a4);
+    monitor.refreshOptions();
   },
   onPlayA4: () => player.playFrequency(settings.a4, { duration: 1.5 }),
   onTunerGateChange: (db) => changeSettings({ tunerGateDb: db }),
@@ -235,6 +244,42 @@ byId('close-settings').addEventListener('click', closeSettings);
 // Voice tab shortcut to the Lab's Key finder.
 byId('voice-open-key').addEventListener('click', () => { showTab('lab'); lab.open('key'); });
 
+// ---------- guided range test (Voice tab) ----------
+const RANGE_STEPS = {
+  low: 'Step 1 of 2: slide DOWN to your lowest comfortable note and hold it. Then tap Next.',
+  high: 'Step 2 of 2: slide UP to your highest comfortable note and hold it. Then tap Next.',
+};
+function endRangeTest() {
+  rangeTest = null;
+  byId('range-step').hidden = true;
+  byId('range-next').hidden = true;
+  byId('range-test').textContent = 'Range test';
+}
+byId('range-test').addEventListener('click', () => {
+  if (rangeTest) { endRangeTest(); return; }
+  if (!mic) { startListening(); return; } // the test needs the microphone (this tap asks for it)
+  rangeTest = new RangeTest({ a4: settings.a4 });
+  rangeTest.start();
+  byId('range-step').textContent = RANGE_STEPS.low;
+  byId('range-step').hidden = false;
+  byId('range-next').hidden = false;
+  byId('range-test').textContent = 'Cancel test';
+});
+byId('range-next').addEventListener('click', () => {
+  if (!rangeTest) return;
+  if (rangeTest.next() === 'high') { byId('range-step').textContent = RANGE_STEPS.high; return; }
+  // Done: show the test's result in the range finder boxes.
+  const result = { lowest: rangeTest.lowest, highest: rangeTest.highest, semitones: rangeTest.semitones };
+  endRangeTest();
+  if (result.lowest === null || result.highest === null) {
+    byId('voice-type').textContent = 'No held notes were heard in one of the steps. Try again, holding each note for about half a second.';
+    return;
+  }
+  rangeFinder.lowest = result.lowest;
+  rangeFinder.highest = result.highest;
+  voiceView.showRange(rangeFinder, settings.a4);
+});
+
 function showMessage(text) {
   message.textContent = text;
   message.hidden = !text;
@@ -255,8 +300,6 @@ function applyConfig() {
   }
   spectrumView.reset();
   levelMeter.setGate(config.gateDb);
-  graph.setRange(config.minHz, config.maxHz, settings.a4);
-  graph.clear();
 
   // Describe the voice settings (on the Settings page and the Voice tab).
   const v = voiceRange(settings);
@@ -272,7 +315,7 @@ function applyConfig() {
 // The large title at the top of the page changes with the tab.
 const PAGE_TITLES = {
   tuner: ['Tuner', 'Play or sing one steady note'],
-  voice: ['Voice', 'Your pitch over time, and your range'],
+  voice: ['Voice', 'Pitch monitor: your pitch over time'],
   spectrum: ['Spectrum', 'Which frequencies are loudest'],
   ear: ['Train', 'Ear training with generated tones'],
   settings: ['Settings', 'Saved on this device only'],
@@ -294,12 +337,14 @@ function showTab(name) {
   }
   tabList.hidden = settingsOpen;
   settingsPanel.hidden = !settingsOpen;
-  startPanel.hidden = settingsOpen || Boolean(mic) || WORKS_WITHOUT_MIC.includes(name);
+  // Voice shows the start card above the monitor (a file can be analysed without the mic).
+  startPanel.hidden = settingsOpen || Boolean(mic) || (WORKS_WITHOUT_MIC.includes(name) && name !== 'voice');
   listeningBar.hidden = settingsOpen || !mic;
   showTitle(settingsOpen ? 'settings' : name);
   singBack.refresh();
   lab.refresh();
   if (name === 'lab' && !settingsOpen) lab.resume(); else lab.suspend(); // e.g. stop the beats tones
+  if (name === 'voice' && !settingsOpen) monitor.start(); else monitor.stop(); // e.g. stop the drone
   applyConfig();
 }
 // Tapping a tab starts at the top of that page, like iPhone apps.
@@ -354,6 +399,8 @@ function stopListening() {
   frameRequest = null;
   if (mic) mic.stop();
   mic = null;
+  monitor.micStopped(); // a recording is forgotten when the microphone stops
+  endRangeTest();
   tracker.reset();
   startButton.disabled = false;
   startButton.textContent = 'Start listening';
@@ -397,10 +444,12 @@ function tick(now) {
   } else if (activeTab === 'ear') {
     if (activeExercise === 'singback') singBack.onReading(result.smoothed, now);
   } else {
-    voiceView.update({ note, reason: result.reason, confidence: result.confidence });
-    graph.add(now, result.smoothed, result.frequency);
-    graph.draw(now);
-    if (rangeFinder.push(result.smoothed, now)) voiceView.showRange(rangeFinder, settings.a4);
+    // (The monitor draws itself; while a recording or file plays back, the
+    // readout shows the playback's note instead of the live one.)
+    if (!monitor.reviewing) voiceView.update({ note, reason: result.reason, confidence: result.confidence });
+    monitor.addLive(now, result.smoothed, result.frequency);
+    if (rangeTest) rangeTest.push(result.smoothed, now);
+    else if (rangeFinder.push(result.smoothed, now)) voiceView.showRange(rangeFinder, settings.a4);
   }
 }
 

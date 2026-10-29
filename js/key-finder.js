@@ -103,6 +103,12 @@ export function pitchClassProfile(readings, offsetCents = 0) {
 // Convenience: frequency (Hz) → reading.
 export const readingFrom = (frequency, weight, a4 = DEFAULT_A4) => ({ n: frequencyToNoteNumber(frequency, a4), weight });
 
+// How sure: the gap between the best and the second-best key's r.
+// These cut-offs are this app's own rule of thumb, chosen from tools/key-check.js
+// (a 7-note phrase gave a gap of 0.01; full tunes 0.11–0.30). Not a standard.
+export const SURE_GAP = 0.10;
+export const PROBABLY_GAP = 0.05;
+
 // Everything together: readings → { offset, histogram, scores }.
 export function findKey(readings) {
   const offset = tuningOffsetCents(readings);
