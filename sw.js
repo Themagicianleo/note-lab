@@ -9,7 +9,7 @@
 // tests/service-worker.test.js checks that FILES lists every app file.
 // ------------------------------------------------------------
 
-const VERSION = 'note-lab-v2'; // v2: Liquid Glass design
+const VERSION = 'note-lab-v3'; // v3: Acoustics Lab and Key finder
 
 const FILES = [
   './',
@@ -30,10 +30,13 @@ const FILES = [
   'js/ear-training.js',
   'js/fft.js',
   'js/interval-trainer-view.js',
+  'js/key-finder.js',
+  'js/key-listener.js',
   'js/lab/beats-view.js',
   'js/lab/canvas.js',
   'js/lab/colour-map.js',
   'js/lab/harmonics-view.js',
+  'js/lab/key-view.js',
   'js/lab/lab.js',
   'js/lab/pipe-view.js',
   'js/lab/reality-view.js',

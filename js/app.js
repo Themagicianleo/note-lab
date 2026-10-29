@@ -45,6 +45,7 @@ import { createPipeTool } from './lab/pipe-view.js';
 import { createRoomTool } from './lab/room-view.js';
 import { createRt60Tool } from './lab/rt60-view.js';
 import { createRealityTool } from './lab/reality-view.js';
+import { createKeyTool } from './lab/key-view.js';
 
 // ---------- settings ----------
 
@@ -180,6 +181,7 @@ const lab = createLab({
       onCompare: compare,
     }),
     realityTool,
+    createKeyTool({ getA4: () => settings.a4 }),
   ],
   isListening: () => Boolean(mic),
   startListening: () => startListening(),
@@ -230,6 +232,8 @@ function closeSettings() {
 byId('open-settings').addEventListener('click', openSettings);
 byId('voice-open-settings').addEventListener('click', openSettings);
 byId('close-settings').addEventListener('click', closeSettings);
+// Voice tab shortcut to the Lab's Key finder.
+byId('voice-open-key').addEventListener('click', () => { showTab('lab'); lab.open('key'); });
 
 function showMessage(text) {
   message.textContent = text;

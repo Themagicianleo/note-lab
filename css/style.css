@@ -199,3 +199,12 @@ details.card[open] > summary { padding-bottom: 0; }
 @media (min-width: 520px) { .alpha-grid { grid-template-columns: repeat(6, 1fr); } }
 .reality-table th[scope="row"] { font-weight: 600; }
 .reality-table td { white-space: nowrap; }
+/* Key finder */
+.key-tile { display: flex; flex-direction: column; gap: 6px; }
+.key-tile > * { position: relative; margin: 0; }
+.key-result { font-family: var(--font-display); font-size: 40px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; }
+.key-sure { font-weight: 600; min-height: 1.3em; }
+.key-sub { opacity: .9; }
+.key-heard-track { height: 6px; border-radius: 999px; background: rgba(255,255,255,.2); overflow: hidden; margin-top: 6px; }
+.key-heard-bar { height: 100%; width: 0; background: #fff; border-radius: 999px; }
+.key-canvas { height: 170px; }

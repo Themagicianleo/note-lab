@@ -122,6 +122,7 @@
         <div class="card-body">
           <p id="voice-settings-summary" class="small muted"></p>
           <button id="voice-open-settings" type="button" class="btn btn-small">Change voice settings</button>
+          <button id="voice-open-key" type="button" class="btn btn-small">Find the key of what you're singing</button>
         </div>
       </div>
     </section>
@@ -750,6 +751,66 @@ cents       = 1200 × log2(measured / predicted)            (frequencies only)</
             </ul>
             <p><strong>Worked example:</strong> predicted 34.3 Hz, measured 36.0 Hz → d = +1.7 Hz, e = 100 × 1.7 / 34.3 = +4.96 %, cents = 1200 × log2(36.0 / 34.3) = +83.7 cents (a bit under a semitone sharp). The summary shows the average size of e (ignoring the sign) for each unit.</p>
             <p><strong>Sources:</strong> standard definitions of absolute and relative (percentage) error; cents as defined by A. J. Ellis (1885) and used throughout Note Lab (see "How it works").</p>
+          </div>
+        </details>
+      </div>
+
+      <!-- 9. Key finder -->
+      <div id="lab-key" class="panel" hidden>
+        <div class="seg ear-seg" role="group" aria-label="What are you listening to?">
+          <button type="button" id="key-mode-singer" aria-pressed="true">Singer (real life)</button>
+          <button type="button" id="key-mode-song" aria-pressed="false">Song (speaker)</button>
+        </div>
+        <div class="hero-tile key-tile">
+          <span class="label">Estimated key</span>
+          <p id="key-result" class="key-result" aria-live="polite">…</p>
+          <p id="key-sure" class="key-sure"></p>
+          <p id="key-sub" class="key-sub small"></p>
+          <div class="key-heard-track" aria-hidden="true"><div id="key-heard-bar" class="key-heard-bar"></div></div>
+          <p id="key-heard" class="small"></p>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            <span class="pill tag-measured">Measured note names</span> <span class="pill tag-model">Calculated key match</span>
+            <canvas id="key-canvas" class="lab-canvas key-canvas" aria-label="How much of each note name was heard"></canvas>
+            <p class="small muted">Bars: how much of each note name was heard (any octave). Orange = the key's home note; blue = the key's other scale notes; grey = notes outside the key.</p>
+            <p class="field-title">Best matches</p>
+            <ol id="key-candidates" class="small"></ol>
+            <p id="key-tuning" class="small muted"></p>
+            <div class="btn-row">
+              <button id="key-reset" type="button" class="btn btn-small">Start over</button>
+              <button id="key-pause" type="button" class="btn btn-small" aria-pressed="false">Pause</button>
+            </div>
+          </div>
+        </div>
+        <details class="card" open>
+          <summary>What am I looking at?</summary>
+          <div class="card-body small">
+            <p>A song's <strong>key</strong> is its "home": a home note (like G) and a set of seven notes that belong (the G major scale), which the music keeps returning to. Knowing it helps you sing along, play along, or transpose.</p>
+            <p><strong>How Note Lab guesses it:</strong> it listens and adds up <em>how much of each of the 12 note names</em> it hears, in any octave (the bars). Then it compares that pattern with typical patterns for all 24 major and minor keys, found in listening experiments by Krumhansl and Kessler, and picks the closest match (the highest <em>r</em>).</p>
+            <ul>
+              <li><strong>Singer (real life):</strong> follows one voice's pitch. Best for someone singing alone. It also works out whether the singer as a whole is a bit sharp or flat, so slightly out-of-tune singing still gives the right key.</li>
+              <li><strong>Song (speaker):</strong> with instruments, there's no single pitch to follow, so it adds up the strongest frequencies instead: voice, chords and bass together. That's fine for a key, which belongs to all of them.</li>
+            </ul>
+            <p><strong>Tips:</strong> give it 20–30 seconds, ideally a chorus. Short phrases can't decide: "C C G G A A G" fits C major and G major almost equally, so it will say "not sure yet". Press <em>Start over</em> when the song changes.</p>
+            <p><strong>It can't always be right:</strong> a major key and its <strong>relative minor</strong> (C major and A minor) use exactly the same notes, so it's shown underneath; choose the one whose home note feels like "the end". Songs that change key, use modes (like Dorian), or are mostly rap or percussion confuse it. It names keys with equal temperament (A4 = your Settings value).</p>
+          </div>
+        </details>
+        <details class="card formula-card">
+          <summary>Formulas: matching a key (Krumhansl–Schmuckler)</summary>
+          <div class="card-body small">
+            <pre class="formula">h[pc] = Σ weight of everything heard with note name pc   (pc = 0 for C … 11 for B)
+r = Σ(h − h̄)(k − k̄) / √( Σ(h − h̄)² × Σ(k − k̄)² )    for each of the 24 key profiles k
+best key = the highest r</pre>
+            <ul>
+              <li><strong>h</strong>: the measured profile (12 numbers); weight = seconds sung (singer), or loudness × seconds (song)</li>
+              <li><strong>k</strong>: a key's Krumhansl–Kessler profile, rotated so it starts on that key's home note</li>
+              <li><strong>r</strong>: Pearson correlation, −1 to 1 (1 = same shape)</li>
+            </ul>
+            <p><strong>Profiles</strong> (starting at the home note):<br>major: 6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88<br>minor: 6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17</p>
+            <p><strong>Worked example:</strong> "Twinkle Twinkle" in C (its first 28 notes), counting each note's beats: C 4, D 6, E 6, F 6, G 8, A 2. Correlating with all 24 keys gives C major r = 0.76, G major r = 0.65, D minor r = 0.58, so: C major. The first 7 notes only (C C G G A A G) give C major 0.68 vs G major 0.67: too close to call.</p>
+            <p><strong>How sure:</strong> "Clear match" when the best r beats the runner-up by 0.10 or more, "Probably" from 0.05; less is "not sure yet". These cut-offs are this app's own rule of thumb from its tests, not a standard.</p>
+            <p><strong>Sources:</strong> C. L. Krumhansl &amp; E. J. Kessler (1982), <em>Psychological Review</em> 89, 334–368 (the profiles); C. L. Krumhansl (1990), <em>Cognitive Foundations of Musical Pitch</em>, ch. 4 (the key-finding algorithm, developed with M. Schmuckler). Please check the profile numbers above against that source; they're the widely reproduced values.</p>
           </div>
         </details>
       </div>
