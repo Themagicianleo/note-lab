@@ -1114,8 +1114,10 @@ phase by phase at the owner's direction:
   microphone audio" rule. The owner said to go ahead with everything without
   choosing an option, so the AI picked the most cautious one: memory only,
   only after tapping Record, deleted when the mic stops. The voice-type ranges
-  are from Wikipedia and are marked "please verify". The tests caught the AI's
-  own guess about how pausing should count (a 5 s gap must not count as 5 s of
-  singing, hence the 0.1 s cap).
+  are from Wikipedia and are marked "please verify". All 158 unit tests and
+  the browser checks passed on the first full run of this feature. The browser
+  check's screenshots caught two display problems, which were fixed: in full
+  screen the page header covered the graph, and a file's line started at the
+  right edge.
 - The AI can't hear and has no iPhone, so iPhone behaviour and real-world
   accuracy have to be checked by a person.
