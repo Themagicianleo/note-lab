@@ -12,6 +12,7 @@
 
 import { PitchTracker } from './pitch-tracker.js';
 import { bandFilter } from './filters.js';
+import { MelodyTracker } from './melody.js';
 
 export const FILE_HOP_SEC = 1 / 60;       // same reading rate as the live monitor
 export const MAX_FILE_SECONDS = 600;      // 10 minutes
@@ -29,9 +30,10 @@ export function mixToMono(channels) {
 // Returns readings [{ t (ms from the start), hz (smoothed or null), raw }].
 // onProgress(0..1) is called between chunks; shouldStop() can cancel (returns null).
 export async function analyseSamples(samples, sampleRate, trackerOptions, { hopSec = FILE_HOP_SEC, onProgress = () => {}, shouldStop = () => false } = {}) {
-  const { windowSize = 2048, filter = false, ...options } = trackerOptions;
-  const tracker = new PitchTracker(options);
-  if (filter) samples = bandFilter(samples, sampleRate, tracker.options.minHz, tracker.options.maxHz);
+  const { windowSize = 2048, filter = false, music = false, ...options } = trackerOptions;
+  // music: true = "Music from a speaker" mode, the melody guess (js/melody.js).
+  const tracker = music ? new MelodyTracker({ minHz: options.minHz, maxHz: options.maxHz }) : new PitchTracker(options);
+  if (filter && !music) samples = bandFilter(samples, sampleRate, tracker.options.minHz, tracker.options.maxHz);
   const hop = hopSec * sampleRate;
   const readings = [];
   const total = Math.max(0, Math.floor((samples.length - windowSize) / hop) + 1);

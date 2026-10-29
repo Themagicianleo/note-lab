@@ -28,6 +28,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   voiceGateDb: -55,             // also used by sing-back
   smoothingLevel: DEFAULT_SMOOTHING_LEVEL,
   sensitivity: 'high',          // 'standard' | 'high' | 'maximum' (see js/pitch-tracker.js)
+  voiceSource: 'single',        // Voice tab: 'single' (one voice/instrument) | 'music' (melody guess, js/melody.js)
 });
 
 const inRange = (value, min, max) => Number.isFinite(value) && value >= min && value <= max;
@@ -44,6 +45,7 @@ export function validateSettings(input) {
   if (inRange(input.voiceGateDb, GATE_LIMITS.min, GATE_LIMITS.max)) s.voiceGateDb = input.voiceGateDb;
   if (Number.isInteger(input.smoothingLevel) && SMOOTHING_LEVELS[input.smoothingLevel]) s.smoothingLevel = input.smoothingLevel;
   if (Object.hasOwn(SENSITIVITY, input.sensitivity ?? '')) s.sensitivity = input.sensitivity;
+  if (['single', 'music'].includes(input.voiceSource)) s.voiceSource = input.voiceSource;
 
   if (input.voicePreset === 'custom') {
     const check = validateCustomRange(input.voiceMinHz, input.voiceMaxHz);

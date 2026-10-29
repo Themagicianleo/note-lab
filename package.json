@@ -13,7 +13,8 @@
     "tradeoff": "node tools/smoothing-tradeoff.js",
     "spectrum-check": "node tools/spectrum-check.js",
     "key-check": "node tools/key-check.js",
-    "sensitivity-check": "node tools/sensitivity-check.js"
+    "sensitivity-check": "node tools/sensitivity-check.js",
+    "melody-check": "node tools/melody-check.js"
   },
   "engines": {
     "node": ">=18"

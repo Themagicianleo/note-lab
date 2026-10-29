@@ -18,6 +18,7 @@
 
 import { startMicrophone, checkMicrophoneSupport, micProcessingText } from './audio-input.js';
 import { PitchTracker, SENSITIVITY } from './pitch-tracker.js';
+import { MelodyTracker, MELODY_DEFAULTS } from './melody.js';
 import { SMOOTHING_LEVELS, DEFAULT_SMOOTHING_LEVEL } from './smoothing.js';
 import { frequencyToNote } from './pitch-math.js';
 import { levelDb } from './level.js';
@@ -83,8 +84,17 @@ function currentConfig() {
   }
   // Voice, and sing-back (which searches the range of its target notes).
   const range = activeTab === 'ear' ? VOICE_PRESETS[singBack.rangeKey()] : voiceRange(settings);
+  if (activeTab === 'voice' && settings.voiceSource === 'music') {
+    // Music from a speaker: the melody guess (js/melody.js) reads the raw sound, 4096 samples at a time.
+    return { minHz: range.minHz, maxHz: range.maxHz, windowSize: MELODY_DEFAULTS.windowSize, gateDb: MUSIC_GATE_DB, smoothingLevel: settings.smoothingLevel, music: true };
+  }
   return { minHz: range.minHz, maxHz: range.maxHz, windowSize: 2048, gateDb: settings.voiceGateDb, smoothingLevel: settings.smoothingLevel, ...sensitivity };
 }
+
+// Music mode's volume threshold: music through a speaker is loud, so a fixed one is enough.
+const MUSIC_GATE_DB = -60;
+// The microphone input is "clipped" (overloaded) when samples reach the top of the range.
+const CLIP_LEVEL = 0.98;
 
 // Readings per second: screens refresh 60–120 times a second; we cap it at
 // about 60 so the smoothing behaves the same on every device.
@@ -99,6 +109,8 @@ let frameRequest = null; // the id from requestAnimationFrame, so we can cancel 
 let lastReading = 0;
 let buffer = null;
 const tracker = new PitchTracker();
+const melody = new MelodyTracker();
+let lastClip = -Infinity; // when the input was last clipped (ms)
 
 // ---------- page elements and views ----------
 
@@ -145,8 +157,9 @@ const monitor = createMonitor({
   player,
   getA4: () => settings.a4,
   getMic: () => mic,
-  getAnalysisConfig: () => ({ ...voiceRange(settings), windowSize: 2048, gateDb: settings.voiceGateDb, smoothingLevel: settings.smoothingLevel,
-    filter: true, ...SENSITIVITY[settings.sensitivity] }),
+  getAnalysisConfig: () => (settings.voiceSource === 'music'
+    ? { ...voiceRange(settings), windowSize: MELODY_DEFAULTS.windowSize, music: true }
+    : { ...voiceRange(settings), windowSize: 2048, gateDb: settings.voiceGateDb, smoothingLevel: settings.smoothingLevel, filter: true, ...SENSITIVITY[settings.sensitivity] }),
   onReviewNote: (note) => voiceView.showReviewNote(note),
 });
 const trainerOptions = { player, getA4: () => settings.a4, isListening: () => Boolean(mic) };
@@ -293,6 +306,9 @@ function showMessage(text) {
 function applyConfig() {
   const config = currentConfig();
   tracker.configure(config);
+  melody.configure({ minHz: config.minHz, maxHz: config.maxHz, gateDb: MUSIC_GATE_DB });
+  melody.reset();
+  showSource();
   if (mic) {
     mic.analyser.fftSize = config.windowSize; // how many samples each reading uses
     mic.pitchAnalyser.fftSize = config.windowSize;
@@ -303,6 +319,7 @@ function applyConfig() {
     byId('tech-info').textContent = activeTab === 'spectrum'
       ? `${windowText} · each frequency bin is ${(mic.sampleRate / config.windowSize).toFixed(1)} Hz wide`
       : activeTab === 'lab' ? windowText
+      : config.music ? `${windowText} · music mode (melody guess) · range ${config.minHz}–${config.maxHz} Hz · A4 = ${settings.a4} Hz`
       : `${windowText} · range ${config.minHz}–${config.maxHz} Hz · A4 = ${settings.a4} Hz · sensitivity ${settings.sensitivity}` +
         ` · band filter ${pitchBand(config.minHz, config.maxHz).highpassHz}–${pitchBand(config.minHz, config.maxHz).lowpassHz} Hz`;
   }
@@ -407,6 +424,7 @@ function stopListening() {
   frameRequest = null;
   if (mic) mic.stop();
   mic = null;
+  byId('clip-warning').hidden = true;
   monitor.micStopped(); // a recording is forgotten when the microphone stops
   endRangeTest();
   tracker.reset();
@@ -427,7 +445,9 @@ function tick(now) {
   // 1. Copy the latest samples from the microphone: raw for the Lab and
   //    Spectrum, band-filtered for pitch detection.
   const pitchMode = activeTab !== 'lab' && activeTab !== 'spectrum';
-  (pitchMode ? mic.pitchAnalyser : mic.analyser).getFloatTimeDomainData(buffer);
+  const musicMode = pitchMode && tracker.options.music;
+  (pitchMode && !musicMode ? mic.pitchAnalyser : mic.analyser).getFloatTimeDomainData(buffer);
+  checkClipping(buffer, now);
 
   // Lab tools analyse the samples themselves.
   if (activeTab === 'lab') {
@@ -444,12 +464,12 @@ function tick(now) {
   }
 
   // 2. Run the pitch pipeline.
-  const result = tracker.process(buffer, mic.sampleRate, now);
+  const result = musicMode ? melodyReading(buffer) : tracker.process(buffer, mic.sampleRate, now);
   const note = result.smoothed ? frequencyToNote(result.smoothed, settings.a4) : null;
 
   // 3. Show it.
   levelMeter.update(result.levelDb);
-  if (tracker.options.autoGate) levelMeter.setGate(Math.round(result.gateDb));
+  if (tracker.options.autoGate && !musicMode) levelMeter.setGate(Math.round(result.gateDb));
   if (activeTab === 'tuner') {
     tunerView.update({ note, reason: result.reason });
   } else if (activeTab === 'ear') {
@@ -459,10 +479,37 @@ function tick(now) {
     // readout shows the playback's note instead of the live one.)
     if (!monitor.reviewing) voiceView.update({ note, reason: result.reason, confidence: result.confidence });
     monitor.addLive(now, result.smoothed, result.frequency);
+    if (musicMode) return; // the range finder is for your own voice, not a song
     if (rangeTest) rangeTest.push(result.smoothed, now);
     else if (rangeFinder.push(result.smoothed, now)) voiceView.showRange(rangeFinder, settings.a4);
   }
 }
+
+// Music mode: the melody guess, in the same shape as a PitchTracker result
+// (confidence null = there's no clarity measure; the display says "melody guess").
+function melodyReading(samples) {
+  const r = melody.process(samples, mic.sampleRate);
+  return { levelDb: r.levelDb, frequency: r.frequency, smoothed: r.smoothed, confidence: null, reason: r.smoothed ? null : r.reason };
+}
+
+// Warn while the input is clipped (any sample at the top of the range),
+// e.g. a device right next to a loud speaker. Stays up 1.5 s after the last clip.
+function checkClipping(samples, now) {
+  let peak = 0;
+  for (let i = 0; i < samples.length; i++) peak = Math.max(peak, Math.abs(samples[i]));
+  if (peak >= CLIP_LEVEL) lastClip = now;
+  byId('clip-warning').hidden = now - lastClip > 1500;
+}
+
+// ---------- Voice tab: one voice, or music from a speaker ----------
+function showSource() {
+  const music = settings.voiceSource === 'music';
+  byId('source-single').setAttribute('aria-pressed', String(!music));
+  byId('source-music').setAttribute('aria-pressed', String(music));
+  byId('source-help').hidden = !music;
+}
+byId('source-single').addEventListener('click', () => changeSettings({ voiceSource: 'single' }));
+byId('source-music').addEventListener('click', () => changeSettings({ voiceSource: 'music' }));
 
 // iPhone pauses audio when the app goes to the background or a call comes in.
 // When the page is visible again, try to carry on.

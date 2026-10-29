@@ -9,7 +9,7 @@
 // tests/service-worker.test.js checks that FILES lists every app file.
 // ------------------------------------------------------------
 
-const VERSION = 'note-lab-v5'; // v5: higher sensitivity (band filter, automatic threshold)
+const VERSION = 'note-lab-v6'; // v6: music mode (melody guess), clipping warning
 
 const FILES = [
   './',
@@ -48,6 +48,7 @@ const FILES = [
   'js/lab/waveform-view.js',
   'js/level-meter.js',
   'js/level.js',
+  'js/melody.js',
   'js/monitor-graph.js',
   'js/monitor-view.js',
   'js/monitor-window.js',

@@ -74,6 +74,8 @@ input[type="range"] { width: 100%; }
 .monitor-graph, .spectrum-chart { display: block; width: 100%; border-radius: 16px; touch-action: none; }
 /* The pitch monitor: tall, and touch gestures go to the graph (not page scrolling). */
 .monitor-graph { height: min(62vh, 560px); min-height: 300px; -webkit-user-select: none; user-select: none; }
+.clip-warning { position: fixed; z-index: 1060; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 62px);
+  width: min(560px, calc(100% - 32px)); margin: 0; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
 .monitor-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .monitor-zoom { display: inline-flex; gap: 4px; }
 .monitor-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }

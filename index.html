@@ -58,6 +58,11 @@
 
     <!-- Error and status messages -->
     <div id="message" class="banner banner-warn" role="alert" hidden></div>
+    <!-- Shown while the microphone is overloaded (floats near the top of the screen) -->
+    <div id="clip-warning" class="banner banner-warn clip-warning" role="status" hidden>
+      <strong>Too loud for the microphone.</strong> The sound is being clipped (cut off at the top), which gives wrong notes.
+      Move the device further from the speaker, or turn the volume down.
+    </div>
 
     <!-- ================= TUNER ================= -->
     <section id="tuner" class="panel" role="tabpanel" aria-labelledby="tab-tuner" hidden>
@@ -96,6 +101,14 @@
     <section id="voice" class="panel" role="tabpanel" aria-labelledby="tab-voice" hidden>
       <div id="monitor-card" class="card monitor-card">
         <div class="card-body">
+          <div class="seg ear-seg" role="group" aria-label="What are you listening to?">
+            <button id="source-single" type="button" aria-pressed="true">One voice</button>
+            <button id="source-music" type="button" aria-pressed="false">Music (speaker)</button>
+          </div>
+          <p class="small muted source-note">"One voice": your singing or one instrument. "Music": a song through a speaker.</p>
+          <p id="source-help" class="small muted" hidden><strong>Music mode makes a guess at the melody</strong> (usually the singer) in music with several instruments.
+            It's right most of the time when the singer is clearly louder than the band, much less when they're buried in it,
+            and during the singer's pauses it often shows a note from the band. The range finder is off in this mode. See the README, "Music mode", for measurements.</p>
           <div class="voice-now">
             <span id="voice-note" class="voice-note">–</span>
             <span id="voice-details" class="voice-details">No clear pitch</span>

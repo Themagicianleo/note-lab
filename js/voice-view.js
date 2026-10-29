@@ -86,10 +86,13 @@ export function createVoiceView({ onRangeChange, onGateChange, onSmoothingChange
         el.note.textContent = '–';
         el.details.textContent = reason === 'quiet'
           ? 'No clear pitch: too quiet (below the volume threshold)'
+          : confidence === null ? 'No clear melody right now'
           : 'No clear pitch: breath, noise or a consonant';
       }
       // Clarity = how periodic the latest sound is (the detector's confidence).
-      el.clarity.textContent = reason === 'quiet' && !note ? 'Clarity –' : `Clarity ${Math.round(confidence * 100)}%`;
+      // Music mode has no such measure (confidence null): it's a melody guess.
+      el.clarity.textContent = confidence === null ? 'Music mode: melody guess'
+        : reason === 'quiet' && !note ? 'Clarity –' : `Clarity ${Math.round(confidence * 100)}%`;
     },
 
     showRange(finder, a4) {

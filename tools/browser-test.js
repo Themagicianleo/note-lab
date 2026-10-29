@@ -762,6 +762,45 @@ try {
     await browser.close();
   }
 
+  // 6. Music from a speaker: a generated song (F major melody F4–C5 over chords,
+  //    bass and drums; tools/melody-check.js --wav). Normal mode should mostly
+  //    say "no clear pitch"; music mode should follow the melody's notes.
+  {
+    const { browser, page, errors } = await fakeMic(`${ROOT}test-audio/melody/song-melody-F4.wav`);
+    await page.click('#tab-voice');
+    await page.click('#start-button');
+    await page.click('#source-music');
+    report(await page.isVisible('#source-help') && (await page.textContent('#tech-info')).includes('music mode'), 'music mode: switched on and explained');
+    await page.click('#monitor-clear');
+    await page.waitForTimeout(14000); // the song is ~14 s
+    await page.click('#stats-all');
+    await page.waitForTimeout(400);
+    const most = await page.textContent('#stat-most');
+    const range = await page.textContent('#stat-range');
+    const clarity = await page.textContent('#voice-clarity');
+    // The tune (in F major) uses F4 G4 A4 C5; its most-sung note is A4.
+    report(['F4', 'G4', 'A4', 'C5'].some((n) => most.startsWith(n)) && clarity.startsWith('Music mode'),
+      'music mode: follows the melody of a song', `most sung ${most}, range ${range}, "${clarity}"`);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: `${ROOT}docs/screenshots/monitor-music.png` });
+    await page.click('#source-single');
+    report(await page.isHidden('#source-help') && !errors.length, 'music mode: back to one voice', errors.join(' | '));
+    await browser.close();
+  }
+  {
+    // An overloaded microphone shows the "too loud" warning; a normal level doesn't.
+    const { browser, page, errors } = await fakeMic(`${ROOT}test-audio/melody/clipped-A4.wav`);
+    await page.click('#start-button');
+    await page.waitForTimeout(1000);
+    report(await page.isVisible('#clip-warning') && !errors.length, 'clipping: "too loud" warning shown for an overloaded input');
+    await browser.close();
+    const quiet = await fakeMic('sine-A4.wav');
+    await quiet.page.click('#start-button');
+    await quiet.page.waitForTimeout(1000);
+    report(await quiet.page.isHidden('#clip-warning'), 'clipping: no warning at a normal level (−6 dBFS sine)');
+    await quiet.browser.close();
+  }
+
   // 2. Permission denied. Headless Chromium has no permission prompt to refuse, so we
   //    make getUserMedia fail with the same error a real "Don't Allow" gives (NotAllowedError).
   {

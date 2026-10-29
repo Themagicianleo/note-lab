@@ -201,6 +201,61 @@ not a standard. The statistics are only as good as the detection (see
   teachers also judge comfort (tessitura), tone and register changes, so the
   app calls this "a rough guide, not a diagnosis".
 
+**Music mode** (`js/melody.js`): the switch at the top of the monitor,
+*One voice* / *Music (speaker)*. Normal detection follows **one** note at a time,
+so a song played through a speaker (singer + band) mostly shows "no clear
+pitch". Music mode instead **guesses the melody** (usually the singer):
+
+1. Spectrum of the latest 4096 samples (85 ms); its peaks fᵢ with amplitudes aᵢ.
+2. A **pre-filter**: each peak's amplitude is multiplied by the gain of a
+   2nd-order Butterworth high-pass at 500 Hz, which turns the bass and kick drum
+   down. This is the app's simple stand-in for the "equal loudness" filter in
+   the method below.
+3. **Harmonic summation salience** (J. Salamon & E. Gómez, "Melody extraction
+   from polyphonic music signals using pitch contour characteristics", IEEE
+   Trans. Audio, Speech and Language Processing 20(6), 2012, section II-B):
+   for every candidate pitch f0 on a 10-cent grid,
+   **S(f0) = Σᵢ Σₕ cos²(δ·π/2) · α^(h−1) · aᵢ^β**, for h = 1…20, where δ is
+   the distance in semitones between fᵢ/h and f0 (|δ| ≤ 1). α = 0.8, β = 1,
+   and only peaks within 40 dB of the loudest count. *Worked example:* one
+   peak at 200 Hz, amplitude 1 → S(200 Hz) = 1 (h = 1), S(100 Hz) = 0.8 (h = 2),
+   and half a semitone from 200 Hz, cos²(π/4) = 0.5. These are tested in
+   `tests/melody.test.js`. Please check the parameter values against the paper.
+4. **This app's simplifications** (not from the paper, which tracks whole pitch
+   contours): take the strongest candidate, but prefer one within 3 semitones
+   of the last note if it's at least 2/3 as strong. Show "no clear melody"
+   when the strongest salience is below 0.6 × the recent typical value. Then
+   take the median of 7 readings.
+
+Measured on generated songs (`node tools/melody-check.js`, full table in
+[docs/evaluation/melody-check.md](docs/evaluation/melody-check.md)): a sung
+"ah" melody with vibrato and rests, over struck piano-like chords, a bass line
+and drums, for a high and a low voice, with the chords below or in the same
+range as the singer. *Pitch right* = of the moments the singer sings, the
+share showing the melody note (within 50 cents). It's scored like the MIREX
+melody task (Poliner et al., 2007).
+
+| Singer vs band | Normal detection | **Music mode**: pitch right | When music mode shows a note, it's right | Singer's pauses: a note shown anyway |
+|---|---|---|---|---|
+| +6 dB (singer on top) | 1–11% | 72–91% | 79–86% | 39–46% |
+| +3 dB | 0–2% | 67–87% | 69–82% | 39–46% |
+| 0 dB (equal) | 0% | 44–82% | 41–77% | 41–52% |
+| −6 dB (buried) | 0% | 17–68% | 15–61% | 50–69% |
+
+Development notes: the first version without the pre-filter got 51–61% at
++6 dB. High-pass filters at 150, 300 and 500 Hz were tried, and 500 Hz was
+best, also with the chords in the singer's range. **Limits:** these are clean
+computer-made songs with one singer and no reverb, so real recordings will
+score lower. During the singer's pauses it often shows a note from the band.
+It may follow a loud instrument line, or jump an octave. The range finder is
+switched off in music mode. A file analysed in music mode uses the same method.
+
+**Too loud warning:** if any sample reaches 98% of the input's range (the
+microphone is overloaded and the wave is cut off), a banner says so for 1.5 s.
+It suggests moving away from the speaker or turning it down. Clipped sound
+adds false harmonics that give wrong notes. iPhones and iPads often lower the
+mic level by themselves, so it may rarely show there.
+
 **Voice settings** (summary line, plus a button to open them on the Settings
 page): detection range (Low / Mid / High / Custom), volume threshold, and
 smoothing (Fast ↔ Steady). These are explained below and apply to the monitor
@@ -1042,6 +1097,10 @@ generated signals, it still needs checking on real recordings.
   fan tone, a fridge hum harmonic) can still show as a note. **Maximum**
   shows wrong notes with music; use High for anything but one voice.
   The Lab's Key finder (singer mode) still uses its own fixed threshold.
+- **Music mode** is a melody *guess* (see "Music mode" above): right 67–91% of
+  the time on generated songs when the singer is louder than the band, much
+  less when they're buried, and during the singer's pauses it often shows a
+  band note. Not measured on real songs yet.
 - **Pitch monitor statistics** inherit every detection error above. The ±10 and
   ±25 cent bands are this app's choice, not a standard.
 - **Voice type** is a range comparison against typical ranges (from Wikipedia,
@@ -1102,6 +1161,9 @@ Things to check on iPhone (please report back):
     High (default), then Standard, then Maximum (Settings → Sensitivity). Which
     ones show your notes? While you're silent, where does the thin threshold
     line on the level meter sit (it should be just above the moving bar)?
+21. **iPad beside a speaker, music mode:** play a song with a clear lead
+    singer, Voice tab → *Music (speaker)*. Does the line follow the tune? Does
+    the "Too loud" banner ever appear right next to the speaker?
 
 ## Running the tests
 
@@ -1119,6 +1181,7 @@ npm run tradeoff                    # smoothness vs responsiveness for each smoo
 npm run spectrum-check              # spectrum peaks and levels on generated files
 npm run key-check                   # key finder on generated tunes in all 24 keys (~6 min)
 npm run sensitivity-check           # quiet singing over built-in-mic-like noise, per sensitivity setting (~3 min)
+npm run melody-check                # music mode vs normal detection on generated songs (~6 min)
 npm run evaluate -- --sensitivity=high   # the test set with the app's default sensitivity
 node tools/polyphonic-check.js      # why songs show "no clear pitch" in the tuner
 node tools/browser-test.js          # optional; needs Playwright + Chromium installed
@@ -1135,6 +1198,7 @@ css/style.css                    Note Lab's own styles on top of it
 js/pitch-math.js                 ★ frequency ↔ note maths (start here)
 js/yin.js, js/smoothing.js, js/level.js, js/pitch-tracker.js   pitch detection pipeline
 js/filters.js, js/noise-floor.js band filter and automatic volume threshold (sensitivity)
+js/melody.js                     music mode: melody guess in songs (tests/melody.test.js)
 js/fft.js, js/spectrum.js        spectrum maths
 js/voice-ranges.js, js/range-finder.js, js/ear-training.js, js/settings.js   other logic
 js/scales.js, js/pitch-stats.js, js/pitch-history.js, js/monitor-window.js, js/voice-types.js,
@@ -1216,5 +1280,14 @@ phase by phase at the owner's direction:
   the band filter plus the automatic threshold, and the fallback became the
   opt-in "Maximum" with a warning. The automatic threshold's first version
   failed on a steady test tone (12%), which the existing test set caught.
+- For "it isn't working on my iPad beside a speaker", the AI assumed music
+  (as in an earlier report) and added music mode from a published method
+  (Salamon & Gómez 2012) with simplifications it labels as its own. It
+  measured the method before tuning it. The first version was right only
+  51–61% of the time and kept showing band notes in the singer's pauses, so the
+  pre-filter and voicing values were chosen by measurement, including on a
+  harder variant (chords in the singer's range) to avoid tuning to one test.
+  The AI also caught a layout bug in its own screenshots (switch labels too
+  long for a phone).
 - The AI can't hear and has no iPhone, so iPhone behaviour and real-world
   accuracy have to be checked by a person.
