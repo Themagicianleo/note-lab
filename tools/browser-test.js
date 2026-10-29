@@ -58,7 +58,8 @@ async function openPage(args, permissions) {
 const fakeMic = (file) => openPage([
   '--use-fake-ui-for-media-stream',      // auto-accept the permission prompt
   '--use-fake-device-for-media-stream',  // use a fake microphone...
-  `--use-file-for-fake-audio-capture=${SIGNALS}${file}`, // ...that plays this file
+  // ...that plays this file (a clean absolute path: Chromium doesn't resolve "..")
+  `--use-file-for-fake-audio-capture=${file.startsWith('/') ? file : SIGNALS + file}`,
   '--autoplay-policy=no-user-gesture-required',
 ], ['microphone']);
 
@@ -628,6 +629,33 @@ try {
     await page.click('#reality-table button[data-delete="0"]');
     const empty = await page.textContent('#reality-table');
     report(kept === 1 && empty.includes('No comparisons yet') && !errors.length, 'lab compare: saved after reload, and Delete works', `${kept} kept${errors.length ? ` errors: ${errors}` : ''}`);
+    await browser.close();
+  }
+
+  // 3.9 Key finder: a sung G-major tune (singer mode) and a D-minor band (song mode), in real time.
+  const KEY_AUDIO = `${ROOT}test-audio/key/`;
+  for (const [file, button, expected] of [[`${KEY_AUDIO}singer-G-major.wav`, '#key-mode-singer', 'G major'], [`${KEY_AUDIO}song-D-minor.wav`, '#key-mode-song', 'D minor']]) {
+    const { browser, page, errors } = await fakeMic(file);
+    if (file.includes('singer')) {
+      // Also checks the Voice tab shortcut.
+      await page.click('#tab-voice');
+      await page.click('#start-button');
+      await page.click('#voice-open-key');
+    } else {
+      await page.click('#tab-lab');
+      await page.click('#lab-open-key');
+      await page.click('#lab-start-mic');
+    }
+    await page.click(button);
+    // Wait (in real time) until it names a key, up to 60 s.
+    await page.waitForFunction(() => document.getElementById('key-result').textContent !== '…', null, { timeout: 60000 }).catch(() => {});
+    await page.waitForTimeout(6000); // then a little longer, so the answer has settled
+    const result = await page.textContent('#key-result');
+    const sure = await page.textContent('#key-sure');
+    const tuning = await page.textContent('#key-tuning');
+    report(result === expected && !errors.length, `lab key finder (${button.includes('song') ? 'song' : 'singer'} mode): ${expected}`,
+      `"${result}" · ${sure} · ${tuning}${errors.length ? ` errors: ${errors}` : ''}`);
+    if (file.includes('song')) await labScreenshot(page, 'lab-key');
     await browser.close();
   }
 

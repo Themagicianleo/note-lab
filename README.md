@@ -428,6 +428,67 @@ agreeing). Entries are saved on the device and can be downloaded as **CSV**.
   The microphone fill-in only measures a clear pitch (pipes, strings, sung
   notes), not a room-mode peak or a reverberation time.
 
+### 9. Key finder
+
+**What key is someone singing in?** Lab → Key finder, or the *Find the key*
+button on the Voice tab. Two modes:
+
+- **Singer (real life):** follows one voice's pitch (YIN), and adds up how
+  long each of the 12 note names is sung, in any octave, so octave errors
+  don't matter. It also estimates the singer's overall tuning (e.g. "about
+  −35 cents") and allows for it, so a slightly flat or sharp singer still
+  gives the right key.
+- **Song (speaker):** with instruments there's no single pitch, so it adds up
+  the strongest spectrum peaks (80 Hz – 2 kHz), weighted by loudness × time.
+
+It compares that 12-note profile with the **Krumhansl–Kessler** profiles of
+all 24 major and minor keys (Pearson correlation r) and shows the best match,
+how sure it is, the next two candidates with their r, the **relative key**
+(same notes), the tuning offset, and a bar chart of the note names heard with
+the key's scale notes highlighted. It remembers the last 2 minutes; *Start over*
+for a new song.
+
+- *Formulas:* h[pc] = Σ weight per note name; r = Pearson(h, key profile);
+  best key = highest r (Krumhansl & Kessler 1982; Krumhansl 1990, ch. 4). The
+  tuning offset is a circular mean of each reading's cents from its nearest
+  note. Example: "Twinkle Twinkle" in C (first 28 notes: C 4, D 6, E 6, F 6,
+  G 8, A 2 beats) → C major r = 0.76, G major 0.65, D minor 0.58.
+- *How sure:* "Clear match" when the best r beats the runner-up by ≥ 0.10,
+  "Probably" from 0.05, otherwise "not sure yet". **These cut-offs are this
+  app's own rule of thumb** from the measurements below, not a standard.
+- *Measured* (`npm run key-check`, [results](docs/evaluation/key-check.md)) on
+  **generated** tunes (Twinkle Twinkle and three short melodies written for the
+  test, sung-like with vibrato), in all 24 keys:
+
+  | Test | Right key |
+  |---|---|
+  | Singer alone, major / minor (48 tunes) | 100% |
+  | Singer 35 cents flat (48) | 100% |
+  | Song with chords and bass (48) | 100% |
+  | Singer drifting from −40 to +20 cents (12) | 100% |
+  | Song with drums (12) | 100% |
+  | **Only a short phrase: "C C G G A A G" (6)** | **0%**: a fifth away every time (C → G) |
+
+  The short phrase fails because those three note names fit C major and G
+  major almost equally (r 0.68 vs 0.67), so the page says "not sure yet" for
+  cases like that. **These are clean, computer-made tunes, so real singers and
+  real songs will do worse.** I haven't been able to measure real recordings.
+- *How to test:* `npm test` (Pearson by hand, exact profiles give r = 1, relative
+  keys, tuning offset including the ±50-cent wrap-around, the Twinkle
+  example). The browser test plays `test-audio/key/singer-G-major.wav` in Singer
+  mode and `song-D-minor.wav` (with chords, bass and drums) in Song mode, and both
+  give the right key ("Clear match"). To try it yourself: play a song whose key
+  you know (it's often listed online) and compare. Note the result on the
+  compare page.
+- *Limits:* a major key and its relative minor use the same notes, so that
+  choice is always the weakest. Songs that change key, modal songs (Dorian,
+  Mixolydian…), mostly spoken or rapped vocals, heavy distortion, and very
+  short excerpts confuse it. Song mode also hears the instruments' harmonics,
+  which can pull towards the key a fifth away. Tuning far off (around ±50
+  cents) is ambiguous: 60 cents flat looks exactly like 40 cents sharp of the
+  notes below. The Krumhansl–Kessler numbers are the widely reproduced values;
+  please check them against the cited source.
+
 ## How the detection works
 
 ### From frequency to note (`js/pitch-math.js`)
@@ -816,6 +877,8 @@ npm run evaluate       # score the detectors on test-audio/generated
 npm run evaluate -- --preset=low    # try other settings (also --window, --threshold, --gate, --min, --max, --smoothing)
 npm run tradeoff                    # smoothness vs responsiveness for each smoothing level
 npm run spectrum-check              # spectrum peaks and levels on generated files
+npm run key-check                   # key finder on generated tunes in all 24 keys (~6 min)
+node tools/polyphonic-check.js      # why songs show "no clear pitch" in the tuner
 node tools/browser-test.js          # optional; needs Playwright + Chromium installed
 node tools/make-icons.js            # optional; re-render the icons (needs Playwright)
 ```
