@@ -13,6 +13,8 @@
 
 import { detectPitchYin } from '../js/yin.js';
 import { levelDb } from '../js/level.js';
+import { SENSITIVITY } from '../js/pitch-tracker.js';
+import { bandFilter } from '../js/filters.js';
 
 const SR = 48000;
 const N = 2048;
@@ -53,19 +55,25 @@ function make(kind) {
 for (const kind of ['solo', 'soft-chords', 'loud-chords', 'band']) {
   const { out, truth } = make(kind);
   const rows = [];
-  for (const threshold of [0.10, 0.15, 0.20, 0.25, 0.30]) {
+  const settings = [0.10, 0.15, 0.20, 0.25, 0.30].map((threshold) => [`clarity ≥ ${Math.round((1 - threshold) * 100)}%`, { threshold }]);
+  // The sensitivity settings (YIN fallback for unclear sounds; see js/pitch-tracker.js).
+  // (With the app's band filter, as live; the music here is loud, so the volume threshold doesn't matter.)
+  for (const name of ['high', 'maximum']) settings.push([`${name} sensitivity`, { fallbackThreshold: SENSITIVITY[name].fallbackThreshold, subharmonicTolerance: SENSITIVITY[name].subharmonicTolerance, filter: true }]);
+  const filtered = bandFilter(out, SR, 50, 1500);
+  for (const [label, { filter, ...options }] of settings) {
     let frames = 0, found = 0, right = 0;
+    const input = filter ? filtered : out;
     for (let s = 0; s + N < out.length; s += 800) {
-      const w = out.subarray(s, s + N);
+      const w = input.subarray(s, s + N);
       if (levelDb(w) < -60) continue;
       frames++;
-      const f = detectPitchYin(w, SR, { minHz: 50, maxHz: 1500, threshold }).frequency;
+      const f = detectPitchYin(w, SR, { minHz: 50, maxHz: 1500, ...options }).frequency;
       if (!f) continue;
       found++;
       if (Math.abs(1200 * Math.log2(f / truth[s + N / 2])) <= 50) right++;
     }
     const pct = (x) => `${Math.round((100 * x) / frames)}%`;
-    rows.push(`clarity ≥ ${Math.round((1 - threshold) * 100)}%: shows a note ${pct(found)}, melody right ${pct(right)}, wrong note ${pct(found - right)}`);
+    rows.push(`${label}: shows a note ${pct(found)}, melody right ${pct(right)}, wrong note ${pct(found - right)}`);
   }
   console.log(`== ${kind}\n  ${rows.join('\n  ')}`);
 }

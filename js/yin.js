@@ -31,6 +31,12 @@ export const YIN_DEFAULTS = {
   // signals 0.15 read a sung E4 as E5 (its 2nd harmonic was ~6× louder than
   // the fundamental); 0.10 fixed that and found pitch just as often elsewhere.
   threshold: 0.10,
+  // Sensitive mode (off by default): if no dip goes below `threshold`, accept
+  // the deepest dip if it's below this. null = off (strict: "no clear pitch").
+  fallbackThreshold: null,
+  // In sensitive mode: a dip at a shorter lag counts as "almost as deep" if it's
+  // within this much of the deepest one. Checked with tools/sensitivity-check.js.
+  subharmonicTolerance: 0.1,
 };
 
 // Detect the pitch of `samples` (an array of numbers between −1 and +1).
@@ -38,7 +44,9 @@ export const YIN_DEFAULTS = {
 //   frequency  – pitch in Hz, or null if there is no clear pitch
 //   confidence – 0..1, how periodic (note-like) the sound is
 export function detectPitchYin(samples, sampleRate, options = {}) {
-  const { minHz, maxHz, threshold } = { ...YIN_DEFAULTS, ...options };
+  // (Options left undefined keep their defaults.)
+  const given = Object.fromEntries(Object.entries(options).filter(([, v]) => v !== undefined));
+  const { minHz, maxHz, threshold, fallbackThreshold, subharmonicTolerance } = { ...YIN_DEFAULTS, ...given };
 
   // Lags to search. A high pitch has a short period (small lag), a low pitch a long one.
   const minLag = Math.max(2, Math.floor(sampleRate / maxHz));
@@ -80,10 +88,26 @@ export function detectPitchYin(samples, sampleRate, options = {}) {
   }
 
   if (bestLag === -1) {
-    // Nothing was clear enough. Report how close the best dip came, but no pitch.
+    // Nothing went below the threshold. Find the deepest dip (the YIN paper's
+    // fallback: "if none is found, the global minimum is chosen instead").
     let lowest = 1;
-    for (let lag = minLag; lag <= maxLag; lag++) lowest = Math.min(lowest, norm[lag]);
-    return { frequency: null, confidence: Math.max(0, 1 - lowest) };
+    let lowestLag = -1;
+    for (let lag = minLag; lag <= maxLag; lag++) {
+      if (norm[lag] < lowest) { lowest = norm[lag]; lowestLag = lag; }
+    }
+    // Strict (default): report how close it came, but no pitch.
+    if (!(fallbackThreshold > 0) || lowest >= fallbackThreshold) return { frequency: null, confidence: Math.max(0, 1 - lowest) };
+    // Sensitive mode: accept it, but noise makes the dips at 2×, 3×… the period
+    // about as deep as the real one, which would read an octave (or more) LOW.
+    // So prefer the shortest lag L/k (k = 4, 3, 2) that has a dip almost as deep.
+    bestLag = lowestLag;
+    for (const k of [4, 3, 2]) {
+      const centre = Math.round(lowestLag / k);
+      if (centre < minLag) continue;
+      let m = centre;
+      for (let lag = Math.max(minLag, centre - 3); lag <= Math.min(maxLag, centre + 3); lag++) if (norm[lag] < norm[m]) m = lag;
+      if (norm[m] <= lowest + subharmonicTolerance) { bestLag = m; break; }
+    }
   }
 
   // 4. Parabolic interpolation around the dip

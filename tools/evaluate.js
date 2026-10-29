@@ -3,7 +3,9 @@
 // Measures how well the pitch detectors do on WAV files that have a truth CSV.
 // Run with:  npm run evaluate
 //      or:   node tools/evaluate.js test-audio/real   (another folder)
-// Options:   --window=4096  --threshold=0.1  --gate=-50  --min=35  --max=1500
+// Options:   --window=4096  --threshold=0.1  --fallback=0.35  --tol=0.05  --gate=-50  --min=35  --max=1500
+//            --sensitivity=high (the app's default: band filter + automatic threshold)
+//            --filter (band filter only)
 //
 // It imitates the app: it takes 2048-sample windows about 60 times a second,
 // skips windows that are too quiet (the volume gate), runs the detector, and
@@ -28,6 +30,7 @@ import { detectPitchYin } from '../js/yin.js';
 import { detectPitchAutocorrelation } from '../js/autocorrelation.js';
 import { DEFAULT_SMOOTHING_LEVEL, SMOOTHING_LEVELS } from '../js/smoothing.js';
 import { VOICE_PRESETS } from '../js/voice-ranges.js';
+import { SENSITIVITY } from '../js/pitch-tracker.js';
 import { centsBetween } from '../js/pitch-math.js';
 
 // Command-line options look like --window=4096. Anything else is the folder.
@@ -41,12 +44,19 @@ const option = (name, fallback) => (text(name) !== undefined ? Number(text(name)
 const folder = args.find((a) => !a.startsWith('--')) || new URL('../test-audio/generated/', import.meta.url).pathname;
 const WINDOW = option('window', 2048);
 const GATE_DB = option('gate', -60);       // windows quieter than this count as "no pitch"
+const HIGH = text('sensitivity') === 'high';
+const FILTER = HIGH || args.includes('--filter');
 // --preset=low|mid|high uses a voice range preset instead of --min/--max.
 const preset = VOICE_PRESETS[text('preset')];
 const RANGE = preset ? { minHz: preset.minHz, maxHz: preset.maxHz } : { minHz: option('min', 35), maxHz: option('max', 1500) };
 const SMOOTHING = option('smoothing', DEFAULT_SMOOTHING_LEVEL); // index into SMOOTHING_LEVELS
 const threshold = option('threshold', undefined); // YIN threshold; undefined = the default
-const yin = (s, sr, o) => detectPitchYin(s, sr, threshold === undefined ? o : { ...o, threshold });
+const fallback = option('fallback', undefined);   // YIN sensitive-mode fallback threshold (e.g. 0.35); undefined = off
+const yin = (s, sr, o) => detectPitchYin(s, sr, {
+  ...o,
+  ...(threshold === undefined ? {} : { threshold }),
+  ...(fallback === undefined ? {} : { fallbackThreshold: fallback, subharmonicTolerance: option('tol', 0.05) }),
+});
 
 const CONFIGS = [
   { label: 'YIN (raw)', detect: yin, smoothingLevel: 0 },
@@ -64,7 +74,7 @@ const truthAt = (truth, seconds) => truth[Math.min(truth.length - 1, Math.max(0,
 function evaluateFile(wavPath, truth, config) {
   const { sampleRate, samples } = readWav(wavPath);
   const stats = { voiced: 0, found: 0, errors: [], gross: 0, octave: 0, unvoiced: 0, falseNotes: 0 };
-  const trackerOptions = { windowSize: WINDOW, ...RANGE, gateDb: GATE_DB, smoothingLevel: config.smoothingLevel, detect: config.detect };
+  const trackerOptions = { windowSize: WINDOW, ...RANGE, gateDb: GATE_DB, smoothingLevel: config.smoothingLevel, detect: config.detect, filter: FILTER, ...(HIGH ? SENSITIVITY.high : {}) };
 
   // Volume gate → detector → smoothing, exactly as in the app.
   runPipeline(samples, sampleRate, trackerOptions, ({ startSample, result }) => {
@@ -138,7 +148,7 @@ const categories = existsSync(indexPath)
   : {};
 
 console.log(`Folder: ${folder}`);
-console.log(`Window ${WINDOW} samples, ${READINGS_PER_SECOND} readings/s, gate ${GATE_DB} dBFS, ` +
+console.log(`Window ${WINDOW} samples, ${READINGS_PER_SECOND} readings/s, ${HIGH ? 'HIGH sensitivity (band filter, automatic threshold)' : `gate ${GATE_DB} dBFS${FILTER ? ', band filter' : ''}`}, ` +
   `range ${RANGE.minHz}–${RANGE.maxHz} Hz, YIN threshold ${RANGE.threshold ?? 'default'}`);
 
 for (const config of CONFIGS) {

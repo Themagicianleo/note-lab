@@ -6,18 +6,23 @@
 // ------------------------------------------------------------
 
 import { PitchTracker } from '../js/pitch-tracker.js';
+import { bandFilter } from '../js/filters.js';
 
 export const READINGS_PER_SECOND = 60;
 
 // Calls onReading({ time, startSample, result }) for every reading.
 //   time        – seconds, at the CENTRE of the window
 //   result      – what PitchTracker.process returned
-export function runPipeline(samples, sampleRate, { windowSize = 2048, ...trackerOptions } = {}, onReading) {
+//   filter: true – first remove hiss and rumble outside the pitch band, like
+//                  the app's audio graph does (js/filters.js, js/audio-input.js)
+export function runPipeline(samples, sampleRate, { windowSize = 2048, filter = false, ...trackerOptions } = {}, onReading) {
   const tracker = new PitchTracker(trackerOptions);
+  if (filter) samples = bandFilter(samples, sampleRate, tracker.options.minHz, tracker.options.maxHz);
   const hop = sampleRate / READINGS_PER_SECOND;
   for (let start = 0; start + windowSize <= samples.length; start += hop) {
     const from = Math.round(start);
-    const result = tracker.process(samples.subarray(from, from + windowSize), sampleRate);
+    const result = tracker.process(samples.subarray(from, from + windowSize), sampleRate, (1000 * (from + windowSize)) / sampleRate);
     onReading({ time: (from + windowSize / 2) / sampleRate, startSample: from, result });
   }
 }
+
