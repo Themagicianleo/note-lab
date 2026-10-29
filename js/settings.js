@@ -44,7 +44,7 @@ export function validateSettings(input) {
   if (inRange(input.tunerGateDb, GATE_LIMITS.min, GATE_LIMITS.max)) s.tunerGateDb = input.tunerGateDb;
   if (inRange(input.voiceGateDb, GATE_LIMITS.min, GATE_LIMITS.max)) s.voiceGateDb = input.voiceGateDb;
   if (Number.isInteger(input.smoothingLevel) && SMOOTHING_LEVELS[input.smoothingLevel]) s.smoothingLevel = input.smoothingLevel;
-  if (Object.hasOwn(SENSITIVITY, input.sensitivity ?? '')) s.sensitivity = input.sensitivity;
+  if (Object.prototype.hasOwnProperty.call(SENSITIVITY, input.sensitivity ?? '')) s.sensitivity = input.sensitivity; // (not Object.hasOwn: iOS 15.4+)
   if (['single', 'music'].includes(input.voiceSource)) s.voiceSource = input.voiceSource;
 
   if (input.voicePreset === 'custom') {

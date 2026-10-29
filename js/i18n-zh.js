@@ -443,6 +443,7 @@ export const ZH = {
   "Note Lab · a personal learning project · no accounts, no tracking": "Note Lab · 个人学习项目 · 无需账户，没有跟踪",
   "Mode": "模态",
   "Sections": "页面",
+  "Start": "开始",
   "; then 3×, 5×, 7× … (odd harmonics only)": "；然后 3×、5×、7× …（只有奇次泛音）",
   "; f_n = n × f₁ (all harmonics)": "；f_n = n × f₁（所有泛音）",
   "How Note Lab works": "Note Lab 使用说明",

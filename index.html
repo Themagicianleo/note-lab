@@ -19,6 +19,17 @@
   <link rel="stylesheet" href="css/glass.css">
   <link rel="stylesheet" href="css/style.css">
   <script type="module" src="js/app.js"></script>
+  <!-- If the app's code can't run in this browser (e.g. a very old iPhone/iPad
+       Safari), say so instead of showing buttons that do nothing. -->
+  <script>
+    setTimeout(function () {
+      if (window.noteLabStarted) return;
+      var m = document.getElementById('message');
+      if (!m) return;
+      m.textContent = 'Note Lab could not start in this browser. Please update iOS / iPadOS (Settings → General → Software Update) or use a recent Safari, Chrome or Firefox, then reload the page. (Note Lab 无法在此浏览器中启动。请更新 iOS / iPadOS，或使用较新的浏览器，然后重新加载页面。)';
+      m.hidden = false;
+    }, 4000);
+  </script>
 </head>
 <body>
   <!-- Soft coloured light behind the glass -->
@@ -27,7 +38,11 @@
   <div class="wrap">
     <header class="appbar">
       <span class="brand"><img src="icons/icon.svg" alt=""> <span class="brand-text">Note Lab</span></span>
-      <!-- Shown while listening, so it can be reached from anywhere on the page -->
+      <!-- Start (before listening) / Stop (while listening), reachable from anywhere on the page -->
+      <button id="top-start" type="button" class="capsule start">
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zm-7 9a7 7 0 0 0 14 0M12 19v2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <span>Start</span>
+      </button>
       <button id="stop-button" type="button" class="capsule stop" hidden>
         <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2.5" fill="currentColor"/></svg>
         <span>Stop</span>

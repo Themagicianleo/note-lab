@@ -76,6 +76,7 @@ input[type="range"] { width: 100%; }
 .monitor-graph { height: min(62vh, 560px); min-height: 300px; -webkit-user-select: none; user-select: none; }
 /* Top bar: Stop (red, while listening), language switch, How it works (?), Settings */
 .appbar .capsule.stop { background: var(--red); color: #fff; font-weight: 600; padding: 0 14px 0 12px; }
+.appbar .capsule.start { background: var(--blue); color: #fff; font-weight: 600; padding: 0 14px 0 12px; }
 .appbar .capsule.lang { padding: 0 12px; font-weight: 600; }
 .appbar .how-link { font-size: 19px; font-weight: 700; }
 @media (max-width: 420px) { .brand-text { display: none; } } /* room for the buttons on a phone */

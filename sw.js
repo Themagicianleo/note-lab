@@ -9,7 +9,7 @@
 // tests/service-worker.test.js checks that FILES lists every app file.
 // ------------------------------------------------------------
 
-const VERSION = 'note-lab-v7'; // v7: Stop button at the top, 简体中文
+const VERSION = 'note-lab-v8'; // v8: works on older iPhone/iPad Safari again; Start/Stop in the top bar
 
 const FILES = [
   './',
@@ -100,7 +100,9 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
 
   event.respondWith(
-    fetch(request)
+    // cache: 'no-cache' asks the server whether each file changed (cheap when it
+    // hasn't), so an update never mixes new and old files from the browser's cache.
+    fetch(request, { cache: 'no-cache' })
       .then((response) => {
         if (response.ok) {
           const copy = response.clone();

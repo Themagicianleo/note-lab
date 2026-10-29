@@ -75,8 +75,9 @@ Note Lab uses the same **Liquid Glass** theme as the other web apps:
 
 ## How to use
 
-**Top bar:** the red **Stop** button appears there while the microphone is on,
-so you can stop from anywhere on the page. **中文 / EN** switches the language
+**Top bar:** a blue **Start** button (before listening) turns into a red
+**Stop** button while the microphone is on, so you can start and stop from
+anywhere on the page. **中文 / EN** switches the language
 (below). **?** opens the beginner's guide; the sliders icon opens Settings.
 
 ### Language: English / 简体中文 (`js/i18n.js`, `js/i18n-zh.js`)
@@ -1204,7 +1205,7 @@ Things to check on iPhone (please report back):
 Needs [Node.js](https://nodejs.org) 18 or newer. There are no packages to install.
 
 ```sh
-npm test               # unit tests: pitch maths, YIN, smoothing, dB level, ranges, FFT/spectrum, ear training, settings, offline file list,
+npm test               # unit tests (incl. a check that the code runs on older iPhone/iPad Safari): pitch maths, YIN, smoothing, dB level, ranges, FFT/spectrum, ear training, settings, offline file list,
                        # pitch monitor maths (scales, statistics, history, zoom/scroll, voice types, file analysis),
                        # range finder (incl. full pipeline on generated files), WAV files
 npm run table          # note/frequency table for checking by hand
@@ -1330,5 +1331,14 @@ phase by phase at the owner's direction:
   checker tool so nothing visible is missed, and tests so the translation
   can't break the page's HTML. Two English words had two meanings in the app
   ("Mode", "Bass"); the AI handled them separately rather than guess.
+- When the owner couldn't see the new buttons on an iPad, the AI couldn't
+  open the live site from its sandbox. It found two things in its own recent
+  code that make older iPhone/iPad Safari (before iPadOS 15.4 / 16.4) refuse to
+  run the whole app: `Object.hasOwn` and a regex look-behind. It replaced them,
+  added `tests/compat.test.js` to stop them coming back, and added a message
+  that appears if the app can't start. The Stop button also only appeared
+  while listening, so a Start button now sits in the same place. The service
+  worker now always checks for changed files, so an update can't mix old and
+  new files.
 - The AI can't hear and has no iPhone, so iPhone behaviour and real-world
   accuracy have to be checked by a person.

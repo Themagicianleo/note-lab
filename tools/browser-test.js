@@ -812,8 +812,10 @@ try {
   // 7. Stop button in the top bar, and the language switch (English ↔ 简体中文).
   {
     const { browser, page, errors } = await fakeMic('sine-A4.wav');
-    report(await page.isHidden('#stop-button'), 'top bar: no Stop button before listening');
-    await page.click('#start-button');
+    report(await page.isHidden('#stop-button') && await page.isVisible('#top-start'), 'top bar: Start (not Stop) before listening');
+    await page.click('#top-start'); // the top bar's Start works like the big one
+    await page.waitForSelector('#stop-button:not([hidden])', { timeout: 5000 }).catch(() => {});
+    report(await page.isHidden('#top-start') && (await page.evaluate(() => window.noteLabStarted)) === true, 'top bar: Start starts listening, then turns into Stop');
     const box = await page.locator('#stop-button').boundingBox();
     report(await page.isVisible('#stop-button') && box && box.y < 80, 'top bar: Stop button at the top while listening', JSON.stringify(box));
     const staticBefore = await page.evaluate(() => document.getElementById('settings').innerHTML + document.getElementById('lab').innerHTML);

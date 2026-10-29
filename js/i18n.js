@@ -49,7 +49,7 @@ const compiled = ZH_PATTERNS.map(([en, zh]) => [new RegExp(`^${en.split('{}').ma
 //   4. a readout made of parts joined by " · " (e.g. "E4 · 330.0 Hz · +2 cents"):
 //      each part on its own.
 export function lookup(text) {
-  if (Object.hasOwn(ZH, text)) return ZH[text];
+  if (Object.prototype.hasOwnProperty.call(ZH, text)) return ZH[text]; // (Object.hasOwn needs iOS 15.4+)
   for (const [re, zh] of compiled) {
     const m = text.match(re);
     if (m) {
@@ -62,7 +62,8 @@ export function lookup(text) {
     }
   }
   // Several messages joined into one ("Enter the volume. Add a surface."): each sentence, if all are known.
-  const sentences = text.split(/(?<=[.!?])\s+(?=[A-Z])/);
+  // (No look-behind in the pattern: older iPhone/iPad Safari can't read it and would stop the whole app.)
+  const sentences = text.replace(/([.!?])\s+(?=[A-Z])/g, '$1\u0000').split('\u0000');
   if (sentences.length > 1) {
     const done = sentences.map((p) => lookup(p));
     if (done.every((d) => d !== null)) return done.join('');

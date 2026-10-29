@@ -366,7 +366,8 @@ function showTab(name) {
   // Voice shows the start card above the monitor (a file can be analysed without the mic).
   startPanel.hidden = settingsOpen || Boolean(mic) || (WORKS_WITHOUT_MIC.includes(name) && name !== 'voice');
   listeningBar.hidden = settingsOpen || !mic;
-  stopButton.hidden = !mic; // the Stop button lives in the top bar
+  stopButton.hidden = !mic; // Start / Stop live in the top bar
+  byId('top-start').hidden = Boolean(mic) || settingsOpen;
   showTitle(settingsOpen ? 'settings' : name);
   singBack.refresh();
   lab.refresh();
@@ -389,11 +390,17 @@ const problem = checkMicrophoneSupport();
 if (problem) showMessage(problem.message);
 
 startButton.addEventListener('click', () => startListening());
+byId('top-start').addEventListener('click', () => startListening()); // the same, from the top bar
 
 // Start the microphone. Must run inside a tap (Start button, or sing-back's
 // "Start microphone" button), because iPhone Safari requires that.
+let starting = false; // true while the permission prompt is open (Start can be tapped in two places)
 async function startListening() {
-  if (mic) return;
+  if (mic || starting) return;
+  starting = true;
+  try { await startMicrophoneNow(); } finally { starting = false; }
+}
+async function startMicrophoneNow() {
   showMessage('');
   startButton.disabled = true;
   startButton.textContent = 'Waiting for permission…';
@@ -545,3 +552,4 @@ registerServiceWorker(byId('offline-status'));
 // Language: English or 简体中文 (js/i18n.js). Applied last, after the page is built.
 applyLang(savedLang());
 setUpLangSwitch(byId('lang-switch'));
+window.noteLabStarted = true; // for the "could not start" check in index.html
