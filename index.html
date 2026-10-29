@@ -26,8 +26,14 @@
 
   <div class="wrap">
     <header class="appbar">
-      <span class="brand"><img src="icons/icon.svg" alt=""> Note Lab</span>
-      <a class="capsule" href="how-it-works.html">How it works</a>
+      <span class="brand"><img src="icons/icon.svg" alt=""> <span class="brand-text">Note Lab</span></span>
+      <!-- Shown while listening, so it can be reached from anywhere on the page -->
+      <button id="stop-button" type="button" class="capsule stop" hidden>
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2.5" fill="currentColor"/></svg>
+        <span>Stop</span>
+      </button>
+      <button id="lang-switch" type="button" class="capsule lang" aria-label="中文 / English" title="中文 / English">中文</button>
+      <a class="capsule icon how-link" href="how-it-works.html" aria-label="How it works" title="How it works">?</a>
       <button id="open-settings" type="button" class="capsule icon" aria-label="Settings" title="Settings">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
           <path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/>
@@ -1040,9 +1046,6 @@ best key = the highest r</pre>
           The thin line marks the volume threshold: anything quieter is ignored. With High or Maximum sensitivity it moves by itself to just above the background noise.
           In pitch modes the level is measured after the band filter (hiss and rumble removed), so it reads lower than in Spectrum or the Lab.
         </p>
-        <div class="btn-row">
-          <button id="stop-button" type="button" class="btn btn-danger">Stop listening</button>
-        </div>
         <p id="tech-info" class="small muted tech-info"></p>
         <p id="mic-processing" class="small muted"></p>
       </div>
@@ -1066,7 +1069,7 @@ best key = the highest r</pre>
   </div>
 
   <!-- Floating glass tab bar. Icons are this project's own line drawings. -->
-  <nav id="tabbar" class="tabbar" role="tablist" aria-label="Mode">
+  <nav id="tabbar" class="tabbar" role="tablist" aria-label="Sections">
     <button type="button" role="tab" id="tab-tuner" aria-selected="true" aria-controls="tuner">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M3.5 17a8.5 8.5 0 0 1 17 0"/><path d="M12 17l4.2-5.2"/><circle cx="12" cy="17" r="1.4" fill="currentColor"/><path d="M6.4 10.6l1 1M12 7.5V9M17.6 10.6l-1 1"/>

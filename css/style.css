@@ -74,6 +74,11 @@ input[type="range"] { width: 100%; }
 .monitor-graph, .spectrum-chart { display: block; width: 100%; border-radius: 16px; touch-action: none; }
 /* The pitch monitor: tall, and touch gestures go to the graph (not page scrolling). */
 .monitor-graph { height: min(62vh, 560px); min-height: 300px; -webkit-user-select: none; user-select: none; }
+/* Top bar: Stop (red, while listening), language switch, How it works (?), Settings */
+.appbar .capsule.stop { background: var(--red); color: #fff; font-weight: 600; padding: 0 14px 0 12px; }
+.appbar .capsule.lang { padding: 0 12px; font-weight: 600; }
+.appbar .how-link { font-size: 19px; font-weight: 700; }
+@media (max-width: 420px) { .brand-text { display: none; } } /* room for the buttons on a phone */
 .clip-warning { position: fixed; z-index: 1060; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 62px);
   width: min(560px, calc(100% - 32px)); margin: 0; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
 .monitor-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }

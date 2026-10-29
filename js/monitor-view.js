@@ -14,6 +14,7 @@
 //   review – a recording's or a file's pitch line, with a playhead while playing
 // ------------------------------------------------------------
 
+import { t as tr } from './i18n.js'; // canvas labels can't be translated by watching the page
 import { frequencyToNote, frequencyToNoteNumber, noteNumberToFrequency, noteNumberToName } from './pitch-math.js';
 import { PitchHistory } from './pitch-history.js';
 import { createMonitorGraph } from './monitor-graph.js';
@@ -382,7 +383,7 @@ export function createMonitor({ player, getA4, getMic, getAnalysisConfig, onRevi
     } else {
       const last = live.last;
       const n = last && last.hz > 0 && now - last.t < 200 ? Math.round(frequencyToNoteNumber(last.hz, getA4())) : null;
-      graph.draw(live, now, { labelFor: (t) => (Math.abs(t - now) < 50 ? 'now' : `${((t - now) / 1000).toFixed(0)} s`), currentNote: graph.window.live ? n : null });
+      graph.draw(live, now, { labelFor: (t) => (Math.abs(t - now) < 50 ? tr('now') : `${((t - now) / 1000).toFixed(0)} s`), currentNote: graph.window.live ? n : null });
     }
     showStatus();
     if (now - lastStats > STATS_EVERY_MS) { lastStats = now; showStats(); }

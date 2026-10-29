@@ -7,6 +7,7 @@
 // tangential/oblique modes and the Schroeder frequency.
 // ------------------------------------------------------------
 
+import { t as tr } from '../i18n.js'; // canvas labels can't be translated by watching the page
 import { speedOfSound, axialModes, allRoomModes, axialNullPositions, coincidentModes, schroederFrequency } from '../acoustics.js';
 import { frequencyToNote, formatNote } from '../pitch-math.js';
 import { prepareCanvas, themeColours } from './canvas.js';
@@ -126,7 +127,7 @@ export function createRoomTool({ player, getA4, onCompare, onRoomChange }) {
       ctx.strokeStyle = c.purple; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, bottom); ctx.stroke(); ctx.setLineDash([]);
       ctx.fillStyle = c.purple; ctx.textAlign = x > width - 70 ? 'right' : 'left'; ctx.textBaseline = 'top';
-      ctx.fillText('Schroeder', x + (x > width - 70 ? -4 : 4), top);
+      ctx.fillText(tr('Schroeder'), x + (x > width - 70 ? -4 : 4), top);
     }
     ctx.fillStyle = c.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
     ctx.fillText('Hz', right, bottom - 2);

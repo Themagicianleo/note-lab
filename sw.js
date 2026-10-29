@@ -9,7 +9,7 @@
 // tests/service-worker.test.js checks that FILES lists every app file.
 // ------------------------------------------------------------
 
-const VERSION = 'note-lab-v6'; // v6: music mode (melody guess), clipping warning
+const VERSION = 'note-lab-v7'; // v7: Stop button at the top, 简体中文
 
 const FILES = [
   './',
@@ -31,6 +31,8 @@ const FILES = [
   'js/file-analysis.js',
   'js/filters.js',
   'js/fft.js',
+  'js/i18n-zh.js',
+  'js/i18n.js',
   'js/interval-trainer-view.js',
   'js/key-finder.js',
   'js/key-listener.js',

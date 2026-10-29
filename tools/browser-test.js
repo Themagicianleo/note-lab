@@ -756,9 +756,17 @@ try {
     await page.click('#open-settings');
     await page.check('input[name="sensitivity"][value="maximum"]');
     await page.click('#close-settings');
-    const maximum = await mostCommonText(page, '#voice-note');
-    report((await page.textContent('#tech-info')).includes('sensitivity maximum') && maximum.text === 'A3' && !errors.length,
-      'sensitivity Maximum: A3 detected too', `${JSON.stringify(maximum.seen)} ${errors.join(' | ')}`);
+    // The file loops every 8 s and starts with 2 s of noise, so read for a whole loop
+    // and only count the moments that aren't "too quiet" (the singing part).
+    const seen = {};
+    for (let i = 0; i < 40; i++) {
+      const [note, details] = await page.evaluate(() => [document.getElementById('voice-note').textContent, document.getElementById('voice-details').textContent]);
+      if (!details.includes('too quiet')) seen[note] = (seen[note] || 0) + 1;
+      await page.waitForTimeout(200);
+    }
+    const counted = Object.values(seen).reduce((a, b) => a + b, 0);
+    report((await page.textContent('#tech-info')).includes('sensitivity maximum') && (seen.A3 || 0) >= 0.6 * counted && counted >= 10 && !errors.length,
+      'sensitivity Maximum: A3 detected too (while singing)', `${JSON.stringify(seen)} ${errors.join(' | ')}`);
     await browser.close();
   }
 
@@ -799,6 +807,39 @@ try {
     await quiet.page.waitForTimeout(1000);
     report(await quiet.page.isHidden('#clip-warning'), 'clipping: no warning at a normal level (−6 dBFS sine)');
     await quiet.browser.close();
+  }
+
+  // 7. Stop button in the top bar, and the language switch (English ↔ 简体中文).
+  {
+    const { browser, page, errors } = await fakeMic('sine-A4.wav');
+    report(await page.isHidden('#stop-button'), 'top bar: no Stop button before listening');
+    await page.click('#start-button');
+    const box = await page.locator('#stop-button').boundingBox();
+    report(await page.isVisible('#stop-button') && box && box.y < 80, 'top bar: Stop button at the top while listening', JSON.stringify(box));
+    const staticBefore = await page.evaluate(() => document.getElementById('settings').innerHTML + document.getElementById('lab').innerHTML);
+    await page.click('#lang-switch');
+    await page.waitForTimeout(800);
+    const title = await page.textContent('#page-title');
+    const details = await page.textContent('#note-details');
+    report(title === '调音器' && (await page.getAttribute('html', 'lang')) === 'zh-Hans' && (await page.textContent('#lang-switch')) === 'EN',
+      'language: switches to Chinese', `${title} · ${details}`);
+    report(details.includes('音分') && await page.isVisible('#stop-button'), 'language: live readings are translated and the microphone keeps running', details);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: `${ROOT}docs/screenshots/tuner-zh.png` });
+    await page.click('#tab-voice');
+    await page.waitForTimeout(1000);
+    await page.screenshot({ path: `${ROOT}docs/screenshots/monitor-zh.png` });
+    await page.reload();
+    report((await page.textContent('#page-title')) === '调音器', 'language: remembered after reload');
+    await page.click('#lang-switch');
+    await page.waitForTimeout(300);
+    const staticAfter = await page.evaluate(() => document.getElementById('settings').innerHTML + document.getElementById('lab').innerHTML);
+    report((await page.textContent('#page-title')) === 'Tuner' && staticAfter.replace(/\s+/g, ' ') === staticBefore.replace(/\s+/g, ' ') && !errors.length,
+      'language: back to English restores the original page exactly', errors.join(' | '));
+    await page.click('#start-button');
+    await page.click('#stop-button');
+    report(await page.isVisible('#start-button'), 'top bar: Stop stops listening');
+    await browser.close();
   }
 
   // 2. Permission denied. Headless Chromium has no permission prompt to refuse, so we

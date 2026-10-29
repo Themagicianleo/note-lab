@@ -8,6 +8,7 @@
 // it hears (MEASURED, with YIN and a steady-reading check).
 // ------------------------------------------------------------
 
+import { t as tr } from '../i18n.js';
 import { compareValues, summariseComparisons, toCsv } from '../acoustics.js';
 import { detectPitchYin } from '../yin.js';
 import { PitchSmoother } from '../smoothing.js';
@@ -118,7 +119,7 @@ export function createRealityTool({ isListening, startListening }) {
   });
 
   el.clear.addEventListener('click', () => {
-    if (!entries.length || !confirm('Delete all your comparisons from this device?')) return;
+    if (!entries.length || !confirm(tr('Delete all your comparisons from this device?'))) return;
     entries = []; removeKey(STORE_KEY); render();
   });
 

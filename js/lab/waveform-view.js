@@ -8,6 +8,7 @@
 // If a clear pitch is found, one period T is marked and f = 1/T is shown.
 // ------------------------------------------------------------
 
+import { t as tr } from '../i18n.js'; // canvas labels can't be translated by watching the page
 import { findRisingCrossing, peakAmplitude, frequencyFromPeriod } from '../acoustics.js';
 import { detectPitchYin } from '../yin.js';
 import { levelDb, amplitudeToDb } from '../level.js';
@@ -74,7 +75,7 @@ export function createWaveformTool({ getA4 }) {
     }
     ctx.textAlign = 'right'; // top right, clear of the period label on the left
     ctx.textBaseline = 'top';
-    ctx.fillText(`±${+(1 / gain()).toFixed(2)} of full scale`, width - 6, 3);
+    ctx.fillText(tr(`±${+(1 / gain()).toFixed(2)} of full scale`), width - 6, 3);
 
     // The wave. With many samples per pixel, draw each column's min–max range.
     const yOf = (v) => mid - Math.max(-1, Math.min(1, v * gain())) * (mid - 6);

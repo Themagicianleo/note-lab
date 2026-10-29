@@ -26,6 +26,7 @@
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
       Note Lab
     </a>
+    <button id="lang-switch" type="button" class="capsule lang" aria-label="中文 / English" title="中文 / English" style="margin-left: auto">中文</button>
   </header>
   <div class="large-title">
     <h1>How it works</h1>
@@ -155,7 +156,7 @@ frequency      = 440 × 2^((m − 69) ÷ 12)</pre>
     <section class="card">
       <h2>9. What Note Lab can't do (yet)</h2>
       <ul>
-        <li><strong>Chords:</strong> it follows one note at a time. With several notes at once, the result can't be trusted.</li>
+        <li><strong>Chords:</strong> it follows one note at a time. With several notes at once, the result can't be trusted. (Music mode on the Voice tab can guess the melody of a song.)</li>
         <li><strong>Octave mistakes</strong> still happen sometimes, especially with rough or very breathy voices.</li>
         <li><strong>Very low notes</strong> (below about 50 Hz) need the tuner's "Low" range, which reacts a little slower.</li>
         <li><strong>Noisy rooms</strong> make "no clear pitch" more common.</li>
@@ -192,5 +193,11 @@ frequency      = 440 × 2^((m − 69) ÷ 12)</pre>
 
   <footer class="small muted app-footer"><p><a href="./">← Back to Note Lab</a></p></footer>
   </div>
+  <!-- Language switch (English / 简体中文), the same as in the app: js/i18n.js -->
+  <script type="module">
+    import { savedLang, applyLang, setUpLangSwitch } from './js/i18n.js';
+    applyLang(savedLang());
+    setUpLangSwitch(document.getElementById('lang-switch'));
+  </script>
 </body>
 </html>

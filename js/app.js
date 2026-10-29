@@ -39,6 +39,7 @@ import { createSettingsView } from './settings-view.js';
 import { SETTINGS_KEY, DEFAULT_SETTINGS, validateSettings, voiceRange } from './settings.js';
 import { loadJSON, saveJSON, removeKey } from './storage.js';
 import { registerServiceWorker } from './register-sw.js';
+import { savedLang, applyLang, setUpLangSwitch } from './i18n.js';
 import { createLab } from './lab/lab.js';
 import { createWaveformTool } from './lab/waveform-view.js';
 import { createHarmonicsTool } from './lab/harmonics-view.js';
@@ -365,6 +366,7 @@ function showTab(name) {
   // Voice shows the start card above the monitor (a file can be analysed without the mic).
   startPanel.hidden = settingsOpen || Boolean(mic) || (WORKS_WITHOUT_MIC.includes(name) && name !== 'voice');
   listeningBar.hidden = settingsOpen || !mic;
+  stopButton.hidden = !mic; // the Stop button lives in the top bar
   showTitle(settingsOpen ? 'settings' : name);
   singBack.refresh();
   lab.refresh();
@@ -539,3 +541,7 @@ applyTransparency();
 showSettingsInControls();
 showTab(activeTab);
 registerServiceWorker(byId('offline-status'));
+
+// Language: English or 简体中文 (js/i18n.js). Applied last, after the page is built.
+applyLang(savedLang());
+setUpLangSwitch(byId('lang-switch'));

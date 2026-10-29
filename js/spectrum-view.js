@@ -7,6 +7,7 @@
 // readout of whatever frequency you touch or point at.
 // ------------------------------------------------------------
 
+import { t as tr } from './i18n.js'; // canvas labels can't be translated by watching the page
 import { EQ_BANDS, bandFor, findPeaks, PeakHold, MIN_SPECTRUM_DB } from './spectrum.js';
 import { frequencyToNote } from './pitch-math.js';
 
@@ -109,7 +110,7 @@ export function createSpectrumView({ canvas, peaksList, pointerText, freezeButto
       ctx.fillStyle = c.muted;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
-      if (x2 - x1 > 22) ctx.fillText(SHORT_BAND_NAMES[i], (x1 + x2) / 2, 3);
+      if (x2 - x1 > 22) ctx.fillText(tr(SHORT_BAND_NAMES[i]), (x1 + x2) / 2, 3);
     });
 
     // Grid: dB lines every 20 dB, frequency lines at 1-2-5 steps

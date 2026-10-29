@@ -10,6 +10,7 @@
 // sideways (in time) but are sharp up and down (in frequency).
 // ------------------------------------------------------------
 
+import { t as tr } from '../i18n.js'; // canvas labels can't be translated by watching the page
 import { stftResolution } from '../acoustics.js';
 import { computeSpectrum } from '../spectrum.js';
 import { dbToColour } from './colour-map.js';
@@ -124,7 +125,7 @@ export function createSpectrogramTool() {
     const seconds = (((width - LEFT) * 1) * columnMs) / 1000;
     ctx.textBaseline = 'bottom';
     ctx.textAlign = 'left'; ctx.fillText(`← about ${seconds.toFixed(1)} s`, LEFT, height - 2);
-    ctx.textAlign = 'right'; ctx.fillText('now', width - 8, height - 2);
+    ctx.textAlign = 'right'; ctx.fillText(tr('now'), width - 8, height - 2);
   }
 
   function showResolution() {
@@ -144,8 +145,8 @@ export function createSpectrogramTool() {
       ctx.fillRect(x, 0, 1, height - 14);
     }
     ctx.fillStyle = c.muted; ctx.textBaseline = 'bottom';
-    ctx.textAlign = 'left'; ctx.fillText(`${MIN_DB} dBFS (quiet)`, 0, height);
-    ctx.textAlign = 'right'; ctx.fillText(`${MAX_DB} dBFS (loud)`, width, height);
+    ctx.textAlign = 'left'; ctx.fillText(tr(`${MIN_DB} dBFS (quiet)`), 0, height);
+    ctx.textAlign = 'right'; ctx.fillText(tr(`${MAX_DB} dBFS (loud)`), width, height);
   }
 
   const restart = () => { history = null; showResolution(); draw(); };

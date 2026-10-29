@@ -27,6 +27,10 @@ are saved, in your own browser.
 |---|---|---|
 | <img src="docs/screenshots/tuner.png" alt="Tuner screenshot" width="240"> | <img src="docs/screenshots/monitor.png" alt="Pitch monitor screenshot" width="240"> | <img src="docs/screenshots/spectrum.png" alt="Spectrum screenshot" width="240"> |
 
+| 简体中文 (tuner) | 简体中文 (pitch monitor) |
+|---|---|
+| <img src="docs/screenshots/tuner-zh.png" alt="Tuner in Chinese" width="240"> | <img src="docs/screenshots/monitor-zh.png" alt="Pitch monitor in Chinese" width="240"> |
+
 | Monitor, full screen | Monitor, an audio file |
 |---|---|
 | <img src="docs/screenshots/monitor-full.png" alt="Pitch monitor in full screen" width="240"> | <img src="docs/screenshots/monitor-file.png" alt="Pitch monitor showing an analysed file" width="240"> |
@@ -70,6 +74,34 @@ Note Lab uses the same **Liquid Glass** theme as the other web apps:
   the first visit.
 
 ## How to use
+
+**Top bar:** the red **Stop** button appears there while the microphone is on,
+so you can stop from anywhere on the page. **中文 / EN** switches the language
+(below). **?** opens the beginner's guide; the sliders icon opens Settings.
+
+### Language: English / 简体中文 (`js/i18n.js`, `js/i18n-zh.js`)
+
+Tap **中文** in the top bar for Simplified Chinese, **EN** to switch back. The
+choice is saved on the device. The first time, the app follows the device's
+language. Switching doesn't stop the microphone or reload the page.
+
+- **How:** the app is written in English. The switch looks up each piece of
+  text in a Chinese dictionary: whole paragraphs, so bold words stay in the
+  right place in the sentence, plus labels, buttons and screen-reader labels.
+  A `MutationObserver` translates messages the moment the app writes them
+  (e.g. "Clarity 87%" → "清晰度 87%"), using patterns with the numbers left
+  in. Switching back restores every original text. A browser test checks
+  that the restored page is exactly the original.
+- **Kept as they are:** note names (C4, F#), units (Hz, dBFS, ms), formulas in
+  the grey boxes, book titles in references, and the README.
+- **The Chinese was written by the AI and hasn't been checked by a native
+  speaker yet.** Please report anything wrong or unnatural; the texts are all
+  in `js/i18n-zh.js`.
+- `node tools/i18n-check.js` lists English that has no translation. It
+  opens every tab and Lab tool in Chinese with a test sound. Last run: none
+  left, apart from symbol names in formula definitions (f_beat, a_ref…).
+  `tests/i18n.test.js` checks that every Chinese paragraph keeps the same HTML
+  tags as the English and that every pattern's parts line up.
 
 1. Tap **Start listening**. Your browser asks for microphone permission.
 2. Play or sing **one steady note**. You'll see:
@@ -272,7 +304,7 @@ and to file analysis.
 4. Sing a familiar tune for 20–30 s → *Find the key of what I've sung*.
 5. Tap a few piano keys; start the drone with headphones and sing against it.
 6. Record 10 s, Play: you should hear yourself and see the playhead move
-   along your line. Stop listening: the recording must disappear.
+   along your line. Tap Stop (top bar): the recording must disappear.
 7. Analyse a voice memo from the phone's Files.
 8. Range test: follow the two steps and check the result and voice-type text.
 
@@ -362,7 +394,7 @@ the bottom card shows what the browser **reports** it did
 | Browser | Echo cancellation | Noise suppression | Auto gain | How we know |
 |---|---|---|---|---|
 | Desktop Chromium (fake mic in the automated test) | off | off | off | `tools/browser-test.js` |
-| iPhone Safari | *not yet checked* | | | Read the line under "Stop listening" and report back |
+| iPhone Safari | *not yet checked* | | | Read the "Microphone processing" line at the bottom of the page and report back |
 
 A browser's report can't see processing done by the phone's hardware or
 operating system, so treat "off" as "the browser says it isn't adding any".
@@ -1139,7 +1171,7 @@ Things to check on iPhone (please report back):
     open it again. Does it still load? Does it ask for the microphone every time?
 12. Settings: change A4 to 442, close and reopen the app. Is it remembered?
 13. **Lab → any microphone tool → Start microphone**, then read the line under
-    "Stop listening": *Microphone processing, as reported by this browser: …*.
+    the input level, at the bottom of the page: *Microphone processing, as reported by this browser: …*.
     Send me exactly what it says for echo cancellation, noise suppression and
     automatic gain control, so the table in the Acoustics Lab section can be
     filled in.
@@ -1151,7 +1183,7 @@ Things to check on iPhone (please report back):
 16. **Voice tab (pitch monitor):** drag, pinch and double-tap the graph. Does the
     page stay still while you do? Is Full screen usable, also sideways?
 17. Record 10 s → Play. Do you hear it, and does the playhead move? Does it
-    record at all (iPhone needs iOS 14.3+)? Then Stop listening: the
+    record at all (iPhone needs iOS 14.3+)? Then tap Stop: the
     recording should be gone.
 18. Analyse a file: choose a Voice Memo (M4A) from Files. Does it open, and
     how long does a 1-minute memo take?
@@ -1164,6 +1196,8 @@ Things to check on iPhone (please report back):
 21. **iPad beside a speaker, music mode:** play a song with a clear lead
     singer, Voice tab → *Music (speaker)*. Does the line follow the tune? Does
     the "Too loud" banner ever appear right next to the speaker?
+22. **中文:** tap 中文 while listening. Does everything switch, does the
+    microphone keep running, and does it read naturally? Tap EN to go back.
 
 ## Running the tests
 
@@ -1185,6 +1219,7 @@ npm run melody-check                # music mode vs normal detection on generate
 npm run evaluate -- --sensitivity=high   # the test set with the app's default sensitivity
 node tools/polyphonic-check.js      # why songs show "no clear pitch" in the tuner
 node tools/browser-test.js          # optional; needs Playwright + Chromium installed
+node tools/i18n-check.js            # optional (Playwright): English left untranslated in Chinese
 node tools/make-icons.js            # optional; re-render the icons (needs Playwright)
 ```
 
@@ -1199,6 +1234,7 @@ js/pitch-math.js                 ★ frequency ↔ note maths (start here)
 js/yin.js, js/smoothing.js, js/level.js, js/pitch-tracker.js   pitch detection pipeline
 js/filters.js, js/noise-floor.js band filter and automatic volume threshold (sensitivity)
 js/melody.js                     music mode: melody guess in songs (tests/melody.test.js)
+js/i18n.js, js/i18n-zh.js        language switch and the Simplified Chinese texts (tests/i18n.test.js)
 js/fft.js, js/spectrum.js        spectrum maths
 js/voice-ranges.js, js/range-finder.js, js/ear-training.js, js/settings.js   other logic
 js/scales.js, js/pitch-stats.js, js/pitch-history.js, js/monitor-window.js, js/voice-types.js,
@@ -1289,5 +1325,10 @@ phase by phase at the owner's direction:
   harder variant (chords in the singer's range) to avoid tuning to one test.
   The AI also caught a layout bug in its own screenshots (switch labels too
   long for a phone).
+- **Chinese version:** the AI translated all of the app's text (about 700
+  texts and 130 patterns) without a native speaker checking it. It added a
+  checker tool so nothing visible is missed, and tests so the translation
+  can't break the page's HTML. Two English words had two meanings in the app
+  ("Mode", "Bass"); the AI handled them separately rather than guess.
 - The AI can't hear and has no iPhone, so iPhone behaviour and real-world
   accuracy have to be checked by a person.
