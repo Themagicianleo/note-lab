@@ -8,20 +8,28 @@ learning about EQ), ear training, and a beginner's guide. It works offline and
 can be installed on an iPhone home screen.
 
 **Privacy:** all audio processing happens on your device, in the browser.
-Microphone audio is never recorded, stored, uploaded or sent anywhere. There is
+Microphone audio is never stored on your device, uploaded or sent anywhere. The
+one exception you control: **Record** on the Voice tab keeps a recording in the
+page's memory (never saved, never uploaded) so you can listen back, and it is
+gone when you tap Delete, stop the microphone or close the page. Audio files
+you choose to analyse are read inside the page, never uploaded. There is
 no server, no account and no tracking. Only your settings and training scores
 are saved, in your own browser.
 
-> **Status:** all 6 phases and the 8 Acoustics Lab tools are built and tested
-> in desktop Chromium: pitch maths, tuner, voice mode, spectrum, ear training,
+> **Status:** all 6 phases, the pitch monitor (Voice tab) and the 9 Acoustics Lab tools are built and tested
+> in desktop Chromium: pitch maths, tuner, voice mode / pitch monitor, spectrum, ear training,
 > offline / settings / guide, and the Lab (waveform, harmonics, beats,
 > spectrogram, pipes and strings, room modes, RT60, compare with reality). **Not yet tested on a real iPhone, and not yet measured on
 > real recordings.** See [Desktop vs iPhone](#desktop-vs-iphone) and
 > [Measured accuracy](#measured-accuracy).
 
-| Tuner | Voice mode | Spectrum |
+| Tuner | Pitch monitor (Voice) | Spectrum |
 |---|---|---|
-| <img src="docs/screenshots/tuner.png" alt="Tuner screenshot" width="240"> | <img src="docs/screenshots/voice.png" alt="Voice mode screenshot" width="240"> | <img src="docs/screenshots/spectrum.png" alt="Spectrum screenshot" width="240"> |
+| <img src="docs/screenshots/tuner.png" alt="Tuner screenshot" width="240"> | <img src="docs/screenshots/monitor.png" alt="Pitch monitor screenshot" width="240"> | <img src="docs/screenshots/spectrum.png" alt="Spectrum screenshot" width="240"> |
+
+| Monitor, full screen | Monitor, an audio file |
+|---|---|
+| <img src="docs/screenshots/monitor-full.png" alt="Pitch monitor in full screen" width="240"> | <img src="docs/screenshots/monitor-file.png" alt="Pitch monitor showing an analysed file" width="240"> |
 
 | Ear training (sing-back) | Settings |
 |---|---|
@@ -77,25 +85,152 @@ Note Lab uses the same **Liquid Glass** theme as the other web apps:
    **No clear note** instead of guessing.
 4. For a bass or other very low instrument, choose **Instrument range → Low**.
 
-### Voice mode
+### Voice mode: the pitch monitor
 
-Tap the **Voice** tab (before or after starting). You'll see:
+The Voice tab is a **pitch monitor**, modelled on the features of the
+VocalPitchMonitor app (a scrolling pitch graph on a musical scale, scale
+lines, reference notes, recording and playback, file analysis, and a range
+test). It's this app's own code; nothing is taken from that app.
 
-- **The current pitch**, e.g. `G2 · 98.0 Hz · −3 cents`, or **No clear pitch**
-  with the reason: *too quiet* (below the volume threshold) or *breath, noise
-  or a consonant* (loud enough, but not clearly pitched).
-- **Clarity**: the detector's confidence that the sound is pitched (0–100%).
-- **A scrolling pitch graph** of the last 8 seconds. It has a horizontal line
-  for every note and labels for the Cs (or every natural note when there's
-  room). The line is the smoothed pitch. Faint dots are raw readings, so you
-  can see what the smoothing removes.
-- **Range finder**: sing your lowest comfortable note and hold it for about
-  half a second, then your highest. It records the lowest and highest notes
-  you held steady and the range between them, e.g. "1 octave + 7 semitones".
-  Results stay in the page only and are cleared when you close it.
-- **Voice settings** (summary line, plus a button to open them on the
-  Settings page): detection range (Low / Mid / High / Custom), volume
-  threshold, and smoothing (Fast ↔ Steady). All are explained below.
+**The graph** (`js/monitor-graph.js`, maths in `js/monitor-window.js`)
+
+- A piano keyboard runs up the left side; each row is one semitone, so
+  every semitone (and every octave) is the same height. Time runs left to
+  right; the right edge is "now".
+- The line is your smoothed pitch, **coloured by note** (C red, then round the
+  colour wheel; can be turned off). Gaps mean no clear pitch. Optional faint
+  dots show raw readings before smoothing.
+- It covers C1–B7. While live, it scrolls up or down by itself to keep your
+  newest note on screen.
+- **Drag** to scroll (up/down = notes, left/right = back in time). **Pinch**
+  to zoom (horizontal pinch = seconds, vertical = notes), or use the
+  Notes −/+ and Time −/+ buttons. **Double-tap** to go back to live.
+  **Pause** freezes it; **Full screen** fills the window (on iPhone too,
+  where web pages can't use the real full-screen mode).
+- The last **5 minutes** of the line are kept while the page is open, as
+  numbers (time, pitch), not sound. **Clear** wipes them.
+
+**Key and scale lines** (`js/scales.js`)
+
+- Choose a key and a scale: major, natural minor, harmonic minor, major
+  pentatonic, minor pentatonic, or chromatic. The scale's rows are shaded and
+  its home note (tonic) is orange.
+- Scales are the standard textbook steps in semitones from the tonic:
+  major 0 2 4 5 7 9 11, natural minor 0 2 3 5 7 8 10, harmonic minor
+  0 2 3 5 7 8 11, major pentatonic 0 2 4 7 9, minor pentatonic 0 3 5 7 10.
+  *Worked example:* G major = G + (0 2 4 5 7 9 11) = G A B C D E F♯.
+  Source: any music-theory primer, e.g. E. Taylor, *The AB Guide to Music
+  Theory*, Part I (ABRSM, 1989).
+- **Find the key of what I've sung** runs the Key finder's method
+  (Krumhansl–Schmuckler, see [9. Key finder](#9-key-finder)) on the pitch
+  line, needs at least 8 s of clear singing, and sets the scale lines to the
+  answer. In the browser test it found G major from 13 s of the generated
+  "Twinkle Twinkle" in G (r = 0.80 vs 0.61 for the runner-up).
+
+**Reference notes**
+
+- **Tap a piano key** to hear that note (a generated tone, A4 as set in Settings).
+- **Drone**: holds one note (the key's tonic, or any note) in octave 2–5
+  until you stop it. Use **headphones**: through a speaker, the microphone
+  hears the drone too, and the pitch line may follow it instead of you.
+
+**Pitch statistics** (`js/pitch-stats.js`, for the line on screen or
+everything kept)
+
+For each reading with a pitch *f*:
+
+- note number **n = 69 + 12 · log₂(f / A4)** (the same formula as the tuner),
+- **cents = 100 · (n − target)**, where *target* is the nearest note, or,
+  with a key chosen, the nearest note **of that scale** (so a wrong note
+  counts as far off).
+
+Each reading counts for the time until the next reading (at most 0.1 s, so a
+pause in readings doesn't count as singing). Shown: the share of singing
+time within **±10** and **±25 cents**, the **average offset** (+ sharp,
+− flat; +20 and −20 average to 0), the **average distance** (ignoring
+direction; +20 and −20 average to 20), the lowest and highest notes, and the
+most-sung note.
+
+*Worked example:* A4 = 440 Hz, you sing 445.1 Hz. n = 69 + 12 · log₂(445.1/440)
+= 69.20, nearest note 69 (A4), cents = +20. That counts within ±25 but not
+±10. The ±10/±25 bands are **this app's own choice** for a quick summary,
+not a standard. The statistics are only as good as the detection (see
+[Limitations](#limitations)).
+
+**Record and play back** (`js/recorder.js`), **memory only**
+
+- Nothing records until you tap **Record** (up to 5 minutes). The recording
+  is kept in the page's memory: never saved to the device, never uploaded,
+  and there's no save or share button. It's gone when you tap **Delete**,
+  record again, **stop the microphone**, or close the page.
+- **Play** plays it back while the graph shows the recording's pitch line
+  with a red playhead, and the big note readout shows the note at the playhead.
+  Live readings are paused during playback, so the replay coming out of the
+  speaker doesn't get into your live line.
+- Uses the browser's MediaRecorder (Safari: MP4/AAC; Chrome, Firefox: WebM/Opus).
+
+**Analyse an audio file** (`js/file-analysis.js`)
+
+- Pick a file on the device (MP3, M4A, WAV…). It's decoded and analysed in
+  the page with the **same pipeline and voice settings as live**, at 60
+  readings a second, then shown like a recording (Play, scroll, statistics,
+  find the key). It works without the microphone and is never uploaded.
+- Speed, measured with Node on the development machine: 77–94 ms of work per
+  second of audio, so a 3-minute file takes about 15–20 s (a phone may be
+  slower). Limit: 10 minutes.
+- Measured in the browser test: the generated sung glide C3→C4 had clear
+  pitch 98% of the time; the generated D-minor band (chords, bass, drums) only
+  8%, and the page says "mostly no clear pitch", which is correct: this
+  is a single-pitch detector (see [Limitations](#limitations)).
+
+**Range finder, range test and voice type** (`js/range-finder.js`, `js/voice-types.js`)
+
+- The range finder keeps the lowest and highest notes you held steady for
+  0.3 s (within 70 cents), as before.
+- **Range test** guides you: step 1, slide down to your lowest comfortable
+  note; step 2, slide up to your highest. Each step has its own finder, so
+  warming up doesn't affect the other step.
+- **Voice type** (only for a range of at least 7 semitones): the typical range
+  that shares the most semitones with yours (on a tie, the one whose middle is
+  nearest yours). Typical ranges used, from the Wikipedia articles "Voice
+  type", "Soprano", "Mezzo-soprano", "Contralto", "Tenor", "Baritone" and
+  "Bass (voice type)": bass E2–E4, baritone A2–A4, tenor C3–C5, contralto
+  F3–F5, mezzo-soprano A3–A5, soprano C4–C6. **Please verify these**, since
+  sources differ by a note or two. *Worked example:* G2–G4 shares 21
+  semitones with bass, 22 with baritone and 19 with tenor → "Baritone". Voice
+  teachers also judge comfort (tessitura), tone and register changes, so the
+  app calls this "a rough guide, not a diagnosis".
+
+**Voice settings** (summary line, plus a button to open them on the Settings
+page): detection range (Low / Mid / High / Custom), volume threshold, and
+smoothing (Fast ↔ Steady). These are explained below and apply to the monitor
+and to file analysis.
+
+**How to test it**
+
+1. Voice tab → Start listening → sing a slow scale. The line should follow
+   you in colour, and the keyboard key you're on should light up.
+2. Drag the graph back in time and up/down; pinch; double-tap to return.
+   Try Full screen, and turn the phone sideways.
+3. Choose C major and sing C D E F G: the line should sit on shaded rows.
+   Sing an F♯: it lands on an unshaded row and the ±10/±25 numbers drop.
+4. Sing a familiar tune for 20–30 s → *Find the key of what I've sung*.
+5. Tap a few piano keys; start the drone with headphones and sing against it.
+6. Record 10 s, Play: you should hear yourself and see the playhead move
+   along your line. Stop listening: the recording must disappear.
+7. Analyse a voice memo from the phone's Files.
+8. Range test: follow the two steps and check the result and voice-type text.
+
+**Assumptions and limitations**
+
+- Everything the detector can't do (chords, songs with a band, breathy or
+  creaky voice, octave errors) also applies here, including to files.
+- The voice-type guide is a range comparison only, with ranges you should verify.
+- During playback the live microphone isn't added to the line.
+- The drone and tapped notes come out of the speaker; without headphones the
+  microphone hears them.
+- Recording format and file types depend on the browser; iPhone not tested yet.
+- Pinch zoom uses the browser's touch events; untested on a real iPhone.
 
 ### Spectrum
 
@@ -825,6 +960,15 @@ generated signals, it still needs checking on real recordings.
 - **Offline** works only after one online visit, and only in a browser that
   supports service workers (current Safari, Chrome, Firefox, Edge).
 - **Accuracy numbers** are from generated signals only, so far.
+- **Pitch monitor statistics** inherit every detection error above. The ±10 and
+  ±25 cent bands are this app's choice, not a standard.
+- **Voice type** is a range comparison against typical ranges (from Wikipedia,
+  to be verified), not a classification.
+- **Recording** is in memory only and is lost when the page closes or the
+  microphone stops; that's deliberate (privacy), not a bug.
+- **File analysis** is single-pitch like everything else: songs with a band show
+  mostly "no clear pitch". Long files take a while (about 15–20 s for 3 minutes
+  on a laptop; a phone may be slower).
 
 ## Desktop vs iPhone
 
@@ -863,6 +1007,15 @@ Things to check on iPhone (please report back):
 15. Lab → Beats with headphones and "one tone per ear": do you hear left/right
     separation? Lab → Room modes → Play: can you hear the low modes at all on the
     phone speaker? (Probably not below ~100 Hz; that's expected.)
+16. **Voice tab (pitch monitor):** drag, pinch and double-tap the graph. Does the
+    page stay still while you do? Is Full screen usable, also sideways?
+17. Record 10 s → Play. Do you hear it, and does the playhead move? Does it
+    record at all (iPhone needs iOS 14.3+)? Then Stop listening: the
+    recording should be gone.
+18. Analyse a file: choose a Voice Memo (M4A) from Files. Does it open, and
+    how long does a 1-minute memo take?
+19. Drone with and without headphones: without them, does the line follow the
+    drone instead of you?
 
 ## Running the tests
 
@@ -870,6 +1023,7 @@ Needs [Node.js](https://nodejs.org) 18 or newer. There are no packages to instal
 
 ```sh
 npm test               # unit tests: pitch maths, YIN, smoothing, dB level, ranges, FFT/spectrum, ear training, settings, offline file list,
+                       # pitch monitor maths (scales, statistics, history, zoom/scroll, voice types, file analysis),
                        # range finder (incl. full pipeline on generated files), WAV files
 npm run table          # note/frequency table for checking by hand
 npm run make-signals   # regenerate the test WAV files (identical every time)
@@ -894,6 +1048,9 @@ js/pitch-math.js                 ★ frequency ↔ note maths (start here)
 js/yin.js, js/smoothing.js, js/level.js, js/pitch-tracker.js   pitch detection pipeline
 js/fft.js, js/spectrum.js        spectrum maths
 js/voice-ranges.js, js/range-finder.js, js/ear-training.js, js/settings.js   other logic
+js/scales.js, js/pitch-stats.js, js/pitch-history.js, js/monitor-window.js, js/voice-types.js,
+js/file-analysis.js              pitch monitor maths (tests/monitor-maths.test.js)
+js/monitor-graph.js, js/monitor-view.js, js/recorder.js   the pitch monitor's page code
 js/acoustics.js                  ★ all Acoustics Lab maths (with sources; tests/acoustics.test.js)
 js/lab/                          the eight Lab tools' pages, plus the Lab menu
 js/*-view.js, js/app.js, …       page code (what you see and tap)
@@ -951,5 +1108,14 @@ phase by phase at the owner's direction:
 - When asked to carry out the last phases without stopping, the AI still
   tested and committed each step separately. Everything above about iPhone
   behaviour is a list of things to check, not something that was tested.
+- For the pitch monitor, the AI looked up VocalPitchMonitor's public App
+  Store descriptions to list its features, then wrote its own versions. It
+  didn't copy any of that app's code or images. Recording conflicted with the "never store
+  microphone audio" rule. The owner said to go ahead with everything without
+  choosing an option, so the AI picked the most cautious one: memory only,
+  only after tapping Record, deleted when the mic stops. The voice-type ranges
+  are from Wikipedia and are marked "please verify". The tests caught the AI's
+  own guess about how pausing should count (a 5 s gap must not count as 5 s of
+  singing, hence the 0.1 s cap).
 - The AI can't hear and has no iPhone, so iPhone behaviour and real-world
   accuracy have to be checked by a person.
