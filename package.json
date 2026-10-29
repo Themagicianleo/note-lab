@@ -11,7 +11,8 @@
     "make-signals": "node tools/make-test-signals.js",
     "evaluate": "node tools/evaluate.js",
     "tradeoff": "node tools/smoothing-tradeoff.js",
-    "spectrum-check": "node tools/spectrum-check.js"
+    "spectrum-check": "node tools/spectrum-check.js",
+    "key-check": "node tools/key-check.js"
   },
   "engines": {
     "node": ">=18"
