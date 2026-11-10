@@ -9,7 +9,7 @@
 // tests/service-worker.test.js checks that FILES lists every app file.
 // ------------------------------------------------------------
 
-const VERSION = 'note-lab-v8'; // v8: works on older iPhone/iPad Safari again; Start/Stop in the top bar
+const VERSION = 'note-lab-v9'; // v9: critical-listening exercises and headphone setup on the Train tab
 
 const FILES = [
   './',
@@ -31,6 +31,7 @@ const FILES = [
   'js/file-analysis.js',
   'js/filters.js',
   'js/fft.js',
+  'js/headphone-setup-view.js',
   'js/i18n-zh.js',
   'js/i18n.js',
   'js/interval-trainer-view.js',
@@ -50,6 +51,11 @@ const FILES = [
   'js/lab/waveform-view.js',
   'js/level-meter.js',
   'js/level.js',
+  'js/listening-dsp.js',
+  'js/listening-games.js',
+  'js/listening-sources.js',
+  'js/listening-view.js',
+  'js/loop-player.js',
   'js/melody.js',
   'js/monitor-graph.js',
   'js/monitor-view.js',
@@ -72,6 +78,7 @@ const FILES = [
   'js/spectrum.js',
   'js/storage.js',
   'js/tone-player.js',
+  'js/train-menu.js',
   'js/trainer-ui.js',
   'js/tuner-view.js',
   'js/voice-ranges.js',

@@ -10,8 +10,10 @@
 //              on a piano keyboard, scale lines, drone, statistics, record and
 //              play back, file analysis; plus the range finder and range test
 //   Spectrum – no pitch detection; an FFT shows how loud each frequency is
-//   Train    – ear training. Notes and intervals only PLAY sounds (no mic);
-//              sing-back plays a note, then listens with the voice settings
+//   Train    – ear training, from a menu (js/train-menu.js). Critical listening
+//              (EQ, level, panning, compression… js/listening-view.js), notes
+//              and intervals only PLAY sounds (no mic); sing-back plays a note,
+//              then listens with the voice settings
 // Plus a Settings page (reference pitch, sensitivity, voice range, …),
 // saved on this device.
 // ------------------------------------------------------------
@@ -35,6 +37,10 @@ import { createTonePlayer } from './tone-player.js';
 import { createNoteTrainer } from './note-trainer-view.js';
 import { createIntervalTrainer } from './interval-trainer-view.js';
 import { createSingBack } from './singback-view.js';
+import { createTrainMenu } from './train-menu.js';
+import { createListening } from './listening-view.js';
+import { createHeadphoneSetup } from './headphone-setup-view.js';
+import { GAMES, GROUPS } from './listening-games.js';
 import { createSettingsView } from './settings-view.js';
 import { SETTINGS_KEY, DEFAULT_SETTINGS, validateSettings, voiceRange } from './settings.js';
 import { loadJSON, saveJSON, removeKey } from './storage.js';
@@ -175,17 +181,33 @@ const singBack = createSingBack({
 singBack.setRangeKey(settings.voicePreset); // start with the user's voice range (if it's a preset)
 byId('singback-range').addEventListener('change', () => applyConfig());
 
-const exercises = { notes: byId('ear-notes'), intervals: byId('ear-intervals'), singback: byId('ear-singback') };
-let activeExercise = 'notes';
-function showExercise(name) {
-  activeExercise = name;
-  for (const [key, panel] of Object.entries(exercises)) {
-    panel.hidden = key !== name;
-    byId(`ear-mode-${key}`).setAttribute('aria-pressed', String(key === name));
-  }
-  singBack.refresh();
+// Critical listening (headphones, no microphone) and the headphone setup page.
+const listening = createListening({
+  player,
+  isListening: () => Boolean(mic),
+  stopListening: () => stopListening(),
+  saved: scores.listening,
+  onChanged: (v) => { saveScores('listening', v); showTrainProgress(); },
+});
+const headphoneSetup = createHeadphoneSetup({ player, isListening: () => Boolean(mic), stopListening: () => stopListening() });
+
+// The Train tab's menu: every exercise is a tile, in groups.
+const trainMenu = createTrainMenu({
+  groups: [{ id: 'setup' }, ...GROUPS],
+  items: [
+    { id: 'setup', group: 'setup', wide: true, title: 'Headphone setup', summary: 'Do this first: settings to switch off, and a left/right check', subtitle: 'So you hear what the app plays', panel: 'ear-setup', hide: () => headphoneSetup.hide() },
+    ...GAMES.map((g) => ({ id: g.id, group: g.group, title: g.title, summary: g.summary, panel: 'ear-listen', badge: () => listening.badge(g.id), show: () => listening.open(g.id), hide: () => listening.hide(), resume: () => listening.resume() })),
+    { id: 'notes', group: 'music', title: 'Notes', summary: 'Name the note you hear', panel: 'ear-notes', soundHint: true },
+    { id: 'intervals', group: 'music', title: 'Intervals', summary: 'Name the gap between two notes', panel: 'ear-intervals', soundHint: true },
+    { id: 'singback', group: 'music', title: 'Sing-back', summary: 'Sing a note back; needs the microphone', panel: 'ear-singback', soundHint: true },
+  ],
+  onChange: () => showTab('ear'),
+});
+function showTrainProgress() {
+  trainMenu.refreshBadges();
+  trainMenu.setToday(listening.todayText());
 }
-for (const key of Object.keys(exercises)) byId(`ear-mode-${key}`).addEventListener('click', () => showExercise(key));
+showTrainProgress();
 
 // ---------- acoustics lab ----------
 // "Compare" buttons in the calculators open the compare page with the prediction filled in.
@@ -232,6 +254,8 @@ const settingsView = createSettingsView({
     noteTrainer.reset();
     intervalTrainer.reset();
     singBack.reset();
+    listening.reset();
+    showTrainProgress();
   },
   onResetSettings() {
     settings = { ...DEFAULT_SETTINGS };
@@ -343,11 +367,10 @@ const PAGE_TITLES = {
   tuner: ['Tuner', 'Play or sing one steady note'],
   voice: ['Voice', 'Pitch monitor: your pitch over time'],
   spectrum: ['Spectrum', 'Which frequencies are loudest'],
-  ear: ['Train', 'Ear training with generated tones'],
   settings: ['Settings', 'Saved on this device only'],
 };
 function showTitle(key) {
-  const [title, subtitle] = key === 'lab' ? lab.title() : PAGE_TITLES[key];
+  const [title, subtitle] = key === 'lab' ? lab.title() : key === 'ear' ? trainMenu.title() : PAGE_TITLES[key];
   byId('page-title').textContent = title;
   byId('page-subtitle').textContent = subtitle;
 }
@@ -370,8 +393,11 @@ function showTab(name) {
   byId('top-start').hidden = Boolean(mic) || settingsOpen;
   showTitle(settingsOpen ? 'settings' : name);
   singBack.refresh();
+  listening.refresh();
+  headphoneSetup.refresh();
   lab.refresh();
   if (name === 'lab' && !settingsOpen) lab.resume(); else lab.suspend(); // e.g. stop the beats tones
+  if (name === 'ear' && !settingsOpen) trainMenu.resume(); else trainMenu.suspend(); // stop an exercise's sound
   if (name === 'voice' && !settingsOpen) monitor.start(); else monitor.stop(); // e.g. stop the drone
   applyConfig();
 }
@@ -482,7 +508,7 @@ function tick(now) {
   if (activeTab === 'tuner') {
     tunerView.update({ note, reason: result.reason });
   } else if (activeTab === 'ear') {
-    if (activeExercise === 'singback') singBack.onReading(result.smoothed, now);
+    if (trainMenu.current === 'singback') singBack.onReading(result.smoothed, now);
   } else {
     // (The monitor draws itself; while a recording or file plays back, the
     // readout shows the playback's note instead of the live one.)

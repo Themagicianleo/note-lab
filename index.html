@@ -335,15 +335,22 @@
 
     <!-- ================= EAR TRAINING ================= -->
     <section id="ear" class="panel" role="tabpanel" aria-labelledby="tab-ear" hidden>
-      <div class="seg ear-seg" role="group" aria-label="Exercise">
-        <button type="button" id="ear-mode-notes" aria-pressed="true">Notes</button>
-        <button type="button" id="ear-mode-intervals" aria-pressed="false">Intervals</button>
-        <button type="button" id="ear-mode-singback" aria-pressed="false">Sing-back</button>
+      <!-- Menu of exercises (tiles are added by js/train-menu.js) -->
+      <div id="ear-home" class="panel">
+        <p id="ear-today" class="small muted train-today"></p>
+        <div id="ear-menu" class="train-menu"></div>
       </div>
-      <p class="banner banner-info small">On iPhone, check the ring/silent switch and volume if you hear nothing. Headphones help with sing-back.</p>
+
+      <div id="ear-toolbar" class="lab-toolbar" hidden>
+        <button id="ear-back" type="button" class="capsule glass-ctl">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+          Train
+        </button>
+      </div>
+      <p id="ear-sound-hint" class="banner banner-info small" hidden>On iPhone, check the ring/silent switch and volume if you hear nothing. Headphones help with sing-back.</p>
 
       <!-- Guess the note -->
-      <div id="ear-notes" class="exercise">
+      <div id="ear-notes" class="exercise" hidden>
         <div class="card">
           <div class="card-head"><h2>Guess the note</h2></div>
           <div class="card-body">
@@ -439,6 +446,123 @@
             <p class="small muted">Scores are saved on this device only (never any audio). "Excellent / Good / Close" are friendly labels for within 10 / 25 / 50 cents, not a standard.</p>
           </div>
         </div>
+      </div>
+
+      <!-- Critical listening: one page shared by all the exercises in js/listening-games.js -->
+      <div id="ear-listen" class="exercise" hidden>
+        <div id="ls-mic-warning" class="banner banner-warn ls-mic-warning" hidden>
+          <span><strong>The microphone is on.</strong> While it is, Bluetooth headphones (AirPods, Sony and others) switch to low-quality "phone call" sound, and these exercises can't be trusted.</span>
+          <button id="ls-stop-mic" type="button" class="btn btn-small">Stop microphone</button>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2 id="ls-ask"></h2><span id="ls-progress" class="pill" hidden></span></div>
+          <div class="card-body">
+            <div class="ls-setup">
+              <label class="field"><span class="label">Difficulty</span>
+                <select id="ls-level" class="input"></select>
+              </label>
+              <label class="field" id="ls-source-field"><span class="label">Sound</span>
+                <select id="ls-source" class="input"></select>
+              </label>
+            </div>
+            <p id="ls-about" class="small muted"></p>
+            <div id="ls-file-row" class="ls-file-row" hidden>
+              <label class="btn btn-small file-btn">Choose audio file<input id="ls-file" type="file" accept="audio/*,.m4a,.mp3,.wav,.aac,.flac"></label>
+              <p id="ls-file-status" class="small muted" aria-live="polite"></p>
+            </div>
+            <div class="ls-transport">
+              <button id="ls-play" type="button" class="btn" disabled>Play</button>
+              <div class="seg ls-ab" role="group" aria-label="Which version you hear">
+                <button type="button" id="ls-ab-a" aria-pressed="true" disabled>Original</button>
+                <button type="button" id="ls-ab-b" aria-pressed="false" disabled>Changed</button>
+              </div>
+            </div>
+            <div id="ls-answers" class="answers ls-answers" aria-label="Your answer"></div>
+            <p id="ls-feedback" class="feedback" aria-live="polite"></p>
+            <p id="ls-summary" class="feedback strong" aria-live="polite"></p>
+            <button id="ls-next" type="button" class="btn btn-primary btn-big">Start round</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Your results</h2><button id="ls-reset" type="button" class="btn btn-small">Reset</button></div>
+          <div class="card-body">
+            <p id="ls-best" class="small"></p>
+            <table id="ls-stats" class="stats"></table>
+          </div>
+        </div>
+        <details class="card">
+          <summary>What to listen for</summary>
+          <div class="card-body">
+            <p id="ls-tips" class="small"></p>
+            <p class="small muted">A round is 10 questions. A level is passed with 8 right, or 9 when there are only two answers: with those marks, pure guessing passes less than 2 times in 100. Every answer is equally likely each time, also the one you just had. After answering, tap any answer to hear it.</p>
+            <p class="small muted">Every effect is a published formula computed in this page, and is measured in the project's tests (a "+6 dB at 1 kHz" question really is +6 dB at 1 kHz). Where loudness could give the answer away, both versions are set to the same power.</p>
+          </div>
+        </details>
+      </div>
+
+      <!-- Headphone setup -->
+      <div id="ear-setup" class="exercise" hidden>
+        <div id="setup-mic-warning" class="banner banner-warn ls-mic-warning" hidden>
+          <span><strong>The microphone is on.</strong> While it is, Bluetooth headphones (AirPods, Sony and others) switch to low-quality "phone call" sound, and these exercises can't be trusted.</span>
+          <button id="setup-stop-mic" type="button" class="btn btn-small">Stop microphone</button>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Check your headphones</h2></div>
+          <div class="card-body">
+            <p class="small muted">Tap each one. <strong>Left ear</strong> must be heard only on the left, <strong>Right ear</strong> only on the right, and <strong>Centre</strong> in the middle of your head. If Left ear is heard in both ears, Mono Audio or a spatial mode is still on.</p>
+            <div class="btn-row">
+              <button id="setup-left" type="button" class="btn">Left ear</button>
+              <button id="setup-centre" type="button" class="btn">Centre</button>
+              <button id="setup-right" type="button" class="btn">Right ear</button>
+            </div>
+            <p class="small muted">Which of these tones can you hear, at your normal volume? The lowest and the top one or two are often silent (small drivers, and hearing loses its top end with age). That's fine: a question in a band you can't hear is a guess, and a miss there says nothing about your skill. Don't turn the volume up to reach them.</p>
+            <div id="setup-tones" class="btn-row"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Any headphones</h2></div>
+          <div class="card-body">
+            <ul class="small">
+              <li><strong>Keep the microphone off</strong> (the red Stop button in the top bar). While a page uses the microphone, Bluetooth headphones drop to call quality.</li>
+              <li><strong>Turn off everything that reshapes the sound</strong>: equalisers, spatial audio, "enhancers", automatic volume.</li>
+              <li><strong>Use the same listening mode every time.</strong> Noise cancelling is a good choice: outside noise can't cover quiet details.</li>
+              <li><strong>Pick a moderate volume and leave it</strong> for the whole round. Stop after 15–20 minutes: tired ears judge worse, and loud listening damages hearing.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>AirPods Pro</h2></div>
+          <div class="card-body">
+            <ul class="small">
+              <li><strong>Spatial Audio: Off.</strong> While sound plays, open Control Centre, touch and hold the volume slider, and set it to Off (not Fixed, not Head Tracked).</li>
+              <li><strong>Listening mode: Noise Cancellation</strong>, not Adaptive or Transparency.</li>
+              <li>In the AirPods' settings: <strong>Conversation Awareness off</strong> and <strong>Personalised Volume off</strong> (both change the level by themselves).</li>
+              <li>Settings → Accessibility → Audio &amp; Visual: <strong>Headphone Accommodations off</strong>, <strong>Mono Audio off</strong>, balance slider in the middle.</li>
+              <li>If you use the AirPods' hearing features, turn <strong>Media Assist</strong> off for training: it re-equalises music.</li>
+            </ul>
+            <p class="small muted">Menu names can differ a little between iOS versions. The AirPods' own built-in tuning can't be switched off, and doesn't need to be: every question compares two versions through the same headphones.</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Sony WH-1000XM5</h2></div>
+          <div class="card-body">
+            <ul class="small">
+              <li>In Sony's app (Sound Connect, earlier called Headphones Connect): <strong>Equalizer off</strong>, <strong>DSEE Extreme off</strong>, no 360 Reality Audio or other spatial sound.</li>
+              <li><strong>Speak-to-Chat off</strong> (it pauses the sound when you hum or talk) and <strong>Adaptive Sound Control off</strong>.</li>
+              <li><strong>Ambient sound control: Noise Cancelling.</strong></li>
+              <li>Bluetooth connection quality: <strong>Priority on sound quality</strong>.</li>
+              <li>Best of all with a computer: use the supplied cable with the headphones switched on. Then nothing is compressed for Bluetooth.</li>
+            </ul>
+          </div>
+        </div>
+        <details class="card">
+          <summary>Is Bluetooth good enough for this?</summary>
+          <div class="card-body">
+            <p class="small">Yes, for these exercises. Bluetooth headphones receive compressed sound (AAC on an iPhone), which is easily good enough to hear EQ, level, panning, compression, echo and reverb, and both versions in a question go through the same link and the same headphones.</p>
+            <p class="small">It is <strong>not</strong> good enough to judge compressed sound itself. That's why Note Lab has no "MP3 or lossless?" exercise: over Bluetooth both would be compressed again on the way to your ears, and the result would mean nothing.</p>
+            <p class="small">Consumer headphones aren't flat (many are tuned with extra bass). That changes how the original sounds, not which band was boosted, so the training carries over; but the very bottom and top bands depend most on the headphones.</p>
+          </div>
+        </details>
       </div>
     </section>
 

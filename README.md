@@ -4,8 +4,11 @@ A personal, non-commercial web app that listens **live** to your microphone and
 shows which musical note is playing, its frequency and how many cents sharp or
 flat it is, for example `A3 · 220.0 Hz · 0 cents`. It is meant for single notes
 from instruments and the human voice. It also has a live spectrum view (for
-learning about EQ), ear training, and a beginner's guide. It works offline and
-can be installed on an iPhone home screen.
+learning about EQ), ear training, and a beginner's guide. The Train tab also
+has **critical-listening exercises for headphones** (EQ, filters, level,
+panning, stereo width, compression, distortion, echo, reverb): the skills
+audio engineers and audiophiles train. It works offline and can be installed
+on an iPhone home screen.
 
 **Privacy:** all audio processing happens on your device, in the browser.
 Microphone audio is never stored on your device, uploaded or sent anywhere. The
@@ -19,7 +22,8 @@ are saved, in your own browser.
 > **Status:** all 6 phases, the pitch monitor (Voice tab) and the 9 Acoustics Lab tools are built and tested
 > in desktop Chromium: pitch maths, tuner, voice mode / pitch monitor, spectrum, ear training,
 > offline / settings / guide, and the Lab (waveform, harmonics, beats,
-> spectrogram, pipes and strings, room modes, RT60, compare with reality). **Not yet tested on a real iPhone, and not yet measured on
+> spectrogram, pipes and strings, room modes, RT60, compare with reality). The critical-listening exercises (Train tab) are built,
+> measured as numbers and tested in desktop Chromium, but **nobody has listened to them on real headphones yet**. **Not yet tested on a real iPhone, and not yet measured on
 > real recordings.** See [Desktop vs iPhone](#desktop-vs-iphone) and
 > [Measured accuracy](#measured-accuracy).
 
@@ -38,6 +42,10 @@ are saved, in your own browser.
 | Ear training (sing-back) | Settings |
 |---|---|
 | <img src="docs/screenshots/singback.png" alt="Sing-back screenshot" width="240"> | <img src="docs/screenshots/settings.png" alt="Settings screenshot" width="240"> |
+
+| Train menu | Critical listening (EQ boost) | Headphone setup |
+|---|---|---|
+| <img src="docs/screenshots/train-menu.png" alt="Train menu" width="240"> | <img src="docs/screenshots/listening.png" alt="An EQ question" width="240"> | <img src="docs/screenshots/headphone-setup.png" alt="Headphone setup" width="240"> |
 
 *Screenshots from the automated Chromium test, with generated test sounds as the "microphone".*
 
@@ -337,7 +345,71 @@ not just notes. It's useful for learning about EQ.
 
 ### Ear training (Train tab)
 
-Notes and intervals don't need the microphone. They only play sounds.
+The Train tab opens on a **menu of exercises** in four groups. Tap a tile to
+open one; the **‹ Train** button goes back. The small number on a tile
+(e.g. `2/6`) is how many of its levels you've passed. None of them need the
+microphone, except sing-back.
+
+#### Critical listening (for headphones)
+
+Twelve exercises that train the same skills as the games on
+[SoundGym](https://www.soundgym.co), an ear-training site for audio
+engineers. The ideas are standard listening tests; the sounds, code and
+wording here are Note Lab's own.
+
+| Group | Exercise | What you do | Similar SoundGym game |
+|---|---|---|---|
+| Frequency | **EQ boost** | A bell boost is put on the sound: which frequency? | Peak Master |
+| | **EQ cut** | The same with a cut (harder) | EQ games with cuts |
+| | **Filters** | Low-pass, high-pass or shelf, and its cutoff | Filter Expert |
+| Level and space | **Loudness** | How many dB louder or quieter? | dB King |
+| | **Panning** | Where between your ears is the sound? | Pan Girl |
+| | **Stereo width** | How wide is the stereo picture? | Stereohead |
+| | **Mix balance** | Which part of the mix was turned up or down? | Balance Memory (simpler) |
+| Dynamics and effects | **Compression** | Ratio, then attack time, then release time | Dr. Compressor, Compressionist |
+| | **Distortion** | A or B: which one is distorted? | Distortion Monster |
+| | **Delay time** | How late is the echo, in ms? | Delay Control |
+| | **Reverb time** | How long is the reverb (RT60)? | Reverb Wizard |
+| Pitch and music | **Pitch difference** | A or B: which is higher, down to 3 cents? | – |
+
+(The SoundGym column is from its public descriptions and reviews; its pages
+couldn't be opened while this was written, so the match is by skill, not a
+copy of its rules.)
+
+**How a question works**
+
+1. Pick a **Difficulty** (level) and a **Sound**: pink noise, the built-in
+   music loop, the built-in drum loop, or **your own track** (about 12 s of
+   it; read in the page, never uploaded). Each exercise offers the sounds
+   that make sense for it: compression on steady noise would be inaudible.
+2. Tap **Start round**. Two versions of the same loop play **exactly in
+   step**: switch between **Original** and **Changed** (or **A** and **B**)
+   as often as you like. The switch is instant, with no gap, which is what
+   makes small differences audible.
+3. Tap your answer. The right one turns green, and now **every answer button
+   plays what that answer sounds like**, so you can compare what you chose
+   with what it was.
+4. After 10 questions the round is scored. **8 right passes the level, or 9
+   when there are only two answers.** With those marks, pure guessing passes
+   less than 2 times in 100, so a pass means you heard it.
+
+Under the question: your accuracy **per answer** (which bands you miss), your
+best round at this level, and a short "What to listen for" guide. The menu
+shows the rounds done today and how many days in a row you've practised.
+
+**Headphone setup (do this first).** The first tile has a left / centre /
+right check, test tones from 40 Hz to 16 kHz, and the settings to switch off
+on **AirPods Pro** and the **Sony WH-1000XM5** (spatial audio, equalisers,
+Conversation Awareness / Speak-to-Chat, automatic volume). Two things matter
+most:
+
+- **Keep the microphone off.** While a web page uses the microphone, Bluetooth
+  headphones switch to the low-quality mode used for phone calls. Every
+  listening page shows a warning with a Stop button while the microphone is on.
+- **Spatial audio off.** It moves and re-equalises the sound, which makes
+  the panning and width answers wrong.
+
+#### Notes, intervals and sing-back
 
 - **Notes, guess the note:** the app plays a note and you tap its name.
   By default it plays **C4 first as a reference**, because most people can't
@@ -983,6 +1055,56 @@ and Voice modes use YIN and don't just pick the biggest peak.
   a C4 tone "sung" back → `0 cents`; target E4 with the 330 Hz test tone →
   `+2 cents`, matching the worked example.
 
+### How the critical-listening exercises are made reliable (`js/listening-*.js`)
+
+An ear-training question is only worth answering if the sound really is what
+the answer says. So:
+
+- **Every effect is a published formula, computed in the page**
+  (`js/listening-dsp.js`), not the browser's built-in effects, whose
+  compressor and reverb differ between browsers. EQ and filters are the
+  Audio EQ Cookbook biquads (R. Bristow-Johnson). The compressor follows
+  Giannoulis, Massberg & Reiss (J. Audio Eng. Soc., 2012). The reverb is a
+  feedback delay network (Jot & Chaigne, 1991) whose loop gains are set from
+  the wanted RT60. Pink noise uses Paul Kellet's filter.
+- **It's measured, not assumed.** `tests/listening.test.js` (37 tests) and
+  `node tools/listening-check.js` measure the samples that go to the
+  headphones. Full tables: [docs/evaluation/listening-check.md](docs/evaluation/listening-check.md).
+  Some of them:
+
+  | What | Asked | Measured |
+  |---|---|---|
+  | EQ boost on pink noise, 63 Hz – 8 kHz bands | +12 dB | +11.91 to +11.97 dB |
+  | EQ boost, 16 kHz band | +12 dB | +11.79 dB |
+  | EQ cut, 63 Hz – 8 kHz bands | −12 dB | −11.90 to −11.97 dB |
+  | Pink noise, each octave vs 1 kHz | 0 dB | within +0.20 dB |
+  | Reverb time, 0.2 s to 3 s | RT60 | within 1% |
+  | Loudness exercise | e.g. −0.5 dB | exact (±0.0001 dB) |
+  | Compression, distortion, panning, width vs the Original | same power | 0.00 dB apart |
+
+  The browser test also captures the buffers the real page plays and measures
+  them: a "1 kHz, +12 dB" question came out +11.96 dB at 1 kHz and +0.13 dB at
+  125 Hz.
+- **Loudness can't give the answer away.** A compressed or distorted sound is
+  set to the same power (RMS) as the original. Panning is equal-power. Width
+  changes keep the total power. Every echo time and reverb time adds the same
+  amount of sound. Without this you could pass by picking "the louder one".
+- **Nothing clips.** The built-in sounds peak at −12 dBFS, so a +12 dB boost
+  still fits (the loudest sample in the +12 dB table is −8.2 dBFS). If a
+  version of your own track would still reach the top, all versions of that
+  question are turned down together.
+- **The two versions play sample-for-sample in step** (`js/loop-player.js`)
+  and switch with a 15 ms cross-fade: no gap and no click, so your ear
+  compares the same moment of the sound.
+- **Questions are fair.** Every answer is equally likely every time,
+  including the one just asked ("it won't be the same twice" would be a clue
+  that has nothing to do with listening).
+- **The pass mark is a statistics choice, and stated.** 8 of 10, or 9 of 10
+  with two answers: the chance of passing by guessing is under 2% at every
+  level (table in the evaluation file; e.g. 1.07% for A/B exercises).
+- **On third-octave EQ levels, one band either side counts as right**, and the
+  pass mark allows for that (3 of 25 answers are then "right" by luck).
+
 ### Offline use and installing (`sw.js`, `manifest.json`)
 
 - A **service worker** (`sw.js`) is a small script the browser keeps. On the
@@ -1109,6 +1231,29 @@ generated signals, it still needs checking on real recordings.
 - **Spectrum peaks are not a chord detector.** You'll see peaks for every
   note's harmonics, which overlap. Naming the notes of a chord from them isn't
   supported.
+- **Critical listening depends on your headphones and their settings.** The
+  app controls the samples it sends, not what the headphones do with them.
+  Spatial audio, equalisers and "adaptive" features change the sound (see
+  Headphone setup on the Train tab). Consumer headphones aren't flat, which
+  changes how the original sounds but not which band was changed. The bottom
+  band (63 Hz) and the top one (16 kHz) depend most on the headphones and on
+  your hearing: many adults can't hear 16 kHz, and then that question is a guess.
+- **Not tested by ear on real AirPods Pro or a Sony WH-1000XM5.** The
+  exercises were measured as numbers and run in desktop Chromium; nobody has
+  yet listened to them on those headphones. The setting names in Headphone
+  setup come from Apple's and Sony's documentation as the AI knew it and can
+  differ between software versions.
+- **Bluetooth compresses the sound** (AAC on iPhone). That's fine for these
+  exercises, but it's why there is no "MP3 or lossless?" exercise: over
+  Bluetooth the result would mean nothing.
+- **The built-in music loop is simple generated music** (drums, bass, chords,
+  melody). Real recordings are richer: use "Your own track" once the levels
+  on pink noise and the loop feel easy.
+- **The distortion is one kind** (a symmetric soft clipper, odd harmonics),
+  the compressor one design, the reverb one algorithm. Real equipment varies.
+- **Not included from SoundGym:** the games where you rebuild a sound with
+  controls (matching an EQ curve or a whole mix balance with sliders), timed
+  speed games, leaderboards, and audio-quality (bit-rate) comparisons.
 - **Ear training sound on iPhone:** the ring/silent switch may mute the
   tones. The app asks Safari (16.4+) to play anyway, but that isn't tested on a
   real iPhone; the page shows a hint. While the microphone is on, iPhones may
@@ -1207,7 +1352,8 @@ Needs [Node.js](https://nodejs.org) 18 or newer. There are no packages to instal
 ```sh
 npm test               # unit tests (incl. a check that the code runs on older iPhone/iPad Safari): pitch maths, YIN, smoothing, dB level, ranges, FFT/spectrum, ear training, settings, offline file list,
                        # pitch monitor maths (scales, statistics, history, zoom/scroll, voice types, file analysis),
-                       # range finder (incl. full pipeline on generated files), WAV files
+                       # range finder (incl. full pipeline on generated files), WAV files,
+                       # critical listening (every effect measured: EQ gain, reverb time, loudness matching, pass marks)
 npm run table          # note/frequency table for checking by hand
 npm run make-signals   # regenerate the test WAV files (identical every time)
 npm run evaluate       # score the detectors on test-audio/generated
@@ -1217,6 +1363,7 @@ npm run spectrum-check              # spectrum peaks and levels on generated fil
 npm run key-check                   # key finder on generated tunes in all 24 keys (~6 min)
 npm run sensitivity-check           # quiet singing over built-in-mic-like noise, per sensitivity setting (~3 min)
 npm run melody-check                # music mode vs normal detection on generated songs (~6 min)
+npm run listening-check             # critical listening: measures what each exercise really plays
 npm run evaluate -- --sensitivity=high   # the test set with the app's default sensitivity
 node tools/polyphonic-check.js      # why songs show "no clear pitch" in the tuner
 node tools/browser-test.js          # optional; needs Playwright + Chromium installed
@@ -1238,6 +1385,10 @@ js/melody.js                     music mode: melody guess in songs (tests/melody
 js/i18n.js, js/i18n-zh.js        language switch and the Simplified Chinese texts (tests/i18n.test.js)
 js/fft.js, js/spectrum.js        spectrum maths
 js/voice-ranges.js, js/range-finder.js, js/ear-training.js, js/settings.js   other logic
+js/listening-dsp.js              ★ critical listening: EQ, compressor, reverb… as plain maths (tests/listening.test.js)
+js/listening-sources.js          its sounds: pink noise, the music loop, tones, your own track
+js/listening-games.js            the 12 exercises: levels, questions, judging, pass marks, progress
+js/listening-view.js, js/loop-player.js, js/headphone-setup-view.js, js/train-menu.js   their pages and the Train menu
 js/scales.js, js/pitch-stats.js, js/pitch-history.js, js/monitor-window.js, js/voice-types.js,
 js/file-analysis.js              pitch monitor maths (tests/monitor-maths.test.js)
 js/monitor-graph.js, js/monitor-view.js, js/recorder.js   the pitch monitor's page code
@@ -1276,6 +1427,15 @@ phase by phase at the owner's direction:
   rough-voice case), the AI kept the strict behaviour. "No clear pitch" is
   better than a guess tuned on artificial data. That choice is documented
   rather than hidden.
+- For the critical-listening exercises, the AI chose the exercises from
+  SoundGym's public descriptions (its site couldn't be opened at the time),
+  used only published formulas, and measured every effect. The measurements
+  caught three mistakes before they shipped: the first compressor setting made
+  drum hits *more* peaky instead of less, short reverbs sounded like separate
+  echoes and measured 11% too short, and echo times differed by 0.5 dB in
+  loudness (a clue unrelated to the echo time). The headphone advice for
+  AirPods Pro and the Sony WH-1000XM5 is from the AI's general knowledge and
+  **hasn't been checked on the devices**.
 - Typical voice ranges in the presets come from general music and speech
   knowledge (e.g. men speaking ≈ 85–155 Hz). They're broad guides, not
   measurements of any particular person.

@@ -39,6 +39,14 @@ test('several known sentences joined together are translated one by one', () => 
     ZH['Enter the room volume in m³ (or copy it from Room modes).'] + ZH['Add at least one surface with its area and absorption coefficients.']);
 });
 
+test('Train tab messages: the answer inside the sentence is translated too, and nothing is swallowed', () => {
+  assert.equal(lookup('Not quite: it was High shelf +8 dB (you chose Low-pass 3 kHz). Tap any answer to hear it.'), '不太对：是 高频搁架 +8 dB（你选的是 低通 3 kHz）。点按任意答案即可试听。');
+  assert.equal(lookup('Level 2: best 9 of 10 · passed'), '第 2 级：最好成绩 10 题答对 9 题 · 已通过');
+  assert.equal(lookup('Level 1: not played yet · 9 of 10 needed to pass'), '第 1 级：还没练过 · 10 题答对 9 题才能通过');
+  assert.equal(lookup('Round finished: 7 of 10 right. 8 are needed to pass level 1.'), '本轮结束：10 题答对 7 题。通过第 1 级需要答对 8 题。');
+  assert.equal(lookup('+12 dB bell, Q 1.41 · 4 bands, two octaves apart'), '+12 dB 钟形，Q 1.41 · 4 个频段，相隔两个八度');
+});
+
 test('normalise squeezes whitespace like the page walker', () => {
   assert.equal(normalise('  a\n   b  '), 'a b');
 });

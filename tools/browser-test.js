@@ -227,7 +227,9 @@ try {
     const nameOf = (hz) => ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'][((Math.round(69 + 12 * Math.log2(hz / 440)) % 12) + 12) % 12];
 
     await page.click('#tab-ear');
-    report(await page.isVisible('#ear-notes') && !(await page.isVisible('#start-panel')), 'train: opens without the microphone');
+    report(await page.isVisible('#ear-menu') && !(await page.isVisible('#start-panel')), 'train: the menu opens without the microphone');
+    await page.click('#ear-open-notes');
+    report(await page.isVisible('#ear-notes') && !(await page.isVisible('#ear-menu')) && (await page.textContent('#page-title')) === 'Notes', 'train: a tile opens its exercise');
 
     await page.click('#note-play');
     let played = await page.evaluate(() => window.__played);
@@ -244,7 +246,8 @@ try {
     report(right.startsWith('Correct') && wrong.startsWith('Not quite') && total.includes('1 / 2'),
       'train: note answers are scored', `"${right.slice(0, 30)}…" / "${wrong.slice(0, 40)}…" / total ${total.trim()}`);
 
-    await page.click('#ear-mode-intervals');
+    await page.click('#ear-back');
+    await page.click('#ear-open-intervals');
     await page.evaluate(() => { window.__played = []; });
     await page.click('#interval-play');
     played = await page.evaluate(() => window.__played);
@@ -257,8 +260,133 @@ try {
     // Scores are saved on the device and come back after a reload.
     await page.reload();
     await page.click('#tab-ear');
+    await page.click('#ear-open-notes');
     const saved = await page.textContent('#note-stats tfoot');
     report(saved.includes('1 / 2') && !errors.length, 'train: scores survive a reload', `${saved.trim()}${errors.length ? ` errors: ${errors}` : ''}`);
+    await browser.close();
+  }
+
+  // 1f2. Critical listening: the sound that is played is captured and measured.
+  {
+    const { browser, page, errors } = await openPage(['--autoplay-policy=no-user-gesture-required'], []);
+    const captureBuffers = () => page.evaluate(() => {
+      window.__buffers = []; // every sound buffer the page makes
+      const original = AudioContext.prototype.createBuffer;
+      AudioContext.prototype.createBuffer = function (...args) {
+        const buffer = original.apply(this, args);
+        window.__buffers.push(buffer);
+        return buffer;
+      };
+    });
+    await captureBuffers();
+    await page.click('#tab-ear');
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: `${ROOT}docs/screenshots/train-menu.png` });
+    const tiles = await page.$$eval('#ear-menu .train-tile', (t) => t.length);
+    report(tiles === 16 && (await page.textContent('#ear-open-eq-boost .train-badge')) === '0/6', 'train menu: 12 listening exercises, 3 note exercises and the headphone setup', `${tiles} tiles`);
+
+    // EQ boost, level 2 (+12 dB, 9 octave bands). "Random" fixed so the answer is 1 kHz.
+    await page.click('#ear-open-eq-boost');
+    await page.selectOption('#ls-level', '1');
+    await page.evaluate(() => { Math.random = () => 4.5 / 9; });
+    await page.click('#ls-next');
+    await page.waitForSelector('#ls-ab-b:not([disabled])', { timeout: 20000 });
+    // Level of the two playing versions around a frequency, with the app's own FFT.
+    const gains = await page.evaluate(async () => {
+      const { fft } = await import('/js/fft.js');
+      const power = (buffer, hz) => {
+        const size = 32768, data = buffer.getChannelData(0);
+        let sum = 0;
+        for (let start = 0; start + size <= data.length; start += size) {
+          const re = Float64Array.from({ length: size }, (_, i) => data[start + i] * (0.5 - 0.5 * Math.cos((2 * Math.PI * i) / size)));
+          const im = new Float64Array(size);
+          fft(re, im);
+          for (let k = Math.ceil((hz * 0.97 * size) / buffer.sampleRate); k <= (hz * 1.03 * size) / buffer.sampleRate; k++) sum += re[k] * re[k] + im[k] * im[k];
+        }
+        return sum;
+      };
+      const peak = (buffer) => buffer.getChannelData(0).reduce((m, v) => Math.max(m, Math.abs(v)), 0);
+      // The two playing versions. The Original is the built-in pink noise, whose loudest sample is 0.25 (−12 dBFS).
+      const pair = window.__buffers.slice(-2);
+      const original = pair.find((b) => Math.abs(peak(b) - 0.25) < 1e-4);
+      const changed = pair.find((b) => b !== original);
+      return { at1k: 10 * Math.log10(power(changed, 1000) / power(original, 1000)), at125: 10 * Math.log10(power(changed, 125) / power(original, 125)),
+        peak: peak(changed), sameLength: original.length === changed.length, sampleRate: original.sampleRate };
+    });
+    report(Math.abs(gains.at1k - 12) < 0.4 && Math.abs(gains.at125) < 0.4 && gains.peak < 1 && gains.sameLength,
+      'listening: the "Changed" sound of a 1 kHz question is +12 dB at 1 kHz, unchanged at 125 Hz, not clipped',
+      `${gains.at1k.toFixed(2)} dB at 1 kHz, ${gains.at125.toFixed(2)} dB at 125 Hz, peak ${gains.peak.toFixed(2)}, ${gains.sampleRate} Hz`);
+    report((await page.textContent('#ls-play')) === 'Stop' && (await page.getAttribute('#ls-ab-a', 'aria-pressed')) === 'true', 'listening: plays, starting on Original');
+    await page.click('#ls-ab-b');
+    report((await page.getAttribute('#ls-ab-b', 'aria-pressed')) === 'true', 'listening: switches to Changed');
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: `${ROOT}docs/screenshots/listening.png` });
+    await page.click('#ls-answers button[data-key="1000"]');
+    const right = await page.textContent('#ls-feedback');
+    // After answering, another answer can be heard: it is added to the playing loop.
+    const before = await page.evaluate(() => window.__buffers.length);
+    await page.click('#ls-answers button[data-key="4000"]');
+    const heard = await page.evaluate(() => window.__buffers.length) === before + 1 && await page.$eval('#ls-answers button[data-key="4000"]', (b) => b.classList.contains('sounding'));
+    report(right.startsWith('Correct: 1 kHz.') && heard, 'listening: a right answer is scored, and any answer can be heard afterwards', `"${right}"`);
+    // Question 2: the answer is 63 Hz (random = 0); answer 2 kHz. Then 8 more right answers.
+    await page.evaluate(() => { Math.random = () => 0; });
+    await page.click('#ls-next');
+    await page.click('#ls-answers button[data-key="2000"]');
+    const wrong = await page.textContent('#ls-feedback');
+    for (let i = 0; i < 8; i++) {
+      await page.click('#ls-next');
+      await page.click('#ls-answers button[data-key="63"]');
+    }
+    const summary = await page.textContent('#ls-summary');
+    const total = await page.textContent('#ls-stats tfoot');
+    report(wrong.startsWith('Not quite: it was 63 Hz (you chose 2 kHz).') && summary === 'Round finished: 9 of 10 right. Level 2 passed.' &&
+      (await page.textContent('#ls-next')) === 'Start level 3' && total.includes('9 / 10'),
+      'listening: a round of 10 is scored and passing unlocks the next level', `"${summary}" / total ${total.trim()}`);
+    await page.screenshot({ path: `${ROOT}docs/screenshots/listening-result.png`, fullPage: false });
+
+    // An A/B exercise: one of the two is distorted, and both have the same power.
+    await page.click('#ear-back');
+    await page.click('#ear-open-distortion');
+    await page.click('#ls-next'); // random is 0: the distorted one is A
+    await page.waitForSelector('#ls-ab-b:not([disabled])', { timeout: 20000 });
+    const ab = await page.evaluate(() => {
+      const [a, b] = window.__buffers.slice(-2).map((buffer) => buffer.getChannelData(0));
+      const rms = (d) => Math.sqrt(d.reduce((s, v) => s + v * v, 0) / d.length);
+      return { levelDb: 20 * Math.log10(rms(a) / rms(b)), differ: a.some((v, i) => Math.abs(v - b[i]) > 1e-3) };
+    });
+    await page.click('#ls-answers button[data-key="A"]');
+    const abFeedback = await page.textContent('#ls-feedback');
+    report(Math.abs(ab.levelDb) < 0.2 && ab.differ && abFeedback === 'Correct: it was A.', 'listening: distortion A/B versions differ but are equally loud', `${ab.levelDb.toFixed(2)} dB apart, "${abFeedback}"`);
+
+    // Progress is saved on the device.
+    await page.reload();
+    await captureBuffers();
+    await page.click('#tab-ear');
+    const badge = await page.textContent('#ear-open-eq-boost .train-badge');
+    const today = await page.textContent('#ear-today');
+    report(badge === '1/6' && today === 'Today: 1 round' && !errors.length, 'listening: progress survives a reload', `badge ${badge}, "${today}"${errors.length ? ` errors: ${errors}` : ''}`);
+
+    await page.click('#ear-open-setup');
+    await page.click('#setup-left');
+    const side = await page.evaluate(() => {
+      const b = window.__buffers[window.__buffers.length - 1];
+      return b ? [0, 1].map((c) => b.getChannelData(c).reduce((m, v) => Math.max(m, Math.abs(v)), 0)) : null;
+    });
+    await page.screenshot({ path: `${ROOT}docs/screenshots/headphone-setup.png` });
+    report(side !== null && side[0] > 0.1 && side[1] === 0, 'headphone setup: "Left ear" plays in the left channel only', JSON.stringify(side));
+    await browser.close();
+  }
+
+  // 1f3. Critical listening warns while the microphone is on (Bluetooth headphones drop to call quality).
+  {
+    const { browser, page, errors } = await fakeMic('sine-A4.wav');
+    await page.click('#tab-ear');
+    await page.click('#ear-open-level');
+    const quiet = !(await page.isVisible('#ls-mic-warning'));
+    await page.click('#top-start');
+    await page.waitForSelector('#ls-mic-warning', { state: 'visible', timeout: 5000 });
+    await page.click('#ls-stop-mic');
+    report(quiet && !(await page.isVisible('#ls-mic-warning')) && await page.isVisible('#ear-listen') && !errors.length, 'listening: warns while the microphone is on, and can stop it', errors.join(' '));
     await browser.close();
   }
 
@@ -266,7 +394,7 @@ try {
   for (const [file, targetIndex, expected] of [['sine-C4.wav', 7, /^Excellent.*\(0 cents from C4\)/], ['sine-E4-330Hz.wav', 9, /^Excellent.*\(\+2 cents from E4\)/]]) {
     const { browser, page, errors } = await fakeMic(file);
     await page.click('#tab-ear');
-    await page.click('#ear-mode-singback');
+    await page.click('#ear-open-singback');
     report(await page.isVisible('#singback-need-mic') && await page.isDisabled('#singback-play'), `sing-back (${file}): asks for the microphone first`);
     await page.click('#singback-start-mic');
     await page.waitForSelector('#singback-play:not([disabled])', { timeout: 5000 });
@@ -330,7 +458,7 @@ try {
     await context.setOffline(true);
     await page.reload();
     await page.click('#tab-ear');
-    const offlineOk = await page.isVisible('#ear-notes');
+    const offlineOk = await page.isVisible('#ear-menu');
     await page.goto(`${URL_}how-it-works.html`);
     const offlineGuide = (await page.textContent('h1')) === 'How it works';
     report(offlineOk && offlineGuide && !errors.length, 'works offline after the first visit (app and guide page)', errors.join(' '));

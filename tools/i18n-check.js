@@ -6,8 +6,8 @@
 //
 // 1. Static text: every key the translator looks up on index.html and
 //    how-it-works.html (including hidden sections).
-// 2. Changing text: switches to Chinese, then opens every tab and Lab tool
-//    with a test sound as the microphone, and lists text still in English.
+// 2. Changing text: switches to Chinese, then opens every tab, Lab tool and
+//    Train exercise with a test sound as the microphone, and lists text still in English.
 // ------------------------------------------------------------
 
 import { createRequire } from 'node:module';
@@ -72,6 +72,25 @@ try {
     if (await page.isVisible('#lab-back')) await page.click('#lab-back');
     await page.click(`#${id}`);
     await page.waitForTimeout(1200);
+    await grab();
+  }
+  // Every Train exercise; in the listening ones, play a question and answer it (twice: right or wrong).
+  await page.click('#tab-ear');
+  const exercises = await page.$$eval('[id^="ear-open-"]', (els) => els.map((e) => e.id));
+  for (const id of exercises) {
+    if (await page.isVisible('#ear-back')) await page.click('#ear-back');
+    await page.click(`#${id}`);
+    await page.waitForTimeout(300);
+    await grab();
+    if (!(await page.isVisible('#ls-next'))) continue;
+    for (const answer of [0, 1]) {
+      await page.click('#ls-next');
+      await page.waitForSelector('#ls-ab-b:not([disabled])', { timeout: 20000 });
+      await grab();
+      await page.click(`#ls-answers button >> nth=${answer}`);
+      await grab();
+    }
+    await page.selectOption('#ls-level', { index: 1 });
     await grab();
   }
   await page.click('#open-settings');
