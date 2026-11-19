@@ -77,6 +77,11 @@ Note Lab uses the same **Liquid Glass** theme as the other web apps:
   `main` and `/ (root)`, and save. After a minute the app is at
   `https://<your-user-name>.github.io/note-lab/`. It must be **https**, or the
   microphone won't work.
+- **Online, for your phone (Vercel):** import the repo at
+  <https://vercel.com/new>. No settings to change: `vercel.json` already says
+  there is no build and the site is the repo root. Every push to `main` then
+  redeploys, and the app is at `https://<project-name>.vercel.app/` (https, so
+  the microphone works). Or from a terminal: `npx vercel --prod`.
 - **Install on iPhone:** open that address in **Safari**, tap **Share → Add to
   Home Screen**. It then opens full-screen like an app, and works offline after
   the first visit.
